@@ -368,7 +368,7 @@ test('creates and updates a product', async () => {
 test('rejects invalid product price with 400 JSON', async () => {
   const { createApp } = require('../src/app');
   const token = tokenFor(2);
-  const invalidPrices = [null, '', '   ', [], {}, 'abc', -1];
+  const invalidPrices = [null, '', '   ', [], {}, 'abc', -1, false];
 
   for (const [index, price] of invalidPrices.entries()) {
     const response = await request(createApp())
@@ -423,7 +423,7 @@ test('creates and updates a product variant', async () => {
 test('rejects invalid variant stock with 400 JSON', async () => {
   const { createApp } = require('../src/app');
   const token = tokenFor(2);
-  const invalidStocks = [null, '', '   ', [], {}, 'abc', -1, 1.5];
+  const invalidStocks = [null, '', '   ', [], {}, 'abc', -1, 1.5, false];
 
   for (const [index, stockQuantity] of invalidStocks.entries()) {
     const response = await request(createApp())
