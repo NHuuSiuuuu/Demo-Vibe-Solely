@@ -6,7 +6,7 @@
     "dev": "concurrently \"npm run dev --workspace server\" \"npm run dev --workspace client\"",
     "test": "npm run test --workspace server && npm run test --workspace client",
     "build": "npm run build --workspace client",
-    "db:setup": "psql \"$DATABASE_URL\" -f database/schema.sql && psql \"$DATABASE_URL\" -f database/seed.sql"
+    "db:setup": "node scripts/db-setup.js"
   },
   "workspaces": [
     "server",

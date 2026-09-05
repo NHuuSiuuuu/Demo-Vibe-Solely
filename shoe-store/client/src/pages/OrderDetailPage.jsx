@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import { formatOrderCode } from './OrdersPage.jsx';
 
 const timelineSteps = ['pending', 'confirmed', 'shipping', 'completed'];
 
@@ -56,8 +57,9 @@ export default function OrderDetailPage() {
     <section className="shop-page" aria-labelledby="order-title">
       <div className="section-heading">
         <div>
-          <h1 id="order-title">Order ORD-{order.id}</h1>
+          <h1 id="order-title">Order {formatOrderCode(order)}</h1>
           <p>Payment: {order.paymentStatus}</p>
+          {order.note ? <p>Note: {order.note}</p> : null}
         </div>
         <StatusBadge tone="info">{order.orderStatus}</StatusBadge>
       </div>

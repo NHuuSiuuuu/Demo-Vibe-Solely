@@ -150,6 +150,14 @@ test('rejects login with wrong password using 401 JSON', async () => {
   assert.deepEqual(response.body, { message: 'Invalid email or password', details: null });
 });
 
+test('returns 400 JSON when registration body is empty', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp()).post('/api/auth/register').send().expect(400);
+
+  assert.deepEqual(response.body, { message: 'Name is required', details: null });
+});
+
 test('returns current user from bearer token', async () => {
   const { createApp } = require('../src/app');
   const registerResponse = await request(createApp())

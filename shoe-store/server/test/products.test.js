@@ -141,6 +141,16 @@ test('sorts products by price ascending', async () => {
   assert.deepEqual(response.body.products, [normalizeCard(productCards[1]), normalizeCard(productCards[0])]);
 });
 
+test('returns 400 JSON for invalid numeric price filters', async () => {
+  const { createApp } = require('../src/app');
+
+  for (const filter of ['minPrice=abc', 'maxPrice=-10', 'minPrice=', 'maxPrice=false']) {
+    const response = await request(createApp()).get(`/api/products?${filter}`).expect(400);
+
+    assert.deepEqual(response.body, { message: 'Price filter must be a nonnegative number', details: null });
+  }
+});
+
 test('returns one product by slug', async () => {
   const { createApp } = require('../src/app');
 

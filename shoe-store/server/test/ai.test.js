@@ -165,6 +165,18 @@ test('returns a helpful fallback when no product matches', async () => {
   assert.match(response.body.answer, /mở rộng bộ lọc/i);
 });
 
+test('returns 400 JSON when AI chat body is empty', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .post('/api/ai/chat')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send()
+    .expect(400);
+
+  assert.deepEqual(response.body, { message: 'Message is required', details: null });
+});
+
 test('stores user and assistant messages', async () => {
   const { createApp } = require('../src/app');
 

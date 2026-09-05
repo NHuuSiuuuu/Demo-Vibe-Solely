@@ -47,6 +47,7 @@ export default function ProductDetailPage() {
     () => product?.variants?.find((variant) => String(variant.id) === selectedVariantId),
     [product, selectedVariantId]
   );
+  const selectedPrice = Number(product?.price || 0) + Number(selectedVariant?.priceDelta || 0);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -99,7 +100,7 @@ export default function ProductDetailPage() {
         </Link>
         <p className="eyebrow">{product.brand}</p>
         <h1 id="product-title">{product.name}</h1>
-        <p className="detail-price">{formatMoney(product.price)}</p>
+        <p className="detail-price">{formatMoney(selectedPrice)}</p>
         <p>{product.description}</p>
 
         <form className="purchase-form" onSubmit={handleSubmit}>
@@ -115,10 +116,11 @@ export default function ProductDetailPage() {
                     checked={selectedVariantId === String(variant.id)}
                     onChange={(event) => setSelectedVariantId(event.target.value)}
                     disabled={variant.stockQuantity <= 0}
-                    aria-label={`Size ${variant.size}, color ${variant.color}`}
+                    aria-label={`Size ${variant.size}, color ${variant.color}, ${formatMoney(Number(product.price) + Number(variant.priceDelta || 0))}`}
                   />
                   <span>{variant.size}</span>
                   <span>{variant.color}</span>
+                  <span>{formatMoney(Number(product.price) + Number(variant.priceDelta || 0))}</span>
                   <small>{variant.stockQuantity} left</small>
                 </label>
               ))}

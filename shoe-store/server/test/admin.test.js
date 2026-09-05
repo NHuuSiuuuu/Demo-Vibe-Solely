@@ -15,6 +15,7 @@ let orders;
 let orderItems;
 let nextProductId;
 let nextVariantId;
+let restoredStockUpdates;
 
 function resetStore() {
   users = [
@@ -78,6 +79,8 @@ function resetStore() {
       shipping_total: '0.00',
       tax_total: '0.00',
       grand_total: '89.99',
+      note: 'Ring bell',
+      order_code: 'ORD-900',
       order_status: 'pending',
       payment_method: 'cod',
       payment_status: 'unpaid',
@@ -102,6 +105,7 @@ function resetStore() {
   ];
   nextProductId = 11;
   nextVariantId = 102;
+  restoredStockUpdates = [];
 }
 
 function tokenFor(userId) {
@@ -137,7 +141,7 @@ async function mockQuery(text, params = []) {
 
   if (text.includes('AS products_count') && text.includes('AS completed_revenue')) {
     const completedRevenue = orders
-      .filter((order) => order.order_status === 'completed')
+      .filter((order) => order.payment_status === 'paid')
       .reduce((sum, order) => sum + Number(order.grand_total), 0);
     return {
       rows: [
@@ -234,6 +238,16 @@ async function mockQuery(text, params = []) {
     };
     variants.push(variant);
     return { rows: [variantRow(variant)], rowCount: 1 };
+  }
+
+  if (text.includes('UPDATE product_variants') && text.includes('stock_quantity = stock_quantity + $1')) {
+    const variant = variants.find((candidate) => candidate.id === Number(params[1]));
+    if (!variant) {
+      return { rows: [], rowCount: 0 };
+    }
+    variant.stock_quantity += Number(params[0]);
+    restoredStockUpdates.push({ variantId: Number(params[1]), quantity: Number(params[0]) });
+    return { rows: [{ id: variant.id, stock_quantity: variant.stock_quantity }], rowCount: 1 };
   }
 
   if (text.includes('UPDATE product_variants') && text.includes('WHERE id = $')) {
@@ -557,4 +571,30 @@ test('rejects invalid order status transition with 400', async () => {
     .expect(400);
 
   assert.deepEqual(response.body, { message: 'Invalid order status transition', details: null });
+});
+
+test('restores variant stock when admin cancels an order', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .patch('/api/admin/orders/900/status')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ status: 'cancelled' })
+    .expect(200);
+
+  assert.equal(response.body.order.orderStatus, 'cancelled');
+  assert.equal(variants[0].stock_quantity, 6);
+  assert.deepEqual(restoredStockUpdates, [{ variantId: 101, quantity: 1 }]);
+});
+
+test('returns 400 JSON when admin status body is empty', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .patch('/api/admin/orders/900/status')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send()
+    .expect(400);
+
+  assert.deepEqual(response.body, { message: 'Invalid order status', details: null });
 });

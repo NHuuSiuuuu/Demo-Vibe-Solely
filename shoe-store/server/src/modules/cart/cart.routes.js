@@ -18,7 +18,7 @@ router.get(
 router.post(
   '/items',
   asyncHandler(async (req, res) => {
-    const cart = await addCartItem(req.user.id, req.body);
+    const cart = await addCartItem(req.user.id, req.body || {});
     res.status(201).json({ cart });
   })
 );
@@ -26,7 +26,7 @@ router.post(
 router.patch(
   '/items/:id',
   asyncHandler(async (req, res) => {
-    const cart = await updateCartItem(req.user.id, req.params.id, req.body);
+    const cart = await updateCartItem(req.user.id, req.params.id, req.body || {});
     res.json({ cart });
   })
 );

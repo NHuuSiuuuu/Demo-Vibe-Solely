@@ -7,7 +7,7 @@ const { HttpError } = require('../../utils/httpError');
 const CUSTOMER_ROLE = 'customer';
 const JWT_SECRET = process.env.JWT_SECRET || 'shoe-store-dev-secret';
 
-function validateRegistration({ name, email, password }) {
+function validateRegistration({ name, email, password } = {}) {
   if (!name || !String(name).trim()) {
     throw new HttpError(400, 'Name is required');
   }
@@ -61,7 +61,7 @@ async function getUserById(id) {
   return result.rows[0] || null;
 }
 
-async function registerCustomer({ name, email, password }) {
+async function registerCustomer({ name, email, password } = {}) {
   validateRegistration({ name, email, password });
 
   const normalizedEmail = String(email).trim().toLowerCase();
@@ -93,7 +93,7 @@ async function registerCustomer({ name, email, password }) {
   }
 }
 
-async function login({ email, password }) {
+async function login({ email, password } = {}) {
   const result = await query(
     `
       SELECT id, email, password_hash, role, first_name, last_name

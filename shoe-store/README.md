@@ -7,7 +7,7 @@ Local shoe store MVP scaffold with a React + Vite client and Node.js/Express API
 - Node.js 20 or newer
 - npm
 - PostgreSQL client tools
-- A PostgreSQL database URL exported as `DATABASE_URL`
+- A PostgreSQL database URL in `server/.env` or exported as `DATABASE_URL`
 
 ## Local URLs
 

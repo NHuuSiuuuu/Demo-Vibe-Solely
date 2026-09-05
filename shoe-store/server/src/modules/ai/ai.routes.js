@@ -10,7 +10,8 @@ router.post(
   requireAuth,
   requireCustomer,
   asyncHandler(async (req, res) => {
-    const result = await adviseProducts({ user: req.user, message: req.body.message });
+    const body = req.body || {};
+    const result = await adviseProducts({ user: req.user, message: body.message });
     res.json(result);
   })
 );

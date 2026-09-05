@@ -10,6 +10,10 @@ function formatDate(value) {
   return value ? new Date(value).toLocaleDateString() : '';
 }
 
+function formatOrderCode(order) {
+  return order.orderCode || `ORD-${order.id}`;
+}
+
 export default function OrdersPage() {
   const { token } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -50,7 +54,7 @@ export default function OrdersPage() {
       <div className="order-list">
         {orders.map((order) => (
           <Link className="order-row" to={`/orders/${order.id}`} key={order.id}>
-            <span>ORD-{order.id}</span>
+            <span>{formatOrderCode(order)}</span>
             <span>{formatDate(order.createdAt)}</span>
             <strong>{formatMoney(order.grandTotal)}</strong>
             <StatusBadge tone="info">{order.orderStatus}</StatusBadge>
@@ -62,4 +66,4 @@ export default function OrdersPage() {
   );
 }
 
-export { formatDate };
+export { formatDate, formatOrderCode };

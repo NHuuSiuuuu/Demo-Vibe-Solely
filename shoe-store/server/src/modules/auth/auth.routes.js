@@ -8,7 +8,7 @@ const router = express.Router();
 router.post(
   '/register',
   asyncHandler(async (req, res) => {
-    const result = await registerCustomer(req.body);
+    const result = await registerCustomer(req.body || {});
     res.status(201).json(result);
   })
 );
@@ -16,7 +16,7 @@ router.post(
 router.post(
   '/login',
   asyncHandler(async (req, res) => {
-    const result = await login(req.body);
+    const result = await login(req.body || {});
     res.json(result);
   })
 );

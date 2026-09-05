@@ -21,6 +21,7 @@ test('schema defines the required PostgreSQL enums, tables, and constraints', ()
     'ALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE (email);',
     'ALTER TABLE products ADD CONSTRAINT products_slug_unique UNIQUE (slug);',
     'ALTER TABLE product_variants ADD CONSTRAINT product_variants_sku_unique UNIQUE (sku);',
+    'ALTER TABLE orders ADD CONSTRAINT orders_order_code_unique UNIQUE (order_code);',
     'ALTER TABLE product_variants ADD CONSTRAINT product_variants_stock_nonnegative CHECK (stock_quantity >= 0);',
     'ALTER TABLE cart_items ADD CONSTRAINT cart_items_quantity_positive CHECK (quantity > 0);',
     'ALTER TABLE order_items ADD CONSTRAINT order_items_quantity_positive CHECK (quantity > 0);'
@@ -48,6 +49,8 @@ test('orders table exposes order_status column for later API code', () => {
   const ordersTable = schema.match(/CREATE TABLE orders \(([\s\S]*?)\n\);/);
 
   assert.notEqual(ordersTable, null);
+  assert.match(ordersTable[1], /\border_code TEXT NOT NULL/);
+  assert.match(ordersTable[1], /\bnote TEXT/);
   assert.match(ordersTable[1], /\border_status order_status NOT NULL DEFAULT 'pending'/);
   assert.doesNotMatch(ordersTable[1], /\n\s+status order_status\b/);
 });

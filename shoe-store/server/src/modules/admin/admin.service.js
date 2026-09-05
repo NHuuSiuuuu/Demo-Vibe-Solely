@@ -203,7 +203,7 @@ async function getDashboard() {
       (SELECT COUNT(*)::INT FROM product_variants) AS variants_count,
       (SELECT COUNT(*)::INT FROM orders) AS orders_count,
       (SELECT COUNT(*)::INT FROM orders WHERE order_status = 'pending') AS pending_orders_count,
-      COALESCE((SELECT SUM(grand_total) FROM orders WHERE order_status = 'completed'), 0) AS completed_revenue
+      COALESCE((SELECT SUM(grand_total) FROM orders WHERE payment_status = 'paid'), 0) AS completed_revenue
   `);
 
   const row = result.rows[0];
@@ -396,7 +396,7 @@ async function listOrders() {
   return result.rows.map((row) => mapOrder(row));
 }
 
-async function getOrderItems(orderId, client = { query }) {
+async function getOrderItems(orderId, client = { query }, { lock = false } = {}) {
   const result = await client.query(
     `
       SELECT
@@ -413,6 +413,7 @@ async function getOrderItems(orderId, client = { query }) {
       FROM order_items
       WHERE order_id = $1
       ORDER BY id ASC
+      ${lock ? 'FOR UPDATE' : ''}
     `,
     [orderId]
   );
@@ -469,6 +470,30 @@ async function updateOrderStatus(id, status) {
 
     assertOrderTransition(currentOrder.order_status, status);
 
+    const items = await getOrderItems(id, client, { lock: status === 'cancelled' });
+
+    if (status === 'cancelled') {
+      for (const item of items) {
+        if (item.product_variant_id === null || item.product_variant_id === undefined) {
+          continue;
+        }
+
+        const stockResult = await client.query(
+          `
+            UPDATE product_variants
+            SET stock_quantity = stock_quantity + $1
+            WHERE id = $2
+            RETURNING id, stock_quantity
+          `,
+          [Number(item.quantity), item.product_variant_id]
+        );
+
+        if (stockResult.rowCount !== 1) {
+          throw new HttpError(409, 'Unable to restore product variant stock');
+        }
+      }
+    }
+
     const updateResult = await client.query(
       `
         UPDATE orders
@@ -480,7 +505,6 @@ async function updateOrderStatus(id, status) {
       `,
       [status, id]
     );
-    const items = await getOrderItems(id, client);
 
     return mapOrder(updateResult.rows[0], items);
   });

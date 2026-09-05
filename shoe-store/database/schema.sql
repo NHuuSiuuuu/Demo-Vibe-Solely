@@ -84,6 +84,7 @@ CREATE TABLE cart_items (
 
 CREATE TABLE orders (
   id BIGSERIAL PRIMARY KEY,
+  order_code TEXT NOT NULL,
   user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
   customer_email TEXT NOT NULL,
   customer_name TEXT NOT NULL,
@@ -97,6 +98,7 @@ CREATE TABLE orders (
   shipping_total NUMERIC(10, 2) NOT NULL DEFAULT 0,
   tax_total NUMERIC(10, 2) NOT NULL DEFAULT 0,
   grand_total NUMERIC(10, 2) NOT NULL,
+  note TEXT,
   order_status order_status NOT NULL DEFAULT 'pending',
   payment_method payment_method NOT NULL DEFAULT 'cod',
   payment_status payment_status NOT NULL DEFAULT 'unpaid',
@@ -130,6 +132,7 @@ CREATE TABLE ai_chat_messages (
 ALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE (email);
 ALTER TABLE products ADD CONSTRAINT products_slug_unique UNIQUE (slug);
 ALTER TABLE product_variants ADD CONSTRAINT product_variants_sku_unique UNIQUE (sku);
+ALTER TABLE orders ADD CONSTRAINT orders_order_code_unique UNIQUE (order_code);
 ALTER TABLE product_variants ADD CONSTRAINT product_variants_stock_nonnegative CHECK (stock_quantity >= 0);
 ALTER TABLE cart_items ADD CONSTRAINT cart_items_quantity_positive CHECK (quantity > 0);
 ALTER TABLE order_items ADD CONSTRAINT order_items_quantity_positive CHECK (quantity > 0);

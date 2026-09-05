@@ -78,6 +78,8 @@ function resetStore() {
       shipping_total: '0.00',
       tax_total: '0.00',
       grand_total: '89.99',
+      note: 'Other order note',
+      order_code: 'ORD-OTHER',
       order_status: 'pending',
       payment_method: 'cod',
       payment_status: 'unpaid',
@@ -249,9 +251,15 @@ async function mockQuery(text, params = []) {
     return { rows, rowCount: rows.length };
   }
 
+  if (text.includes('FROM orders') && text.includes('WHERE order_code = $1')) {
+    const order = orders.find((candidate) => candidate.order_code === params[0]);
+    return { rows: order ? [{ id: order.id }] : [], rowCount: order ? 1 : 0 };
+  }
+
   if (text.includes('INSERT INTO orders')) {
     const [
       userId,
+      orderCode,
       customerEmail,
       customerName,
       line1,
@@ -261,7 +269,8 @@ async function mockQuery(text, params = []) {
       postalCode,
       country,
       subtotal,
-      grandTotal
+      grandTotal,
+      note
     ] = params;
     const order = {
       id: nextOrderId++,
@@ -278,6 +287,8 @@ async function mockQuery(text, params = []) {
       shipping_total: '0.00',
       tax_total: '0.00',
       grand_total: grandTotal,
+      note,
+      order_code: orderCode,
       order_status: 'pending',
       payment_method: 'cod',
       payment_status: 'unpaid',
@@ -417,6 +428,18 @@ test('rejects cart quantity above stock with 409 JSON', async () => {
   assert.deepEqual(response.body, { message: 'Requested quantity exceeds stock', details: null });
 });
 
+test('returns 400 JSON when add-to-cart body is empty', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .post('/api/cart/items')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send()
+    .expect(400);
+
+  assert.deepEqual(response.body, { message: 'Variant id must be positive', details: null });
+});
+
 test('updates and removes cart items', async () => {
   const { createApp } = require('../src/app');
   const token = tokenFor(1);
@@ -475,9 +498,23 @@ test('creates a COD order from cart and clears cart', async () => {
   assert.equal(response.body.order.paymentMethod, 'cod');
   assert.equal(response.body.order.paymentStatus, 'unpaid');
   assert.equal(response.body.order.orderStatus, 'pending');
+  assert.equal(response.body.order.note, 'Leave at door');
+  assert.match(response.body.order.orderCode, /^ORD-[A-Z0-9-]+$/);
   assert.equal(response.body.order.grandTotal, 179.98);
   assert.equal(response.body.order.items[0].sku, 'RR1-9-BLK');
   assert.deepEqual(fullCartRows(1), []);
+});
+
+test('returns 400 JSON when checkout body is empty', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .post('/api/orders')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send()
+    .expect(400);
+
+  assert.deepEqual(response.body, { message: 'Receiver name is required', details: null });
 });
 
 test('rejects admin JWTs from order customer APIs with 403 JSON', async () => {

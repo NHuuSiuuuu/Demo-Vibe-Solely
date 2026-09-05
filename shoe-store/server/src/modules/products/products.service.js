@@ -22,6 +22,29 @@ function addParam(params, value) {
   return `$${params.length}`;
 }
 
+function normalizePriceFilter(filters, field) {
+  if (!Object.prototype.hasOwnProperty.call(filters, field)) {
+    return null;
+  }
+
+  const value = filters[field];
+  if (Array.isArray(value) || value === null || value === undefined) {
+    throw new HttpError(400, 'Price filter must be a nonnegative number');
+  }
+
+  const text = String(value).trim();
+  if (!text) {
+    throw new HttpError(400, 'Price filter must be a nonnegative number');
+  }
+
+  const amount = Number(text);
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new HttpError(400, 'Price filter must be a nonnegative number');
+  }
+
+  return amount.toFixed(2);
+}
+
 function mapProductCard(row) {
   return {
     id: Number(row.id),
@@ -111,12 +134,12 @@ function buildProductListQuery(filters) {
     )`);
   }
 
-  const minPrice = cleanText(filters.minPrice);
+  const minPrice = normalizePriceFilter(filters, 'minPrice');
   if (minPrice) {
     where.push(`p.base_price >= ${addParam(params, minPrice)}`);
   }
 
-  const maxPrice = cleanText(filters.maxPrice);
+  const maxPrice = normalizePriceFilter(filters, 'maxPrice');
   if (maxPrice) {
     where.push(`p.base_price <= ${addParam(params, maxPrice)}`);
   }
@@ -160,7 +183,7 @@ function buildProductListQuery(filters) {
   };
 }
 
-async function listProducts(filters) {
+async function listProducts(filters = {}) {
   const { text, params } = buildProductListQuery(filters);
   const result = await query(text, params);
   return result.rows.map(mapProductCard);

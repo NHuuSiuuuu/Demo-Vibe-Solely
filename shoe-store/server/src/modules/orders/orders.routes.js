@@ -10,7 +10,7 @@ router.use(requireAuth, requireCustomer);
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const order = await createCodOrder(req.user.id, req.body);
+    const order = await createCodOrder(req.user.id, req.body || {});
     res.status(201).json({ order });
   })
 );

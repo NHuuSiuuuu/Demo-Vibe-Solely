@@ -121,7 +121,7 @@ async function getCart(userId) {
   return mapped;
 }
 
-async function addCartItem(userId, { variantId, quantity }) {
+async function addCartItem(userId, { variantId, quantity } = {}) {
   const parsedVariantId = parsePositiveInteger(variantId, 'Variant id');
   const parsedQuantity = parsePositiveInteger(quantity);
   const cart = await getOrCreateCart(userId);
@@ -170,7 +170,7 @@ async function addCartItem(userId, { variantId, quantity }) {
   return getCart(userId);
 }
 
-async function updateCartItem(userId, itemId, { quantity }) {
+async function updateCartItem(userId, itemId, { quantity } = {}) {
   const parsedItemId = parsePositiveInteger(itemId, 'Cart item id');
   const parsedQuantity = parsePositiveInteger(quantity);
   const { cart, rows } = await getCartRows(userId);

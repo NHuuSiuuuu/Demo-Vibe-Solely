@@ -34,6 +34,7 @@ function resetOrders() {
   adminOrders = [
     {
       id: 900,
+      orderCode: 'ORD-20260905-ABC123',
       userId: 1,
       customerEmail: 'customer@shoestore.local',
       customerName: 'Jordan Miles',
@@ -49,6 +50,7 @@ function resetOrders() {
       shippingTotal: 0,
       taxTotal: 0,
       grandTotal: 89.99,
+      note: 'Ring bell',
       orderStatus: 'shipping',
       paymentMethod: 'cod',
       paymentStatus: 'unpaid',
@@ -70,6 +72,7 @@ function resetOrders() {
     },
     {
       id: 901,
+      orderCode: 'ORD-20260905-PAID',
       customerEmail: 'paid@shoestore.local',
       customerName: 'Paid Customer',
       shippingAddress: { line1: '2 Main St', line2: '', city: 'Austin', state: 'TX', postalCode: '78702', country: 'US' },
@@ -81,6 +84,7 @@ function resetOrders() {
     },
     {
       id: 902,
+      orderCode: 'ORD-20260905-PEN1',
       customerEmail: 'pending-1@shoestore.local',
       customerName: 'Pending One',
       shippingAddress: { line1: '3 Main St', line2: '', city: 'Austin', state: 'TX', postalCode: '78703', country: 'US' },
@@ -92,6 +96,7 @@ function resetOrders() {
     },
     {
       id: 903,
+      orderCode: 'ORD-20260905-PEN2',
       customerEmail: 'pending-2@shoestore.local',
       customerName: 'Pending Two',
       shippingAddress: { line1: '4 Main St', line2: '', city: 'Austin', state: 'TX', postalCode: '78704', country: 'US' },
@@ -103,6 +108,7 @@ function resetOrders() {
     },
     {
       id: 904,
+      orderCode: 'ORD-20260905-PEN3',
       customerEmail: 'pending-3@shoestore.local',
       customerName: 'Pending Three',
       shippingAddress: { line1: '5 Main St', line2: '', city: 'Austin', state: 'TX', postalCode: '78705', country: 'US' },
@@ -310,7 +316,7 @@ describe('admin flow', () => {
     renderWithToken('/admin/orders');
 
     const table = await screen.findByRole('table', { name: 'Admin orders' });
-    const orderRow = within(table).getByText('ORD-900').closest('tr');
+    const orderRow = within(table).getByText('ORD-20260905-ABC123').closest('tr');
     expect(within(orderRow).getByText('customer@shoestore.local')).toBeTruthy();
     expect(within(orderRow).getByText('$89.99')).toBeTruthy();
     expect(within(orderRow).getByText('shipping')).toBeTruthy();
@@ -320,7 +326,7 @@ describe('admin flow', () => {
   it('updates order status to completed', async () => {
     renderWithToken('/admin/orders/900');
 
-    await screen.findByRole('heading', { name: 'Order ORD-900' });
+    await screen.findByRole('heading', { name: 'Order ORD-20260905-ABC123' });
     fireEvent.click(screen.getByRole('button', { name: 'Mark completed' }));
 
     await screen.findByText('Order status updated.');

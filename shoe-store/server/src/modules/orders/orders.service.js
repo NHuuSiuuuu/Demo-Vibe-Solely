@@ -1,6 +1,7 @@
 const { query } = require('../../db/pool');
 const { withTransaction } = require('../../db/transactions');
 const { HttpError } = require('../../utils/httpError');
+const crypto = require('node:crypto');
 
 function toNumber(value) {
   return value === null || value === undefined ? value : Number(value);
@@ -12,6 +13,37 @@ function requireText(value, message) {
     throw new HttpError(400, message);
   }
   return text;
+}
+
+function cleanOptionalText(value) {
+  const text = String(value || '').trim();
+  return text || null;
+}
+
+function generateOrderCode() {
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const suffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+  return `ORD-${date}-${suffix}`;
+}
+
+async function generateUniqueOrderCode(client) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const orderCode = generateOrderCode();
+    const existing = await client.query(
+      `
+        SELECT id
+        FROM orders
+        WHERE order_code = $1
+      `,
+      [orderCode]
+    );
+
+    if (existing.rowCount === 0) {
+      return orderCode;
+    }
+  }
+
+  throw new HttpError(500, 'Could not generate order code');
 }
 
 function mapOrderItem(row) {
@@ -32,6 +64,7 @@ function mapOrderItem(row) {
 function mapOrder(row, items = []) {
   return {
     id: Number(row.id),
+    orderCode: row.order_code,
     userId: row.user_id === null || row.user_id === undefined ? null : Number(row.user_id),
     customerEmail: row.customer_email,
     customerName: row.customer_name,
@@ -47,6 +80,7 @@ function mapOrder(row, items = []) {
     shippingTotal: toNumber(row.shipping_total),
     taxTotal: toNumber(row.tax_total),
     grandTotal: toNumber(row.grand_total),
+    note: row.note,
     orderStatus: row.order_status,
     paymentMethod: row.payment_method,
     paymentStatus: row.payment_status,
@@ -147,11 +181,11 @@ async function getOrderItems(orderId, client = { query }) {
   return result.rows;
 }
 
-async function createCodOrder(userId, { receiverName, phone, shippingAddress, note }) {
+async function createCodOrder(userId, { receiverName, phone, shippingAddress, note } = {}) {
   const customerName = requireText(receiverName, 'Receiver name is required');
   requireText(phone, 'Phone is required');
   const address = validateAddress(shippingAddress);
-  void note;
+  const orderNote = cleanOptionalText(note);
 
   return withTransaction(async (client) => {
     const customer = await getCustomer(userId, client);
@@ -181,6 +215,7 @@ async function createCodOrder(userId, { receiverName, phone, shippingAddress, no
       `
         INSERT INTO orders (
           user_id,
+          order_code,
           customer_email,
           customer_name,
           shipping_address_line1,
@@ -191,15 +226,17 @@ async function createCodOrder(userId, { receiverName, phone, shippingAddress, no
           shipping_country,
           subtotal,
           grand_total,
+          note,
           payment_method,
           payment_status,
           order_status
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'cod', 'unpaid', 'pending')
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'cod', 'unpaid', 'pending')
         RETURNING *
       `,
       [
         userId,
+        await generateUniqueOrderCode(client),
         customer.email,
         customerName,
         address.line1,
@@ -209,7 +246,8 @@ async function createCodOrder(userId, { receiverName, phone, shippingAddress, no
         address.postalCode,
         address.country,
         subtotal.toFixed(2),
-        subtotal.toFixed(2)
+        subtotal.toFixed(2),
+        orderNote
       ]
     );
 
@@ -248,7 +286,7 @@ async function createCodOrder(userId, { receiverName, phone, shippingAddress, no
       );
       insertedItems.push(itemResult.rows[0]);
 
-      await client.query(
+      const stockResult = await client.query(
         `
           UPDATE product_variants
           SET stock_quantity = stock_quantity - $1
@@ -258,6 +296,9 @@ async function createCodOrder(userId, { receiverName, phone, shippingAddress, no
         `,
         [Number(item.quantity), item.product_variant_id]
       );
+      if (stockResult.rowCount !== 1) {
+        throw new HttpError(409, 'Requested quantity exceeds stock');
+      }
     }
 
     await client.query(

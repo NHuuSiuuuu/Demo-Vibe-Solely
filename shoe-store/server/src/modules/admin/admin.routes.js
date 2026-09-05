@@ -45,7 +45,7 @@ router.get(
 router.post(
   '/products',
   asyncHandler(async (req, res) => {
-    const product = await createProduct(req.body);
+    const product = await createProduct(req.body || {});
     res.status(201).json({ product });
   })
 );
@@ -53,7 +53,7 @@ router.post(
 router.patch(
   '/products/:id',
   asyncHandler(async (req, res) => {
-    const product = await updateProduct(req.params.id, req.body);
+    const product = await updateProduct(req.params.id, req.body || {});
     res.json({ product });
   })
 );
@@ -61,7 +61,7 @@ router.patch(
 router.post(
   '/products/:id/variants',
   asyncHandler(async (req, res) => {
-    const variant = await createVariant(req.params.id, req.body);
+    const variant = await createVariant(req.params.id, req.body || {});
     res.status(201).json({ variant });
   })
 );
@@ -69,7 +69,7 @@ router.post(
 router.patch(
   '/variants/:id',
   asyncHandler(async (req, res) => {
-    const variant = await updateVariant(req.params.id, req.body);
+    const variant = await updateVariant(req.params.id, req.body || {});
     res.json({ variant });
   })
 );
@@ -93,7 +93,8 @@ router.get(
 router.patch(
   '/orders/:id/status',
   asyncHandler(async (req, res) => {
-    const order = await updateOrderStatus(req.params.id, req.body.status);
+    const body = req.body || {};
+    const order = await updateOrderStatus(req.params.id, body.status);
     res.json({ order });
   })
 );

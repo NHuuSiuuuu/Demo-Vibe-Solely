@@ -4,6 +4,7 @@ import { apiClient } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatMoney } from '../../components/ProductCard.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import { formatOrderCode } from '../OrdersPage.jsx';
 
 const nextStatuses = {
   pending: ['confirmed', 'cancelled'],
@@ -76,8 +77,9 @@ export default function AdminOrderDetailPage() {
           <Link className="text-link" to="/admin/orders">
             Back to orders
           </Link>
-          <h1 id="admin-order-title">Order ORD-{order.id}</h1>
+          <h1 id="admin-order-title">Order {formatOrderCode(order)}</h1>
           <p>{order.customerEmail}</p>
+          {order.note ? <p>Note: {order.note}</p> : null}
         </div>
         <div className="admin-status-stack">
           <StatusBadge tone="info">{order.orderStatus}</StatusBadge>

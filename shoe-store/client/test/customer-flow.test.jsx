@@ -66,6 +66,7 @@ const cartWithItem = {
 
 const order = {
   id: 900,
+  orderCode: 'ORD-20260905-ABC123',
   userId: 1,
   customerEmail: 'customer@example.com',
   customerName: 'Jordan Miles',
@@ -81,6 +82,7 @@ const order = {
   shippingTotal: 0,
   taxTotal: 0,
   grandTotal: 240,
+  note: 'Leave at door',
   orderStatus: 'shipping',
   paymentMethod: 'cod',
   paymentStatus: 'unpaid',
@@ -217,8 +219,11 @@ describe('customer shopping flow', () => {
   it('adds a selected variant to cart', async () => {
     const fetchMock = renderAsCustomer('/products/road-runner-1');
     await screen.findByRole('heading', { name: 'Road Runner 1' });
+    expect(screen.getAllByText('$120.00').length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByLabelText('Size 9, color black'));
+    fireEvent.click(screen.getByLabelText('Size 10, color white, $130.00'));
+    expect(screen.getAllByText('$130.00').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByLabelText('Size 9, color black, $120.00'));
     fireEvent.change(screen.getByLabelText('Quantity'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add to cart' }));
 
@@ -245,7 +250,7 @@ describe('customer shopping flow', () => {
     fireEvent.change(screen.getByLabelText('Note'), { target: { value: 'Leave at door' } });
     fireEvent.click(screen.getByRole('button', { name: 'Place COD order' }));
 
-    expect(await screen.findByRole('heading', { name: 'Order ORD-900' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Order ORD-20260905-ABC123' })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/orders'),
       expect.objectContaining({
@@ -270,7 +275,7 @@ describe('customer shopping flow', () => {
   it('renders order status tracking', async () => {
     renderAsCustomer('/orders/900');
 
-    expect(await screen.findByRole('heading', { name: 'Order ORD-900' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Order ORD-20260905-ABC123' })).toBeTruthy();
     const timeline = screen.getByLabelText('Order status timeline');
     expect(within(timeline).getByText('pending')).toBeTruthy();
     expect(within(timeline).getByText('confirmed')).toBeTruthy();
@@ -278,6 +283,7 @@ describe('customer shopping flow', () => {
     expect(within(timeline).getByText('completed')).toBeTruthy();
     expect(within(timeline).getByText('Current')).toBeTruthy();
     expect(screen.getByText('Payment: unpaid')).toBeTruthy();
+    expect(screen.getByText('Note: Leave at door')).toBeTruthy();
   });
 
   it('shows AI product recommendations', async () => {

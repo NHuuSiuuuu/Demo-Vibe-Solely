@@ -4,7 +4,7 @@ import { apiClient } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatMoney } from '../../components/ProductCard.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
-import { formatDate } from '../OrdersPage.jsx';
+import { formatDate, formatOrderCode } from '../OrdersPage.jsx';
 
 export default function AdminOrdersPage() {
   const { token } = useAuth();
@@ -63,7 +63,7 @@ export default function AdminOrdersPage() {
           <tbody>
             {orders.map((order) => (
               <tr key={order.id}>
-                <td>ORD-{order.id}</td>
+                <td>{formatOrderCode(order)}</td>
                 <td>{formatDate(order.createdAt)}</td>
                 <td>
                   <strong>{order.customerName}</strong>
