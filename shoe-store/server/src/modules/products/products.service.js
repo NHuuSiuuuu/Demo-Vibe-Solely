@@ -92,24 +92,22 @@ function buildProductListQuery(filters) {
   });
 
   const size = cleanText(filters.size);
-  if (size) {
-    where.push(`EXISTS (
-      SELECT 1
-      FROM product_variants size_variant
-      WHERE size_variant.product_id = p.id
-        AND size_variant.stock_quantity > 0
-        AND size_variant.size = ${addParam(params, size)}
-    )`);
-  }
-
   const color = cleanText(filters.color);
-  if (color) {
+  if (size || color) {
+    const variantConditions = ['filtered_variant.product_id = p.id', 'filtered_variant.stock_quantity > 0'];
+
+    if (size) {
+      variantConditions.push(`filtered_variant.size = ${addParam(params, size)}`);
+    }
+
+    if (color) {
+      variantConditions.push(`LOWER(filtered_variant.color) = LOWER(${addParam(params, color)})`);
+    }
+
     where.push(`EXISTS (
       SELECT 1
-      FROM product_variants color_variant
-      WHERE color_variant.product_id = p.id
-        AND color_variant.stock_quantity > 0
-        AND LOWER(color_variant.color) = LOWER(${addParam(params, color)})
+      FROM product_variants filtered_variant
+      WHERE ${variantConditions.join('\n        AND ')}
     )`);
   }
 

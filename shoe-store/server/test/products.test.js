@@ -81,7 +81,9 @@ async function mockQuery(text, params = []) {
     }
 
     if (params.includes('9') && params.includes('black')) {
-      assert.match(text, /EXISTS[\s\S]*product_variants/);
+      assert.deepEqual(params, ['9', 'black']);
+      assert.match(text, /FROM product_variants filtered_variant[\s\S]*filtered_variant\.size = \$1[\s\S]*LOWER\(filtered_variant\.color\) = LOWER\(\$2\)/);
+      assert.doesNotMatch(text, /size_variant|color_variant/);
       return { rows: [productCards[0]], rowCount: 1 };
     }
 
@@ -123,7 +125,7 @@ test('filters products by keyword', async () => {
   assert.deepEqual(response.body.products, [normalizeCard(productCards[0])]);
 });
 
-test('filters products by size and color', async () => {
+test('filters products by size and color on the same available variant', async () => {
   const { createApp } = require('../src/app');
 
   const response = await request(createApp()).get('/api/products?size=9&color=black').expect(200);
