@@ -48,4 +48,12 @@ function requireAdmin(req, res, next) {
   return next();
 }
 
-module.exports = { requireAuth, requireAdmin };
+function requireCustomer(req, res, next) {
+  if (!req.user || req.user.role !== 'customer') {
+    return next(new HttpError(403, 'Customer access required'));
+  }
+
+  return next();
+}
+
+module.exports = { requireAuth, requireAdmin, requireCustomer };

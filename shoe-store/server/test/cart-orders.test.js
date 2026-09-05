@@ -38,6 +38,14 @@ function resetStore() {
       role: 'customer',
       first_name: 'Other',
       last_name: 'Customer'
+    },
+    {
+      id: 3,
+      email: 'admin@example.com',
+      password_hash: 'hash',
+      role: 'admin',
+      first_name: 'Admin',
+      last_name: 'User'
     }
   ];
   products = [{ id: 10, name: 'Road Runner 1', base_price: '89.99' }];
@@ -356,6 +364,19 @@ test('requires auth to view cart', async () => {
   assert.deepEqual(response.body, { message: 'Authentication required', details: null });
 });
 
+test('rejects admin JWTs from cart customer APIs with 403 JSON', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(3);
+
+  const response = await request(createApp())
+    .get('/api/cart')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(403);
+
+  assert.equal(response.headers['content-type'].startsWith('application/json'), true);
+  assert.deepEqual(response.body, { message: 'Customer access required', details: null });
+});
+
 test('adds a product variant to the customer cart', async () => {
   const { createApp } = require('../src/app');
 
@@ -457,6 +478,19 @@ test('creates a COD order from cart and clears cart', async () => {
   assert.equal(response.body.order.grandTotal, 179.98);
   assert.equal(response.body.order.items[0].sku, 'RR1-9-BLK');
   assert.deepEqual(fullCartRows(1), []);
+});
+
+test('rejects admin JWTs from order customer APIs with 403 JSON', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(3);
+
+  const response = await request(createApp())
+    .get('/api/orders')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(403);
+
+  assert.equal(response.headers['content-type'].startsWith('application/json'), true);
+  assert.deepEqual(response.body, { message: 'Customer access required', details: null });
 });
 
 test('decrements stock when order is created', async () => {

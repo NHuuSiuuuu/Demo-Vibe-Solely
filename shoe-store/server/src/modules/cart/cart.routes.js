@@ -1,11 +1,11 @@
 const express = require('express');
-const { requireAuth } = require('../../middleware/auth');
+const { requireAuth, requireCustomer } = require('../../middleware/auth');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { getCart, addCartItem, updateCartItem, removeCartItem } = require('./cart.service');
 
 const router = express.Router();
 
-router.use(requireAuth);
+router.use(requireAuth, requireCustomer);
 
 router.get(
   '/',

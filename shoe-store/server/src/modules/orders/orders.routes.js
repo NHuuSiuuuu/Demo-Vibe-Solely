@@ -1,11 +1,11 @@
 const express = require('express');
-const { requireAuth } = require('../../middleware/auth');
+const { requireAuth, requireCustomer } = require('../../middleware/auth');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { createCodOrder, listCustomerOrders, getCustomerOrder } = require('./orders.service');
 
 const router = express.Router();
 
-router.use(requireAuth);
+router.use(requireAuth, requireCustomer);
 
 router.post(
   '/',
