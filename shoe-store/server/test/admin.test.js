@@ -365,6 +365,32 @@ test('creates and updates a product', async () => {
   assert.equal(updateResponse.body.product.status, 'hidden');
 });
 
+test('rejects invalid product price with 400 JSON', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(2);
+  const invalidPrices = [null, '', '   ', [], {}, 'abc', -1];
+
+  for (const [index, price] of invalidPrices.entries()) {
+    const response = await request(createApp())
+      .post('/api/admin/products')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        slug: `invalid-price-${index}`,
+        name: `Invalid Price ${index}`,
+        description: 'Invalid product price fixture',
+        brand: 'Stride',
+        category: 'Running',
+        gender: 'unisex',
+        price,
+        status: 'active',
+        featured: false
+      })
+      .expect(400);
+
+    assert.deepEqual(response.body, { message: 'Price must be nonnegative', details: null });
+  }
+});
+
 test('creates and updates a product variant', async () => {
   const { createApp } = require('../src/app');
   const token = tokenFor(2);
@@ -392,6 +418,28 @@ test('creates and updates a product variant', async () => {
     .set('Authorization', `Bearer ${token}`)
     .send({ sku: 'MISSING-10-WHT', size: '10', color: 'White', stockQuantity: 1, priceDelta: 0 })
     .expect(404);
+});
+
+test('rejects invalid variant stock with 400 JSON', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(2);
+  const invalidStocks = [null, '', '   ', [], {}, 'abc', -1, 1.5];
+
+  for (const [index, stockQuantity] of invalidStocks.entries()) {
+    const response = await request(createApp())
+      .post('/api/admin/products/10/variants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        sku: `BAD-STOCK-${index}`,
+        size: '10',
+        color: 'White',
+        stockQuantity,
+        priceDelta: 0
+      })
+      .expect(400);
+
+    assert.deepEqual(response.body, { message: 'Stock quantity must be nonnegative', details: null });
+  }
 });
 
 test('lists all orders for admin', async () => {

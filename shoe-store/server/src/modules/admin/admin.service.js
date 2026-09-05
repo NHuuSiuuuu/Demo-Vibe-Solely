@@ -30,6 +30,14 @@ function requireText(value, message) {
 }
 
 function normalizeMoney(value, message) {
+  if (value === null || value === undefined || Array.isArray(value) || typeof value === 'object') {
+    throw new HttpError(400, message);
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    throw new HttpError(400, message);
+  }
+
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount < 0) {
     throw new HttpError(400, message);
@@ -38,6 +46,14 @@ function normalizeMoney(value, message) {
 }
 
 function normalizeStock(value) {
+  if (value === null || value === undefined || Array.isArray(value) || typeof value === 'object') {
+    throw new HttpError(400, 'Stock quantity must be nonnegative');
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    throw new HttpError(400, 'Stock quantity must be nonnegative');
+  }
+
   const stock = Number(value);
   if (!Number.isInteger(stock) || stock < 0) {
     throw new HttpError(400, 'Stock quantity must be nonnegative');
