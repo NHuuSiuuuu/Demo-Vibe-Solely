@@ -3,6 +3,8 @@ const cors = require('cors');
 const { errorHandler } = require('./middleware/errorHandler');
 const authRoutes = require('./modules/auth/auth.routes');
 const productRoutes = require('./modules/products/products.routes');
+const cartRoutes = require('./modules/cart/cart.routes');
+const orderRoutes = require('./modules/orders/orders.routes');
 
 function createApp() {
   const app = express();
@@ -15,6 +17,8 @@ function createApp() {
 
   app.use('/api/auth', authRoutes);
   app.use('/api/products', productRoutes);
+  app.use('/api/cart', cartRoutes);
+  app.use('/api/orders', orderRoutes);
 
   app.use('/api', (req, res) => {
     res.status(404).json({ message: 'Not found', details: null });
