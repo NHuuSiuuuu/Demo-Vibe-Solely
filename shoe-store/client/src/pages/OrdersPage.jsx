@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
+import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 
@@ -15,6 +16,11 @@ export default function OrdersPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!token) {
+      setOrders([]);
+      return undefined;
+    }
+
     let cancelled = false;
     apiClient
       .get('/api/orders', { token })
@@ -32,6 +38,10 @@ export default function OrdersPage() {
       cancelled = true;
     };
   }, [token]);
+
+  if (!token) {
+    return <AuthPrompt message="Login or register to review your order history." />;
+  }
 
   return (
     <section className="shop-page" aria-labelledby="orders-title">

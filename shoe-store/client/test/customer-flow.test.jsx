@@ -172,6 +172,14 @@ function renderAsCustomer(path = '/') {
   return fetchMock;
 }
 
+function renderLoggedOut(path) {
+  window.history.pushState({}, '', path);
+  const fetchMock = createFetchMock();
+  global.fetch = fetchMock;
+  render(<App />);
+  return fetchMock;
+}
+
 describe('customer shopping flow', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -285,5 +293,37 @@ describe('customer shopping flow', () => {
     expect(await screen.findByText('Gợi ý phù hợp cho bạn: Road Runner 1.')).toBeTruthy();
     expect(screen.getByText('Recommended products')).toBeTruthy();
     expect(screen.getAllByRole('heading', { name: 'Road Runner 1' }).length).toBeGreaterThan(1);
+  });
+
+  it('shows login/register guidance on logged-out checkout without calling protected APIs', () => {
+    const fetchMock = renderLoggedOut('/checkout');
+    const authPrompt = screen.getByRole('region', { name: 'Login to continue' });
+
+    expect(within(authPrompt).getByRole('heading', { name: 'Login to continue' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Login' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Place COD order' })).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/orders'), expect.any(Object));
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/cart'), expect.any(Object));
+  });
+
+  it('shows login/register guidance on logged-out orders without calling protected APIs', () => {
+    const fetchMock = renderLoggedOut('/orders');
+    const authPrompt = screen.getByRole('region', { name: 'Login to continue' });
+
+    expect(within(authPrompt).getByRole('heading', { name: 'Login to continue' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Login' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/orders'), expect.any(Object));
+  });
+
+  it('shows login/register guidance on logged-out order detail without calling protected APIs', () => {
+    const fetchMock = renderLoggedOut('/orders/900');
+    const authPrompt = screen.getByRole('region', { name: 'Login to continue' });
+
+    expect(within(authPrompt).getByRole('heading', { name: 'Login to continue' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Login' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/orders/900'), expect.any(Object));
   });
 });

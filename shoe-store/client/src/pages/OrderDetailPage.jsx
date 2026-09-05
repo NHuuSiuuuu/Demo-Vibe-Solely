@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
+import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 
@@ -14,6 +15,11 @@ export default function OrderDetailPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!token) {
+      setOrder(null);
+      return undefined;
+    }
+
     let cancelled = false;
     apiClient
       .get(`/api/orders/${id}`, { token })
@@ -31,6 +37,10 @@ export default function OrderDetailPage() {
       cancelled = true;
     };
   }, [id, token]);
+
+  if (!token) {
+    return <AuthPrompt message="Login or register to track this order." />;
+  }
 
   if (error) {
     return <p className="form-error">{error}</p>;

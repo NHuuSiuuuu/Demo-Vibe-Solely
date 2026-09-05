@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
+import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 
 const initialForm = {
@@ -57,6 +58,10 @@ export default function CheckoutPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (!token) {
+    return <AuthPrompt message="Login or register to place a COD order." />;
   }
 
   return (

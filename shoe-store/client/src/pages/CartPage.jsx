@@ -1,13 +1,20 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
+import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 
 export default function CartPage() {
+  const { token } = useAuth();
   const { cart, updateItem, removeItem } = useCart();
   const items = cart.items || [];
 
   async function updateQuantity(item, value) {
     await updateItem(item.id, Number(value));
+  }
+
+  if (!token) {
+    return <AuthPrompt message="Login or register to view your cart and checkout." />;
   }
 
   return (
