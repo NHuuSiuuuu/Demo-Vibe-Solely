@@ -1,6 +1,6 @@
 :root {
-  color: #1e293b;
-  background: #f8fafc;
+  color: #1f2937;
+  background: #f5f7fa;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -16,23 +16,200 @@ body {
   min-height: 100vh;
 }
 
-.app-shell {
-  display: grid;
-  min-height: 100vh;
-  place-content: center;
-  padding: 2rem;
-  text-align: center;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.app-shell h1 {
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 6px;
+  background: #1f4f46;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 2.5rem;
+  padding: 0.65rem 1rem;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.site-header {
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #d7dee8;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: auto 1fr auto;
+  min-height: 4.5rem;
+  padding: 0 2rem;
+}
+
+.brand-link {
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.primary-nav,
+.account-nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.primary-nav {
+  justify-content: center;
+}
+
+.primary-nav a,
+.account-nav a {
+  border-radius: 6px;
+  color: #374151;
+  font-weight: 700;
+  padding: 0.55rem 0.75rem;
+}
+
+.primary-nav a.active,
+.primary-nav a:hover,
+.account-nav a.active,
+.account-nav a:hover {
+  background: #e6f0ec;
+  color: #143b35;
+}
+
+.account-nav {
+  justify-content: flex-end;
+}
+
+.current-user {
+  color: #4b5563;
+  font-size: 0.9rem;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-shell {
+  margin: 0 auto;
+  max-width: 72rem;
+  padding: 2rem;
+}
+
+.content-panel,
+.auth-panel {
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.section-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.content-panel h1,
+.auth-panel h1 {
   margin: 0;
   color: #0f172a;
-  font-size: clamp(2.5rem, 8vw, 5rem);
-  line-height: 1;
+  font-size: 1.75rem;
+  line-height: 1.2;
 }
 
-.app-shell p {
+.content-panel p,
+.auth-switch {
   margin: 1rem 0 0;
-  color: #475569;
-  font-size: 1.125rem;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.status-badge {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  padding: 0.3rem 0.65rem;
+  text-transform: uppercase;
+}
+
+.status-badge--neutral {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.status-badge--info {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.auth-panel {
+  margin: 0 auto;
+  max-width: 28rem;
+}
+
+.auth-panel form {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+}
+
+.auth-panel label {
+  color: #374151;
+  font-weight: 700;
+}
+
+.auth-panel input {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.form-error {
+  background: #fee2e2;
+  border-radius: 6px;
+  color: #991b1b;
+  margin: 0;
+  padding: 0.75rem;
+}
+
+.auth-switch a {
+  color: #1f4f46;
+  font-weight: 800;
+}
+
+@media (max-width: 780px) {
+  .site-header {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .primary-nav,
+  .account-nav {
+    justify-content: flex-start;
+  }
+
+  .page-shell {
+    padding: 1rem;
+  }
 }
