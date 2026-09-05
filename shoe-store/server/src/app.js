@@ -11,6 +11,10 @@ function createApp() {
     res.json({ ok: true, service: 'shoe-store-api' });
   });
 
+  app.use('/api', (req, res) => {
+    res.status(404).json({ message: 'Not found', details: null });
+  });
+
   app.use(errorHandler);
   return app;
 }
