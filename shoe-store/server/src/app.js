@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { errorHandler } = require('./middleware/errorHandler');
 const authRoutes = require('./modules/auth/auth.routes');
+const productRoutes = require('./modules/products/products.routes');
 
 function createApp() {
   const app = express();
@@ -13,6 +14,7 @@ function createApp() {
   });
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/products', productRoutes);
 
   app.use('/api', (req, res) => {
     res.status(404).json({ message: 'Not found', details: null });
