@@ -4,6 +4,7 @@ const { asyncHandler } = require('../../utils/asyncHandler');
 const {
   getDashboard,
   listProducts,
+  getProduct,
   createProduct,
   updateProduct,
   createVariant,
@@ -30,6 +31,14 @@ router.get(
   asyncHandler(async (req, res) => {
     const products = await listProducts();
     res.json({ products });
+  })
+);
+
+router.get(
+  '/products/:id',
+  asyncHandler(async (req, res) => {
+    const product = await getProduct(req.params.id);
+    res.json({ product });
   })
 );
 

@@ -60,12 +60,12 @@ export default function AdminProductFormPage() {
     setError('');
 
     apiClient
-      .get('/api/admin/products', { token })
+      .get(`/api/admin/products/${id}`, { token })
       .then((data) => {
         if (cancelled) {
           return;
         }
-        const matchedProduct = (data.products || []).find((candidate) => String(candidate.id) === String(id));
+        const matchedProduct = data.product;
         if (!matchedProduct) {
           throw new Error('Product not found');
         }
@@ -115,6 +115,12 @@ export default function AdminProductFormPage() {
     setVariantForm((current) => ({ ...current, [name]: value }));
   }
 
+  function updateExistingVariantField(variantId, field, value) {
+    setVariants((current) =>
+      current.map((variant) => (variant.id === variantId ? { ...variant, [field]: value } : variant))
+    );
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setMessage('');
@@ -151,6 +157,26 @@ export default function AdminProductFormPage() {
       const data = await apiClient.post(`/api/admin/products/${savedProductId}/variants`, payload, { token });
       setVariants((current) => [...current, data.variant]);
       setVariantForm(emptyVariant);
+      setMessage('Variant saved.');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleVariantUpdate(variant) {
+    setMessage('');
+    setError('');
+
+    try {
+      const payload = {
+        sku: String(variant.sku || '').trim(),
+        size: String(variant.size || '').trim(),
+        color: String(variant.color || '').trim(),
+        stockQuantity: Number(variant.stockQuantity),
+        priceDelta: Number(variant.priceDelta || 0)
+      };
+      const data = await apiClient.patch(`/api/admin/variants/${variant.id}`, payload, { token });
+      setVariants((current) => current.map((candidate) => (candidate.id === variant.id ? data.variant : candidate)));
       setMessage('Variant saved.');
     } catch (err) {
       setError(err.message);
@@ -273,16 +299,58 @@ export default function AdminProductFormPage() {
                     <th>Color</th>
                     <th>Stock</th>
                     <th>Price delta</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {variants.map((variant) => (
                     <tr key={variant.id}>
-                      <td>{variant.sku}</td>
-                      <td>{variant.size}</td>
-                      <td>{variant.color}</td>
-                      <td>{variant.stockQuantity}</td>
-                      <td>{variant.priceDelta}</td>
+                      <td>
+                        <input
+                          aria-label={`SKU for ${variant.sku}`}
+                          value={variant.sku}
+                          onChange={(event) => updateExistingVariantField(variant.id, 'sku', event.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={`Size for ${variant.sku}`}
+                          value={variant.size}
+                          onChange={(event) => updateExistingVariantField(variant.id, 'size', event.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={`Color for ${variant.sku}`}
+                          value={variant.color}
+                          onChange={(event) => updateExistingVariantField(variant.id, 'color', event.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={`Stock for ${variant.sku}`}
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={variant.stockQuantity}
+                          onChange={(event) => updateExistingVariantField(variant.id, 'stockQuantity', event.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={`Price delta for ${variant.sku}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={variant.priceDelta}
+                          onChange={(event) => updateExistingVariantField(variant.id, 'priceDelta', event.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <button type="button" onClick={() => handleVariantUpdate(variant)}>
+                          Save {variant.sku}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

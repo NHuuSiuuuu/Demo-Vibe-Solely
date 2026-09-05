@@ -5,27 +5,30 @@ import App from '../src/App.jsx';
 const adminUser = { id: 2, email: 'admin@shoestore.local', name: 'Admin User', role: 'admin' };
 const customerUser = { id: 1, email: 'customer@shoestore.local', name: 'Customer User', role: 'customer' };
 
-const adminProducts = [
-  {
-    id: 10,
-    slug: 'road-runner-1',
-    name: 'Road Runner 1',
-    description: 'Daily running shoe with cushioned support.',
-    brand: 'Stride',
-    category: 'Running',
-    gender: 'unisex',
-    price: 89.99,
-    status: 'active',
-    featured: true,
-    totalStock: 8,
-    variants: [
-      { id: 101, productId: 10, sku: 'RR1-9-BLK', size: '9', color: 'Black', stockQuantity: 3, priceDelta: 0 },
-      { id: 102, productId: 10, sku: 'RR1-10-WHT', size: '10', color: 'White', stockQuantity: 5, priceDelta: 5 }
-    ]
-  }
-];
-
+let adminProducts;
 let adminOrders;
+
+function resetProducts() {
+  adminProducts = [
+    {
+      id: 10,
+      slug: 'road-runner-1',
+      name: 'Road Runner 1',
+      description: 'Daily running shoe with cushioned support.',
+      brand: 'Stride',
+      category: 'Running',
+      gender: 'unisex',
+      price: 89.99,
+      status: 'active',
+      featured: true,
+      totalStock: 8,
+      variants: [
+        { id: 101, productId: 10, sku: 'RR1-9-BLK', size: '9', color: 'Black', stockQuantity: 3, priceDelta: 0 },
+        { id: 102, productId: 10, sku: 'RR1-10-WHT', size: '10', color: 'White', stockQuantity: 5, priceDelta: 5 }
+      ]
+    }
+  ];
+}
 
 function resetOrders() {
   adminOrders = [
@@ -155,9 +158,20 @@ function createAdminFetchMock({ role = 'admin' } = {}) {
       return jsonResponse({ products: adminProducts });
     }
 
+    if (path === '/api/admin/products/10' && method === 'GET') {
+      return jsonResponse({ product: adminProducts[0] });
+    }
+
     if (path === '/api/admin/products' && method === 'POST') {
       const body = JSON.parse(options.body);
       return jsonResponse({ product: { ...body, id: 22, createdAt: '2026-09-05T11:00:00.000Z' } });
+    }
+
+    if (path === '/api/admin/variants/101' && method === 'PATCH') {
+      const body = JSON.parse(options.body);
+      adminProducts[0].variants[0] = { ...adminProducts[0].variants[0], ...body };
+      adminProducts[0].totalStock = adminProducts[0].variants.reduce((sum, variant) => sum + Number(variant.stockQuantity || 0), 0);
+      return jsonResponse({ variant: adminProducts[0].variants[0] });
     }
 
     if (path === '/api/admin/orders' && method === 'GET') {
@@ -194,6 +208,7 @@ function renderWithToken(path, role = 'admin') {
 describe('admin flow', () => {
   beforeEach(() => {
     localStorage.clear();
+    resetProducts();
     resetOrders();
     window.history.pushState({}, '', '/');
     global.fetch = vi.fn();
@@ -262,6 +277,30 @@ describe('admin flow', () => {
           price: 74.99,
           status: 'active',
           featured: true
+        })
+      })
+    );
+  });
+
+  it('renders and updates existing variants on the product edit form', async () => {
+    const fetchMock = renderWithToken('/admin/products/10/edit');
+
+    const variantsTable = await screen.findByRole('table', { name: 'Product variants' });
+    const variantRow = within(variantsTable).getByDisplayValue('RR1-9-BLK').closest('tr');
+    fireEvent.change(within(variantRow).getByLabelText('Stock for RR1-9-BLK'), { target: { value: '9' } });
+    fireEvent.click(within(variantRow).getByRole('button', { name: 'Save RR1-9-BLK' }));
+
+    await screen.findByText('Variant saved.');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/admin/variants/101'),
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          sku: 'RR1-9-BLK',
+          size: '9',
+          color: 'Black',
+          stockQuantity: 9,
+          priceDelta: 0
         })
       })
     );

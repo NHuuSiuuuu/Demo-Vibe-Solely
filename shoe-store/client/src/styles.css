@@ -788,6 +788,11 @@ button:disabled {
   margin-top: 0.2rem;
 }
 
+.admin-table input {
+  min-width: 7rem;
+  width: 100%;
+}
+
 .admin-form {
   display: grid;
   gap: 0.75rem;

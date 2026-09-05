@@ -157,6 +157,17 @@ async function mockQuery(text, params = []) {
     return { rows: products.map(productRow), rowCount: products.length };
   }
 
+  if (text.includes('FROM product_variants') && text.includes('WHERE product_id = ANY')) {
+    const productIds = new Set((params[0] || []).map(Number));
+    const rows = variants.filter((variant) => productIds.has(variant.product_id)).map(variantRow);
+    return { rows, rowCount: rows.length };
+  }
+
+  if (text.includes('FROM products p') && text.includes('WHERE p.id = $1')) {
+    const product = products.find((candidate) => candidate.id === Number(params[0]));
+    return { rows: product ? [productRow(product)] : [], rowCount: product ? 1 : 0 };
+  }
+
   if (text.includes('FROM products') && text.includes('WHERE id = $1')) {
     const product = products.find((candidate) => candidate.id === Number(params[0]));
     return { rows: product ? [{ id: product.id }] : [], rowCount: product ? 1 : 0 };
@@ -363,6 +374,40 @@ test('creates and updates a product', async () => {
   assert.equal(updateResponse.body.product.name, 'Court Classic LX');
   assert.equal(updateResponse.body.product.price, 79.99);
   assert.equal(updateResponse.body.product.status, 'hidden');
+});
+
+test('lists admin products with authoritative variants and totalStock', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .get('/api/admin/products')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .expect(200);
+
+  assert.equal(response.body.products[0].totalStock, 5);
+  assert.deepEqual(response.body.products[0].variants, [
+    {
+      id: 101,
+      productId: 10,
+      sku: 'RR1-9-BLK',
+      size: '9',
+      color: 'Black',
+      stockQuantity: 5,
+      priceDelta: 0
+    }
+  ]);
+});
+
+test('returns one admin product with authoritative variants and totalStock', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .get('/api/admin/products/10')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .expect(200);
+
+  assert.equal(response.body.product.totalStock, 5);
+  assert.equal(response.body.product.variants[0].sku, 'RR1-9-BLK');
 });
 
 test('rejects invalid product price with 400 JSON', async () => {

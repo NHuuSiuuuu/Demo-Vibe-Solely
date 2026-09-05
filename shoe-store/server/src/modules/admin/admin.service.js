@@ -98,6 +98,43 @@ function mapVariant(row) {
   };
 }
 
+function attachInventory(products, variants) {
+  const variantsByProductId = new Map();
+
+  for (const variant of variants) {
+    const list = variantsByProductId.get(variant.productId) || [];
+    list.push(variant);
+    variantsByProductId.set(variant.productId, list);
+  }
+
+  return products.map((product) => {
+    const productVariants = variantsByProductId.get(product.id) || [];
+    return {
+      ...product,
+      totalStock: productVariants.reduce((sum, variant) => sum + Number(variant.stockQuantity || 0), 0),
+      variants: productVariants
+    };
+  });
+}
+
+async function getVariantsForProductIds(productIds) {
+  if (productIds.length === 0) {
+    return [];
+  }
+
+  const result = await query(
+    `
+      SELECT *
+      FROM product_variants
+      WHERE product_id = ANY($1::int[])
+      ORDER BY product_id ASC, id ASC
+    `,
+    [productIds]
+  );
+
+  return result.rows.map(mapVariant);
+}
+
 function pushUpdate(updates, params, column, value) {
   params.push(value);
   updates.push(`${column} = $${params.length}`);
@@ -186,7 +223,28 @@ async function listProducts() {
     ORDER BY p.created_at DESC, p.id DESC
   `);
 
-  return result.rows.map(mapProduct);
+  const products = result.rows.map(mapProduct);
+  const variants = await getVariantsForProductIds(products.map((product) => product.id));
+  return attachInventory(products, variants);
+}
+
+async function getProduct(id) {
+  const result = await query(
+    `
+      SELECT *
+      FROM products p
+      WHERE p.id = $1
+    `,
+    [id]
+  );
+
+  const product = result.rows[0];
+  if (!product) {
+    throw new HttpError(404, 'Product not found');
+  }
+
+  const variants = await getVariantsForProductIds([Number(id)]);
+  return attachInventory([mapProduct(product)], variants)[0];
 }
 
 async function createProduct(input) {
@@ -431,6 +489,7 @@ async function updateOrderStatus(id, status) {
 module.exports = {
   getDashboard,
   listProducts,
+  getProduct,
   createProduct,
   updateProduct,
   createVariant,
