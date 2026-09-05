@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { errorHandler } = require('./middleware/errorHandler');
+const authRoutes = require('./modules/auth/auth.routes');
 
 function createApp() {
   const app = express();
@@ -10,6 +11,8 @@ function createApp() {
   app.get('/api/health', (req, res) => {
     res.json({ ok: true, service: 'shoe-store-api' });
   });
+
+  app.use('/api/auth', authRoutes);
 
   app.use('/api', (req, res) => {
     res.status(404).json({ message: 'Not found', details: null });
