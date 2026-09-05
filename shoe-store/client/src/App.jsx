@@ -1,9 +1,17 @@
+import { useMemo } from 'react';
 import { Navigate, Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext.jsx';
 import { CartProvider } from './cart/CartContext.jsx';
 import Layout from './components/Layout.jsx';
 import StatusBadge from './components/StatusBadge.jsx';
+import CartPage from './pages/CartPage.jsx';
+import CheckoutPage from './pages/CheckoutPage.jsx';
+import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import OrderDetailPage from './pages/OrderDetailPage.jsx';
+import OrdersPage from './pages/OrdersPage.jsx';
+import ProductDetailPage from './pages/ProductDetailPage.jsx';
+import ProductListPage from './pages/ProductListPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 
 function PlaceholderPage({ title, badge, children }) {
@@ -18,71 +26,69 @@ function PlaceholderPage({ title, badge, children }) {
   );
 }
 
-const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <AppProviders />,
-    children: [
-      {
-        element: <Layout />,
-        children: [
-          {
-            index: true,
-            element: (
-              <PlaceholderPage title="Home" badge="MVP">
-                Browse shoes, manage your cart, and review orders from the main navigation.
-              </PlaceholderPage>
-            )
-          },
-          {
-            path: 'products',
-            element: (
-              <PlaceholderPage title="Products" badge="Task 9">
-                Product browsing will be implemented in the customer shopping task.
-              </PlaceholderPage>
-            )
-          },
-          {
-            path: 'cart',
-            element: (
-              <PlaceholderPage title="Cart" badge="Task 9">
-                Cart details and checkout controls will be added with the customer shopping pages.
-              </PlaceholderPage>
-            )
-          },
-          {
-            path: 'orders',
-            element: (
-              <PlaceholderPage title="Orders" badge="Task 9">
-                Customer order history will be connected in the customer shopping task.
-              </PlaceholderPage>
-            )
-          },
-          {
-            path: 'login',
-            element: <LoginPage />
-          },
-          {
-            path: 'register',
-            element: <RegisterPage />
-          },
-          {
-            path: 'admin',
-            element: (
-              <PlaceholderPage title="Admin" badge="Task 10">
-                Admin dashboard pages will be implemented in the admin task.
-              </PlaceholderPage>
-            )
-          },
-          {
-            path: '*',
-            element: <Navigate to="/" replace />
-          }
-        ]
-      }
-    ]
-  }
-]);
+function createAppRouter() {
+  return createBrowserRouter([
+    {
+      path: '/',
+      element: <AppProviders />,
+      children: [
+        {
+          element: <Layout />,
+          children: [
+            {
+              index: true,
+              element: <HomePage />
+            },
+            {
+              path: 'products',
+              element: <ProductListPage />
+            },
+            {
+              path: 'products/:slug',
+              element: <ProductDetailPage />
+            },
+            {
+              path: 'cart',
+              element: <CartPage />
+            },
+            {
+              path: 'checkout',
+              element: <CheckoutPage />
+            },
+            {
+              path: 'orders',
+              element: <OrdersPage />
+            },
+            {
+              path: 'orders/:id',
+              element: <OrderDetailPage />
+            },
+            {
+              path: 'login',
+              element: <LoginPage />
+            },
+            {
+              path: 'register',
+              element: <RegisterPage />
+            },
+            {
+              path: 'admin',
+              element: (
+                <PlaceholderPage title="Admin" badge="Task 10">
+                  Admin dashboard pages will be implemented in the admin task.
+                </PlaceholderPage>
+              )
+            },
+            {
+              path: '*',
+              element: <Navigate to="/" replace />
+            }
+          ]
+        }
+      ]
+    }
+  ]);
+}
 
 function AppProviders() {
   return (
@@ -95,5 +101,6 @@ function AppProviders() {
 }
 
 export default function App() {
+  const router = useMemo(() => createAppRouter(), []);
   return <RouterProvider router={router} />;
 }

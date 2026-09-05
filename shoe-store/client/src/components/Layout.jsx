@@ -1,11 +1,14 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
+import AiAssistant from './AiAssistant.jsx';
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth();
   const { cart } = useCart();
+  const location = useLocation();
   const itemCount = cart.items?.reduce((total, item) => total + Number(item.quantity || 0), 0) || 0;
+  const isCustomerPage = !['/login', '/register', '/admin'].some((path) => location.pathname.startsWith(path));
 
   return (
     <div className="app-shell">
@@ -38,6 +41,7 @@ export default function Layout() {
       <main className="page-shell">
         <Outlet />
       </main>
+      {isCustomerPage ? <AiAssistant /> : null}
     </div>
   );
 }
