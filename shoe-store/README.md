@@ -6,13 +6,26 @@ Local shoe store MVP scaffold with a React + Vite client and Node.js/Express API
 
 - Node.js 20 or newer
 - npm
-- PostgreSQL client tools for later database setup tasks
+- PostgreSQL client tools
+- A PostgreSQL database URL exported as `DATABASE_URL`
+
+## Local URLs
+
+- Frontend: http://161.248.81.90:5173
+- Backend: http://161.248.81.90:5000
+
+## Demo Accounts
+
+- Admin: admin@shoestore.local / Admin123!
+- Customer: customer@shoestore.local / Customer123!
 
 ## Setup
 
 ```bash
-npm install
 cp server/.env.example server/.env
+npm install
+npm run db:setup
+npm run dev
 ```
 
 ## Scripts
@@ -21,9 +34,7 @@ cp server/.env.example server/.env
 npm run dev
 npm run test
 npm run build
+npm run db:setup
 ```
 
-- Frontend: `http://0.0.0.0:5173`
-- Backend: `http://0.0.0.0:5000`
 - Health check: `GET /api/health`
-
