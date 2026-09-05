@@ -3,7 +3,12 @@ import { Navigate, Outlet, RouterProvider, createBrowserRouter } from 'react-rou
 import { AuthProvider } from './auth/AuthContext.jsx';
 import { CartProvider } from './cart/CartContext.jsx';
 import Layout from './components/Layout.jsx';
-import StatusBadge from './components/StatusBadge.jsx';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
+import AdminLayout from './pages/admin/AdminLayout.jsx';
+import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage.jsx';
+import AdminOrdersPage from './pages/admin/AdminOrdersPage.jsx';
+import AdminProductFormPage from './pages/admin/AdminProductFormPage.jsx';
+import AdminProductsPage from './pages/admin/AdminProductsPage.jsx';
 import CartPage from './pages/CartPage.jsx';
 import CheckoutPage from './pages/CheckoutPage.jsx';
 import HomePage from './pages/HomePage.jsx';
@@ -13,18 +18,6 @@ import OrdersPage from './pages/OrdersPage.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import ProductListPage from './pages/ProductListPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
-
-function PlaceholderPage({ title, badge, children }) {
-  return (
-    <section className="content-panel" aria-labelledby={`${title.toLowerCase()}-title`}>
-      <div className="section-heading">
-        <h1 id={`${title.toLowerCase()}-title`}>{title}</h1>
-        {badge ? <StatusBadge tone="info">{badge}</StatusBadge> : null}
-      </div>
-      <p>{children}</p>
-    </section>
-  );
-}
 
 function createAppRouter() {
   return createBrowserRouter([
@@ -73,11 +66,33 @@ function createAppRouter() {
             },
             {
               path: 'admin',
-              element: (
-                <PlaceholderPage title="Admin" badge="Task 10">
-                  Admin dashboard pages will be implemented in the admin task.
-                </PlaceholderPage>
-              )
+              element: <AdminLayout />,
+              children: [
+                {
+                  index: true,
+                  element: <AdminDashboardPage />
+                },
+                {
+                  path: 'products',
+                  element: <AdminProductsPage />
+                },
+                {
+                  path: 'products/new',
+                  element: <AdminProductFormPage />
+                },
+                {
+                  path: 'products/:id/edit',
+                  element: <AdminProductFormPage />
+                },
+                {
+                  path: 'orders',
+                  element: <AdminOrdersPage />
+                },
+                {
+                  path: 'orders/:id',
+                  element: <AdminOrderDetailPage />
+                }
+              ]
             },
             {
               path: '*',
