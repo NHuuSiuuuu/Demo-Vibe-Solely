@@ -6,6 +6,7 @@ const productRoutes = require('./modules/products/products.routes');
 const cartRoutes = require('./modules/cart/cart.routes');
 const orderRoutes = require('./modules/orders/orders.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
+const aiRoutes = require('./modules/ai/ai.routes');
 
 function createApp() {
   const app = express();
@@ -21,6 +22,7 @@ function createApp() {
   app.use('/api/cart', cartRoutes);
   app.use('/api/orders', orderRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/ai', aiRoutes);
 
   app.use('/api', (req, res) => {
     res.status(404).json({ message: 'Not found', details: null });
