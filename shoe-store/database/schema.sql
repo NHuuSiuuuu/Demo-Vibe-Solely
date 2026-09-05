@@ -97,7 +97,7 @@ CREATE TABLE orders (
   shipping_total NUMERIC(10, 2) NOT NULL DEFAULT 0,
   tax_total NUMERIC(10, 2) NOT NULL DEFAULT 0,
   grand_total NUMERIC(10, 2) NOT NULL,
-  status order_status NOT NULL DEFAULT 'pending',
+  order_status order_status NOT NULL DEFAULT 'pending',
   payment_method payment_method NOT NULL DEFAULT 'cod',
   payment_status payment_status NOT NULL DEFAULT 'unpaid',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

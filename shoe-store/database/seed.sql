@@ -1,7 +1,7 @@
 INSERT INTO users (email, password_hash, role, first_name, last_name)
 VALUES
-  ('admin@shoestore.local', 'Admin123!', 'admin', 'Store', 'Admin'),
-  ('customer@shoestore.local', 'Customer123!', 'customer', 'Sample', 'Customer');
+  ('admin@shoestore.local', '$2b$12$/VpCnQLi8HuQbZit6FN0FOTxrCuA8CmGNhO6iQU27CV0mKRFMTYKy', 'admin', 'Store', 'Admin'),
+  ('customer@shoestore.local', '$2b$12$oJt7X6EmgbWD56HkMxLbKuA4DkvmpD5RiXZj8CqUuM1AOQPfD4/OW', 'customer', 'Sample', 'Customer');
 
 INSERT INTO products (slug, name, description, brand, category, gender, base_price, status, featured)
 VALUES

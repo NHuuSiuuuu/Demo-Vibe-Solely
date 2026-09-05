@@ -43,13 +43,28 @@ test('schema defines the required PostgreSQL enums, tables, and constraints', ()
   });
 });
 
-test('seed data includes local users and at least eight products', () => {
+test('orders table exposes order_status column for later API code', () => {
+  const schema = readDatabaseFile('schema.sql');
+  const ordersTable = schema.match(/CREATE TABLE orders \(([\s\S]*?)\n\);/);
+
+  assert.notEqual(ordersTable, null);
+  assert.match(ordersTable[1], /\border_status order_status NOT NULL DEFAULT 'pending'/);
+  assert.doesNotMatch(ordersTable[1], /\n\s+status order_status\b/);
+});
+
+test('seed data includes local users with bcrypt-compatible password hashes and at least eight products', () => {
   const seed = readDatabaseFile('seed.sql');
 
   assert.match(seed, /admin@shoestore\.local/);
-  assert.match(seed, /Admin123!/);
   assert.match(seed, /customer@shoestore\.local/);
-  assert.match(seed, /Customer123!/);
+  assert.doesNotMatch(seed, /Admin123!/);
+  assert.doesNotMatch(seed, /Customer123!/);
+
+  const userRows = [...seed.matchAll(/\('([^']+@shoestore\.local)', '([^']+)', '(admin|customer)'/g)];
+  assert.equal(userRows.length, 2);
+  userRows.forEach((row) => {
+    assert.match(row[2], /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/);
+  });
 
   const productInsert = seed.match(/INSERT INTO products[\s\S]*?VALUES([\s\S]*?);/i);
   assert.notEqual(productInsert, null);
