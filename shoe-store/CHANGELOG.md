@@ -70,6 +70,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật trợ lý mua sắm để dùng OpenAI ranking sau khi backend lọc catalog, kèm fallback nội bộ tự nhiên hơn khi thiếu API key hoặc chỉ có một sản phẩm phù hợp.
 - Cập nhật script `database/localize-vietnamese-products.sql` thành upsert để đồng bộ sản phẩm, ảnh và biến thể mới vào PostgreSQL thật mà không cần reset database.
 - Cập nhật script setup database để chạy schema, seed và upsert Việt hóa/RAG theo cùng một luồng lặp lại được.
+- Sửa service RAG để giữ marker `needs_reindex` cho sản phẩm khi Gemini embedding lỗi và loại product chunks khỏi context nếu sản phẩm bị filter loại bỏ.
 
 ### Đã kiểm chứng
 

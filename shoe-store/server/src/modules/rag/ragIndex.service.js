@@ -121,16 +121,47 @@ async function replaceChunks({ sourceType, sourceId, chunks, metadata }) {
   }
 }
 
-async function markNeedsReindex(sourceType, sourceId) {
+async function createNeedsReindexMarker({ sourceType, sourceId, title, content, metadata }) {
+  await query('DELETE FROM rag_chunks WHERE source_type = $1 AND source_id = $2', [sourceType, sourceId]);
+  await query(
+    `
+      INSERT INTO rag_chunks (
+        source_type,
+        source_id,
+        chunk_index,
+        title,
+        content,
+        metadata,
+        embedding_model,
+        status
+      )
+      VALUES ($1, $2, 0, $3, $4, $5::jsonb, $6, $7)
+    `,
+    [
+      sourceType,
+      sourceId,
+      title,
+      content,
+      JSON.stringify(metadata),
+      EMBEDDING_MODEL,
+      'needs_reindex'
+    ]
+  );
+}
+
+async function markNeedsReindex(sourceType, sourceId, source = {}) {
   if (sourceType === 'document') {
     await query("UPDATE rag_documents SET status = 'needs_reindex', updated_at = NOW() WHERE id = $1", [sourceId]);
     return;
   }
 
-  await query(
-    "UPDATE rag_chunks SET status = 'needs_reindex', updated_at = NOW() WHERE source_type = $1 AND source_id = $2",
-    [sourceType, sourceId]
-  );
+  await createNeedsReindexMarker({
+    sourceType,
+    sourceId,
+    title: source.title || `Product ${sourceId}`,
+    content: 'Nguồn sản phẩm cần reindex sau lỗi Gemini embedding.',
+    metadata: source.metadata || { productId: sourceId }
+  });
 }
 
 async function markIndexed(sourceType, sourceId) {
@@ -161,7 +192,7 @@ async function reindexProduct(productId) {
     await replaceChunks({ sourceType: 'product', sourceId: product.id, chunks, metadata });
     return { status: 'indexed', chunksIndexed: chunks.length };
   } catch (error) {
-    await markNeedsReindex('product', product.id);
+    await markNeedsReindex('product', product.id, { title: product.name, metadata });
     throw error;
   }
 }

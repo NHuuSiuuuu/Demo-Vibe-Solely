@@ -152,10 +152,14 @@ async function retrieveContext({ message, filters = {}, limit = 6 }) {
     ...new Set(chunks.filter((chunk) => chunk.sourceType === 'product').map((chunk) => chunk.metadata.productId || chunk.sourceId))
   ];
   const products = (await loadProductsByIds(productIds)).filter((product) => matchesFilter(product, filters));
+  const allowedProductIds = new Set(products.map((product) => product.id));
+  const filteredChunks = chunks.filter(
+    (chunk) => chunk.sourceType !== 'product' || allowedProductIds.has(Number(chunk.metadata.productId || chunk.sourceId))
+  );
 
   return {
-    chunks,
-    sources: buildSources(chunks),
+    chunks: filteredChunks,
+    sources: buildSources(filteredChunks),
     products
   };
 }
