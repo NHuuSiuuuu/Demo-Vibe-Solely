@@ -29,6 +29,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm cấu hình mẫu `server/.env.example` cho `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` và `OPENAI_MODEL`.
 - Thêm catalog 20 sản phẩm Solely với mô tả giàu thông tin về mục đích sử dụng, chất liệu, đệm, độ bám, form chân và ngữ cảnh phù hợp để chuẩn bị cho chatbot RAG.
 - Thêm spec thiết kế hệ thống RAG Gemini có trang quản trị `Kho tri thức AI`, dữ liệu sản phẩm, chính sách, điều khoản, vận chuyển, đổi trả và kiểm thử truy vấn trong admin.
+- Thêm plan triển khai hệ thống RAG Gemini cho admin và chatbot, gồm schema, Gemini client, indexing, retrieval, admin API, admin UI, đồng bộ sản phẩm và kiểm chứng end-to-end.
 
 ### Đã thay đổi
 
