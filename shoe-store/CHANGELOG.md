@@ -23,6 +23,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm admin workspace riêng cho `/admin/*` với sidebar quản trị có icon, collapse, dark mode cục bộ, header admin và dashboard mở rộng.
 - Thêm test bảo vệ để admin không render header, footer, nav, túi hàng và các page shell của người dùng.
 - Thêm `AGENTS.md` ở root project để quy định workflow cho coding agent, gồm rule changelog, kiểm chứng, git và vị trí tài liệu.
+- Thêm `DEVELOPMENT_PROMPT.md` ở root project để người dùng dán prompt phát triển và agent đọc trước khi lập kế hoạch hoặc code.
 
 ### Đã thay đổi
 
@@ -45,6 +46,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Tách route `/admin/*` khỏi layout storefront để admin chỉ thấy các màn quản trị, không còn điều hướng mua hàng của user.
 - Cập nhật dashboard admin dùng dữ liệu thật cho doanh thu, sản phẩm, đơn chờ xử lý, tồn kho, hoạt động gần đây và sản phẩm nổi bật.
 - Sửa query cập nhật trạng thái đơn hàng admin để tránh lỗi PostgreSQL `inconsistent types deduced for parameter $1` khi chuyển đơn sang đã xác nhận.
+- Cập nhật `AGENTS.md` để yêu cầu đọc `DEVELOPMENT_PROMPT.md` khi file có prompt hiện hành.
 
 ### Đã kiểm chứng
 

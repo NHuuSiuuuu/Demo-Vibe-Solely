@@ -16,6 +16,7 @@ These instructions apply to the whole `shoe-store` project.
 
 ## Required Workflow
 
+- Read `DEVELOPMENT_PROMPT.md` before planning or implementing a user-requested feature when the file contains a current prompt.
 - Read the relevant code before changing behavior.
 - Keep changes scoped to the user's request.
 - Follow existing project structure, naming and UI conventions.
@@ -34,6 +35,7 @@ These instructions apply to the whole `shoe-store` project.
 
 ## Documentation Layout
 
+- Use `DEVELOPMENT_PROMPT.md` as the project-level place for the user to paste development prompts and constraints.
 - Use `docs/superpowers/specs/` for product specs and design decisions.
 - Use `docs/superpowers/plans/` for implementation plans.
 - Do not use `docs/superpowers` as the main project changelog.
