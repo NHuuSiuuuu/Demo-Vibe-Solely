@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
 
@@ -333,16 +333,44 @@ describe('customer shopping flow', () => {
   });
 
   it('shows AI product recommendations', async () => {
-    renderAsCustomer('/products');
+    const fetchMock = renderAsCustomer('/products');
     await screen.findByRole('heading', { name: 'Road Runner 1' });
+    const originalFetch = fetchMock.getMockImplementation();
+    let resolveAiRequest;
+    const aiRequest = new Promise((resolve) => {
+      resolveAiRequest = () =>
+        resolve(
+          jsonResponse({
+            answer: 'Gợi ý phù hợp cho bạn: Road Runner 1.',
+            products: [products[0]]
+          })
+        );
+    });
+    fetchMock.mockImplementation((url, options = {}) => {
+      const parsed = new URL(String(url));
+      if (parsed.pathname === '/api/ai/chat') {
+        return aiRequest;
+      }
+      return originalFetch(url, options);
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý mua sắm' }));
+    const messageLog = screen.getByRole('log', { name: 'Tin nhắn trợ lý mua sắm' });
+
     fireEvent.change(screen.getByLabelText('Nhập câu hỏi tư vấn sản phẩm'), {
       target: { value: 'running shoes size 9' }
     });
     fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tư vấn' }));
 
-    expect(await screen.findByText('Gợi ý phù hợp cho bạn: Road Runner 1.')).toBeTruthy();
+    expect(within(messageLog).getByText('running shoes size 9')).toBeTruthy();
+    expect(within(messageLog).getByRole('status', { name: 'Trợ lý đang trả lời' })).toBeTruthy();
+
+    await act(async () => {
+      resolveAiRequest();
+      await aiRequest;
+    });
+
+    expect(await within(messageLog).findByText('Gợi ý phù hợp cho bạn: Road Runner 1.')).toBeTruthy();
     expect(screen.getByText('Sản phẩm gợi ý')).toBeTruthy();
     expect(screen.getAllByRole('heading', { name: 'Road Runner 1' }).length).toBeGreaterThan(1);
   });

@@ -24,6 +24,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm test bảo vệ để admin không render header, footer, nav, túi hàng và các page shell của người dùng.
 - Thêm `AGENTS.md` ở root project để quy định workflow cho coding agent, gồm rule changelog, kiểm chứng, git và vị trí tài liệu.
 - Thêm `DEVELOPMENT_PROMPT.md` ở root project để người dùng dán prompt phát triển và agent đọc trước khi lập kế hoạch hoặc code.
+- Thêm giao diện chat bubble cho trợ lý mua sắm, gồm message log, bubble user/assistant, typing indicator và composer cố định trong panel.
 
 ### Đã thay đổi
 
@@ -47,6 +48,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật dashboard admin dùng dữ liệu thật cho doanh thu, sản phẩm, đơn chờ xử lý, tồn kho, hoạt động gần đây và sản phẩm nổi bật.
 - Sửa query cập nhật trạng thái đơn hàng admin để tránh lỗi PostgreSQL `inconsistent types deduced for parameter $1` khi chuyển đơn sang đã xác nhận.
 - Cập nhật `AGENTS.md` để yêu cầu đọc `DEVELOPMENT_PROMPT.md` khi file có prompt hiện hành.
+- Chuyển UI trợ lý mua sắm từ form trả lời đơn sang trải nghiệm chat hỗ trợ người dùng, giữ stack React/CSS hiện tại thay vì copy nguyên component shadcn/Tailwind/TypeScript.
 
 ### Đã kiểm chứng
 
@@ -66,6 +68,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - `npm run build` đã pass sau khi tách admin workspace.
 - `git diff --check` đã pass sau khi tách admin workspace.
 - Smoke test API đã kiểm chứng customer register/login, catalog/detail, AI advisor, cart, checkout COD, customer order list/detail và admin chuyển trạng thái `pending -> confirmed -> shipping -> completed`.
+- Thêm test frontend bắt buộc trợ lý mua sắm hiển thị message log, tin nhắn user, typing indicator, câu trả lời assistant và sản phẩm gợi ý.
 
 ## 2026-09-05
 
