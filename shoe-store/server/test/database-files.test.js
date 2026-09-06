@@ -9,6 +9,23 @@ function readDatabaseFile(filename) {
   return fs.readFileSync(path.join(rootDir, 'database', filename), 'utf8');
 }
 
+function extractProductRows(sql) {
+  const productInsert = sql.match(/INSERT INTO products[\s\S]*?VALUES([\s\S]*?);/i);
+  assert.notEqual(productInsert, null);
+
+  return [...productInsert[1].matchAll(
+    /\('([^']+)', '([^']+)', '([^']+)', '([^']+)', '([^']+)', '([^']+)',\s*(\d+),\s*'active'/g
+  )].map((match) => ({
+    slug: match[1],
+    name: match[2],
+    description: match[3],
+    brand: match[4],
+    category: match[5],
+    gender: match[6],
+    price: Number(match[7])
+  }));
+}
+
 test('schema defines the required PostgreSQL enums, tables, and constraints', () => {
   const schema = readDatabaseFile('schema.sql');
 
@@ -55,7 +72,7 @@ test('orders table exposes order_status column for later API code', () => {
   assert.doesNotMatch(ordersTable[1], /\n\s+status order_status\b/);
 });
 
-test('seed data includes local users with bcrypt-compatible password hashes and at least eight products', () => {
+test('seed data includes local users with bcrypt-compatible password hashes and at least twenty products', () => {
   const seed = readDatabaseFile('seed.sql');
 
   assert.match(seed, /admin@shoestore\.local/);
@@ -69,29 +86,42 @@ test('seed data includes local users with bcrypt-compatible password hashes and 
     assert.match(row[2], /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/);
   });
 
-  const productInsert = seed.match(/INSERT INTO products[\s\S]*?VALUES([\s\S]*?);/i);
-  assert.notEqual(productInsert, null);
+  const productRows = extractProductRows(seed);
 
-  const productRows = productInsert[1]
-    .split('\n')
-    .filter((line) => line.trim().startsWith('('));
-
-  assert.equal(productRows.length >= 8, true);
+  assert.equal(productRows.length >= 20, true);
   assert.match(seed, /INSERT INTO product_variants/i);
   assert.match(seed, /INSERT INTO product_images/i);
 });
 
 test('seed data uses VND-scale prices and real product images', () => {
   const seed = readDatabaseFile('seed.sql');
-  const productInsert = seed.match(/INSERT INTO products[\s\S]*?VALUES([\s\S]*?);/i);
-  assert.notEqual(productInsert, null);
+  const productRows = extractProductRows(seed);
 
-  const priceMatches = [...productInsert[1].matchAll(/,\s*(\d{6,})\s*,\s*'active'/g)];
-  assert.equal(priceMatches.length >= 8, true);
-  priceMatches.forEach((match) => {
-    assert.equal(Number(match[1]) >= 500000, true);
+  assert.equal(productRows.length >= 8, true);
+  productRows.forEach((product) => {
+    assert.equal(product.price >= 500000, true);
   });
 
   assert.doesNotMatch(seed, /placehold\.co/i);
   assert.match(seed, /images\.unsplash\.com/);
+});
+
+test('seed data includes a RAG-ready catalog with rich product descriptions', () => {
+  const seed = readDatabaseFile('seed.sql');
+  const localize = readDatabaseFile('localize-vietnamese-products.sql');
+  const productRows = extractProductRows(seed);
+
+  assert.equal(productRows.length >= 20, true);
+  productRows.forEach((product) => {
+    assert.equal(product.description.length >= 140, true, `${product.slug} description is too short`);
+    assert.match(product.description, /Phù hợp|Mục đích|Đệm|Độ bám|Chất liệu|Form|Gợi ý/i);
+  });
+
+  ['running', 'sneakers', 'trail', 'training', 'walking', 'boots'].forEach((category) => {
+    assert.equal(productRows.some((product) => product.category === category), true, `missing category ${category}`);
+  });
+
+  productRows.forEach((product) => {
+    assert.match(localize, new RegExp(product.slug));
+  });
 });

@@ -27,6 +27,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm giao diện chat bubble cho trợ lý mua sắm, gồm message log, bubble user/assistant, typing indicator và composer cố định trong panel.
 - Thêm nút mở trợ lý mua sắm dạng tròn, chỉ dùng icon và có animation pulse.
 - Thêm cấu hình mẫu `server/.env.example` cho `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` và `OPENAI_MODEL`.
+- Thêm catalog 20 sản phẩm Solely với mô tả giàu thông tin về mục đích sử dụng, chất liệu, đệm, độ bám, form chân và ngữ cảnh phù hợp để chuẩn bị cho chatbot RAG.
 
 ### Đã thay đổi
 
@@ -61,6 +62,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật `product-badge` để dùng màu nền, viền và chữ theo theme light/dark.
 - Cập nhật retrieval trợ lý mua sắm để nhận diện nhu cầu leo núi/trekking/outdoor và chỉ lọc sản phẩm trail phù hợp trước khi tư vấn.
 - Cập nhật trợ lý mua sắm để dùng OpenAI ranking sau khi backend lọc catalog, kèm fallback nội bộ tự nhiên hơn khi thiếu API key hoặc chỉ có một sản phẩm phù hợp.
+- Cập nhật script `database/localize-vietnamese-products.sql` thành upsert để đồng bộ sản phẩm, ảnh và biến thể mới vào PostgreSQL thật mà không cần reset database.
 
 ### Đã kiểm chứng
 
@@ -90,6 +92,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test frontend bắt buộc `product-badge` dùng class theme-aware.
 - Bổ sung test backend bắt buộc câu hỏi giày leo núi/trekking trả về sản phẩm trail/outdoor thay vì catalog không liên quan.
 - Bổ sung test backend bắt buộc trợ lý mua sắm dùng OpenAI ranking khi có `OPENAI_API_KEY` và không dùng câu fallback số nhiều khi chỉ có một sản phẩm phù hợp.
+- Bổ sung test database bắt buộc seed có ít nhất 20 sản phẩm, đủ nhóm danh mục chính và mô tả đủ dài để làm nguồn dữ liệu RAG.
 
 ## 2026-09-05
 
