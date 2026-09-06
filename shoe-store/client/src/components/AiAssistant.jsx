@@ -115,7 +115,12 @@ export default function AiAssistant() {
             </div>
           ) : (
             <>
-              <div className="ai-message-log" role="log" aria-label="Tin nhắn trợ lý mua sắm" aria-live="polite">
+              <div
+                className="ai-message-log ai-message-log--hidden-scrollbar"
+                role="log"
+                aria-label="Tin nhắn trợ lý mua sắm"
+                aria-live="polite"
+              >
                 {messages.map((chatMessage) => (
                   <div className={`ai-message-row ai-message-row--${chatMessage.sender}`} key={chatMessage.id}>
                     {chatMessage.sender === 'assistant' ? (
@@ -148,13 +153,22 @@ export default function AiAssistant() {
                       aria-labelledby="ai-recommendations-title"
                     >
                       <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
-                      <div className="ai-product-grid ai-product-grid--mini">
+                      <div className="ai-product-grid ai-product-grid--mini ai-product-grid--static">
                         {products.map((product) => (
                           <article className="ai-recommendation-card" key={product.id}>
-                            <h4>
-                              <Link to={`/products/${product.slug}`}>{product.name}</Link>
-                            </h4>
-                            <p>{formatMoney(product.price)}</p>
+                            <Link to={`/products/${product.slug}`} className="ai-recommendation-card__image" aria-label={`Xem ${product.name}`}>
+                              {product.imageUrl ? (
+                                <img src={product.imageUrl} alt={product.name} />
+                              ) : (
+                                <span>Solely</span>
+                              )}
+                            </Link>
+                            <div className="ai-recommendation-card__body">
+                              <h4>
+                                <Link to={`/products/${product.slug}`}>{product.name}</Link>
+                              </h4>
+                              <p>{formatMoney(product.price)}</p>
+                            </div>
                           </article>
                         ))}
                       </div>

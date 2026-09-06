@@ -735,6 +735,15 @@ button:disabled {
   padding: 1rem;
 }
 
+.ai-message-log--hidden-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.ai-message-log--hidden-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .ai-message-row {
   align-items: flex-end;
   display: flex;
@@ -887,7 +896,7 @@ button:disabled {
   border-top-left-radius: 0.35rem;
   color: #f6f0ea;
   max-width: min(20rem, calc(100% - 2.25rem));
-  overflow: auto;
+  overflow: visible;
   padding: 0.75rem;
 }
 
@@ -901,20 +910,46 @@ button:disabled {
 
 .ai-product-grid--mini {
   gap: 0.5rem;
-  max-height: 12rem;
-  overflow-y: auto;
-  padding-right: 0.15rem;
+  overflow: visible;
 }
 
 .ai-recommendation-card {
   background: rgb(251 250 247 / 98%);
   border-radius: 8px;
   color: #24211f;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  min-width: 0;
+  padding: 0.45rem;
+}
+
+.ai-recommendation-card__image {
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  background: #f0eeeb;
+  border-radius: 7px;
+  color: #74665d;
   display: flex;
-  flex-direction: column;
+  font-size: 0.65rem;
+  font-weight: 800;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ai-recommendation-card__image img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.ai-recommendation-card__body {
+  align-content: center;
+  display: grid;
   gap: 0.25rem;
   min-width: 0;
-  padding: 0.6rem 0.7rem;
 }
 
 .ai-recommendation-card h4 {

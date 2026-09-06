@@ -54,6 +54,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Đưa sản phẩm gợi ý vào trong luồng chat của trợ lý mua sắm, tách ô nhập khỏi nút gửi, đổi nút gửi sang icon-only và cho phép nhấn Enter để gửi.
 - Thu nhỏ sản phẩm gợi ý trong trợ lý mua sắm và hiển thị như một tin nhắn assistant nằm trong vùng chat có thể cuộn.
 - Rút gọn sản phẩm gợi ý trong trợ lý mua sắm để chỉ hiển thị tên sản phẩm và giá.
+- Thêm lại ảnh nhỏ cho sản phẩm gợi ý trong chat, bỏ thanh scroll riêng của gợi ý và ẩn thanh scroll lịch sử trò chuyện.
 
 ### Đã kiểm chứng
 
@@ -77,6 +78,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test frontend bắt buộc sản phẩm gợi ý nằm trong message log, nút mở/nút gửi không có text hiển thị và Enter gửi được tin nhắn.
 - Bổ sung test frontend bắt buộc sản phẩm gợi ý là một message assistant trong vùng chat scrollable và dùng layout mini.
 - Bổ sung test frontend bắt buộc sản phẩm gợi ý không hiển thị ảnh, meta, size hoặc nút thêm giỏ trong chat.
+- Bổ sung test frontend bắt buộc gợi ý trong chat có ảnh nhỏ, không dùng scroll riêng và message log có class ẩn scrollbar.
 
 ## 2026-09-05
 

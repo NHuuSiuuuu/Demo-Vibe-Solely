@@ -381,10 +381,12 @@ describe('customer shopping flow', () => {
     expect(within(messageLog).getByRole('heading', { name: 'Road Runner 1' })).toBeTruthy();
     const recommendations = within(messageLog).getByRole('region', { name: 'Sản phẩm gợi ý' });
     expect(recommendations.className).toContain('ai-recommendations--message');
+    expect(messageLog.className).toContain('ai-message-log--hidden-scrollbar');
     expect(recommendations.closest('.ai-message-row--assistant')).toBeTruthy();
     expect(recommendations.querySelector('.ai-product-grid--mini')).toBeTruthy();
+    expect(recommendations.querySelector('.ai-product-grid--static')).toBeTruthy();
     expect(within(recommendations).getByText(/1\.200\.000\s*₫/)).toBeTruthy();
-    expect(within(recommendations).queryByRole('img')).toBeNull();
+    expect(within(recommendations).getByRole('img', { name: 'Road Runner 1' })).toBeTruthy();
     expect(within(recommendations).queryByText('Chạy bộ')).toBeNull();
     expect(within(recommendations).queryByText('Size: 9, 10')).toBeNull();
     expect(within(recommendations).queryByRole('button', { name: /Thêm vào giỏ hàng/i })).toBeNull();
