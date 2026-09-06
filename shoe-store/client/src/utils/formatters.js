@@ -53,8 +53,8 @@ const COLOR_LABELS = {
 function formatMoney(value) {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2
+    currency: 'VND',
+    maximumFractionDigits: 0
   }).format(Number(value || 0));
 }
 

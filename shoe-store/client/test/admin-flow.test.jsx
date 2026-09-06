@@ -18,13 +18,13 @@ function resetProducts() {
       brand: 'Stride',
       category: 'Running',
       gender: 'unisex',
-      price: 89.99,
+      price: 1890000,
       status: 'active',
       featured: true,
       totalStock: 8,
       variants: [
         { id: 101, productId: 10, sku: 'RR1-9-BLK', size: '9', color: 'Black', stockQuantity: 3, priceDelta: 0 },
-        { id: 102, productId: 10, sku: 'RR1-10-WHT', size: '10', color: 'White', stockQuantity: 5, priceDelta: 5 }
+        { id: 102, productId: 10, sku: 'RR1-10-WHT', size: '10', color: 'White', stockQuantity: 5, priceDelta: 100000 }
       ]
     }
   ];
@@ -46,10 +46,10 @@ function resetOrders() {
         postalCode: '78701',
         country: 'US'
       },
-      subtotal: 89.99,
+      subtotal: 1890000,
       shippingTotal: 0,
       taxTotal: 0,
-      grandTotal: 89.99,
+      grandTotal: 1890000,
       note: 'Ring bell',
       orderStatus: 'shipping',
       paymentMethod: 'cod',
@@ -64,9 +64,9 @@ function resetOrders() {
           sku: 'RR1-9-BLK',
           size: '9',
           color: 'Black',
-          unitPrice: 89.99,
+          unitPrice: 1890000,
           quantity: 1,
-          lineTotal: 89.99
+          lineTotal: 1890000
         }
       ]
     },
@@ -76,7 +76,7 @@ function resetOrders() {
       customerEmail: 'paid@shoestore.local',
       customerName: 'Paid Customer',
       shippingAddress: { line1: '2 Main St', line2: '', city: 'Austin', state: 'TX', postalCode: '78702', country: 'US' },
-      grandTotal: 1299.5,
+      grandTotal: 12995000,
       orderStatus: 'completed',
       paymentStatus: 'paid',
       createdAt: '2026-09-05T09:00:00.000Z',
@@ -88,7 +88,7 @@ function resetOrders() {
       customerEmail: 'pending-1@shoestore.local',
       customerName: 'Pending One',
       shippingAddress: { line1: '3 Main St', line2: '', city: 'Austin', state: 'TX', postalCode: '78703', country: 'US' },
-      grandTotal: 30,
+      grandTotal: 300000,
       orderStatus: 'pending',
       paymentStatus: 'unpaid',
       createdAt: '2026-09-05T08:00:00.000Z',
@@ -100,7 +100,7 @@ function resetOrders() {
       customerEmail: 'pending-2@shoestore.local',
       customerName: 'Pending Two',
       shippingAddress: { line1: '4 Main St', line2: '', city: 'Austin', state: 'TX', postalCode: '78704', country: 'US' },
-      grandTotal: 40,
+      grandTotal: 400000,
       orderStatus: 'pending',
       paymentStatus: 'unpaid',
       createdAt: '2026-09-05T07:00:00.000Z',
@@ -112,7 +112,7 @@ function resetOrders() {
       customerEmail: 'pending-3@shoestore.local',
       customerName: 'Pending Three',
       shippingAddress: { line1: '5 Main St', line2: '', city: 'Austin', state: 'TX', postalCode: '78705', country: 'US' },
-      grandTotal: 50,
+      grandTotal: 500000,
       orderStatus: 'pending',
       paymentStatus: 'unpaid',
       createdAt: '2026-09-05T06:00:00.000Z',
@@ -155,7 +155,7 @@ function createAdminFetchMock({ role = 'admin' } = {}) {
           variantsCount: 32,
           ordersCount: 7,
           pendingOrdersCount: 3,
-          completedRevenue: 1299.5
+          completedRevenue: 12995000
         }
       });
     }
@@ -240,7 +240,7 @@ describe('admin flow', () => {
     expect(await screen.findByText('12')).toBeTruthy();
     expect(screen.getByText('3')).toBeTruthy();
     expect(screen.getByText('1')).toBeTruthy();
-    expect(screen.getByText(/1\.299,50\s*US\$/)).toBeTruthy();
+    expect(screen.getByText(/12\.995\.000\s*₫/)).toBeTruthy();
   });
 
   it('renders product admin table', async () => {
@@ -249,7 +249,7 @@ describe('admin flow', () => {
     const table = await screen.findByRole('table', { name: 'Sản phẩm quản trị' });
     expect(await within(table).findByText('Road Runner 1')).toBeTruthy();
     expect(within(table).getByText('Đang bán')).toBeTruthy();
-    expect(within(table).getByText(/89,99\s*US\$/)).toBeTruthy();
+    expect(within(table).getByText(/1\.890\.000\s*₫/)).toBeTruthy();
     expect(within(table).getByText('8 đôi')).toBeTruthy();
   });
 
@@ -263,7 +263,7 @@ describe('admin flow', () => {
     fireEvent.change(screen.getByLabelText('Thương hiệu'), { target: { value: 'Stride' } });
     fireEvent.change(screen.getByLabelText('Danh mục'), { target: { value: 'Lifestyle' } });
     fireEvent.change(screen.getByLabelText('Giới tính'), { target: { value: 'unisex' } });
-    fireEvent.change(screen.getByLabelText('Giá'), { target: { value: '74.99' } });
+    fireEvent.change(screen.getByLabelText('Giá'), { target: { value: '1490000' } });
     fireEvent.change(screen.getByLabelText('Trạng thái'), { target: { value: 'active' } });
     fireEvent.click(screen.getByLabelText('Nổi bật'));
     fireEvent.click(screen.getByRole('button', { name: 'Lưu sản phẩm' }));
@@ -280,7 +280,7 @@ describe('admin flow', () => {
           brand: 'Stride',
           category: 'Lifestyle',
           gender: 'unisex',
-          price: 74.99,
+          price: 1490000,
           status: 'active',
           featured: true
         })
@@ -318,7 +318,7 @@ describe('admin flow', () => {
     const table = await screen.findByRole('table', { name: 'Đơn hàng quản trị' });
     const orderRow = within(table).getByText('ORD-20260905-ABC123').closest('tr');
     expect(within(orderRow).getByText('customer@shoestore.local')).toBeTruthy();
-    expect(within(orderRow).getByText(/89,99\s*US\$/)).toBeTruthy();
+    expect(within(orderRow).getByText(/1\.890\.000\s*₫/)).toBeTruthy();
     expect(within(orderRow).getByText('Đang giao')).toBeTruthy();
     expect(within(orderRow).getByText('Chưa thanh toán')).toBeTruthy();
   });

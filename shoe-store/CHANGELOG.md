@@ -16,6 +16,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm tài liệu setup local và tài khoản demo.
 - Cài và cấu hình PostgreSQL local trên remote development server.
 - Thêm script `database/localize-vietnamese-products.sql` để cập nhật dữ liệu sản phẩm PostgreSQL thật sang bộ sản phẩm Solely tiếng Việt mà không reset database.
+- Thêm ảnh sản phẩm thật từ `images.unsplash.com` cho bộ sản phẩm Solely, thay cho ảnh placeholder.
 
 ### Đã thay đổi
 
@@ -27,6 +28,9 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật metadata gốc của frontend sang `lang="vi"` và title Solely.
 - Cập nhật seed database sang dữ liệu sản phẩm Solely tiếng Việt.
 - Bổ sung icon bằng `lucide-react` cho các thành phần UI chính.
+- Chuyển toàn bộ hiển thị tiền từ USD sang VND, bỏ số lẻ thập phân.
+- Cập nhật giá sản phẩm/biến thể trong seed và script cập nhật PostgreSQL sang mức giá VND phù hợp shop giày Việt Nam.
+- Cập nhật input giá trong admin theo bước VND `1000`.
 
 ### Đã kiểm chứng
 
@@ -37,6 +41,8 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - `git diff --check` đã pass sau bản Việt hóa/redesign.
 - Kết nối PostgreSQL local đã được kiểm chứng bằng cách tạo customer qua API và đọc lại từ bảng `users`.
 - API products đã được kiểm chứng trả dữ liệu Solely tiếng Việt từ PostgreSQL thật.
+- Thêm test bắt buộc UI hiển thị VND thay vì USD trong customer/admin flow.
+- Thêm test bắt buộc seed dùng giá VND-scale và không còn ảnh placeholder.
 
 ## 2026-09-05
 

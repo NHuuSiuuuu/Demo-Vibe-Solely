@@ -234,7 +234,7 @@ export default function AdminProductFormPage() {
         </label>
         <label>
           Giá
-          <input name="price" type="number" min="0" step="0.01" required value={form.price} onChange={updateField} />
+          <input name="price" type="number" min="0" step="1000" required value={form.price} onChange={updateField} />
         </label>
         <label>
           Trạng thái
@@ -285,7 +285,7 @@ export default function AdminProductFormPage() {
               </label>
               <label>
                 Chênh lệch giá
-                <input name="priceDelta" type="number" min="0" step="0.01" value={variantForm.priceDelta} onChange={updateVariantField} />
+                <input name="priceDelta" type="number" min="0" step="1000" value={variantForm.priceDelta} onChange={updateVariantField} />
               </label>
               <div className="admin-form__actions">
                 <button type="submit">Thêm phiên bản</button>
@@ -342,7 +342,7 @@ export default function AdminProductFormPage() {
                           aria-label={`Chênh lệch giá cho ${variant.sku}`}
                           type="number"
                           min="0"
-                          step="0.01"
+                          step="1000"
                           value={variant.priceDelta}
                           onChange={(event) => updateExistingVariantField(variant.id, 'priceDelta', event.target.value)}
                         />

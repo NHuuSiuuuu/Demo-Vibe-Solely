@@ -80,3 +80,18 @@ test('seed data includes local users with bcrypt-compatible password hashes and 
   assert.match(seed, /INSERT INTO product_variants/i);
   assert.match(seed, /INSERT INTO product_images/i);
 });
+
+test('seed data uses VND-scale prices and real product images', () => {
+  const seed = readDatabaseFile('seed.sql');
+  const productInsert = seed.match(/INSERT INTO products[\s\S]*?VALUES([\s\S]*?);/i);
+  assert.notEqual(productInsert, null);
+
+  const priceMatches = [...productInsert[1].matchAll(/,\s*(\d{6,})\s*,\s*'active'/g)];
+  assert.equal(priceMatches.length >= 8, true);
+  priceMatches.forEach((match) => {
+    assert.equal(Number(match[1]) >= 500000, true);
+  });
+
+  assert.doesNotMatch(seed, /placehold\.co/i);
+  assert.match(seed, /images\.unsplash\.com/);
+});

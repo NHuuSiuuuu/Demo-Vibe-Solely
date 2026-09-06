@@ -10,7 +10,7 @@ const products = [
     brand: 'Stride',
     category: 'Running',
     gender: 'men',
-    price: 120,
+    price: 1200000,
     imageUrl: '/images/road-runner-1-main.jpg',
     availableSizes: ['9', '10'],
     availableColors: ['black', 'white'],
@@ -25,7 +25,7 @@ const products = [
     brand: 'Ace',
     category: 'Tennis',
     gender: 'women',
-    price: 90,
+    price: 900000,
     imageUrl: '/images/court-classic-main.jpg',
     availableSizes: ['7', '8'],
     availableColors: ['white', 'red'],
@@ -44,7 +44,7 @@ const productDetail = {
   ],
   variants: [
     { id: 101, sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 3, priceDelta: 0 },
-    { id: 102, sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 5, priceDelta: 10 }
+    { id: 102, sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 5, priceDelta: 100000 }
   ]
 };
 
@@ -61,11 +61,11 @@ const cartWithItem = {
       color: 'black',
       quantity: 2,
       stockQuantity: 3,
-      unitPrice: 120,
-      lineTotal: 240
+      unitPrice: 1200000,
+      lineTotal: 2400000
     }
   ],
-  subtotal: 240
+  subtotal: 2400000
 };
 
 const order = {
@@ -82,10 +82,10 @@ const order = {
     postalCode: '78701',
     country: 'US'
   },
-  subtotal: 240,
+  subtotal: 2400000,
   shippingTotal: 0,
   taxTotal: 0,
-  grandTotal: 240,
+  grandTotal: 2400000,
   note: 'Leave at door',
   orderStatus: 'shipping',
   paymentMethod: 'cod',
@@ -100,9 +100,9 @@ const order = {
       sku: 'RR1-9-BLK',
       size: '9',
       color: 'black',
-      unitPrice: 120,
+      unitPrice: 1200000,
       quantity: 2,
-      lineTotal: 240
+      lineTotal: 2400000
     }
   ]
 };
@@ -223,11 +223,11 @@ describe('customer shopping flow', () => {
   it('adds a selected variant to cart', async () => {
     const fetchMock = renderAsCustomer('/products/road-runner-1');
     await screen.findByRole('heading', { name: 'Road Runner 1' });
-    expect(screen.getAllByText(/120,00\s*US\$/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1\.200\.000\s*₫/).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByLabelText(/Size 10, màu trắng, 130,00\s*US\$/));
-    expect(screen.getAllByText(/130,00\s*US\$/).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByLabelText(/Size 9, màu đen, 120,00\s*US\$/));
+    fireEvent.click(screen.getByLabelText(/Size 10, màu trắng, 1\.300\.000\s*₫/));
+    expect(screen.getAllByText(/1\.300\.000\s*₫/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByLabelText(/Size 9, màu đen, 1\.200\.000\s*₫/));
     fireEvent.change(screen.getByLabelText('Số lượng'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Thêm vào túi hàng' }));
 
