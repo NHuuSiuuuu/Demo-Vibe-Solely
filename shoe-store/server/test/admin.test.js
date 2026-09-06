@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const request = require('supertest');
 
 const originalLoad = Module._load;
+const originalFetch = global.fetch;
+const originalGeminiApiKey = process.env.GEMINI_API_KEY;
 
 process.env.JWT_SECRET = 'test-jwt-secret';
 
@@ -167,6 +169,23 @@ async function mockQuery(text, params = []) {
           document_count: 2,
           chunk_count: 5,
           needs_reindex_count: 1
+        }
+      ],
+      rowCount: 1
+    };
+  }
+
+  if (text.includes('FROM rag_chunks') && text.includes('embedding <=>')) {
+    return {
+      rows: [
+        {
+          id: '501',
+          source_type: 'document',
+          source_id: '7',
+          title: 'Chính sách đổi trả',
+          content: 'Khách có thể đổi trả khi giày còn nguyên hộp, tem và chưa sử dụng ngoài phạm vi thử size trong nhà.',
+          metadata: { documentType: 'returns', slug: 'chinh-sach-doi-tra' },
+          score: '0.92'
         }
       ],
       rowCount: 1
@@ -338,6 +357,12 @@ Module._load = function patchedLoad(requestPath, parent, isMain) {
 
 test.after(() => {
   Module._load = originalLoad;
+  global.fetch = originalFetch;
+  if (originalGeminiApiKey === undefined) {
+    delete process.env.GEMINI_API_KEY;
+  } else {
+    process.env.GEMINI_API_KEY = originalGeminiApiKey;
+  }
 });
 
 test.beforeEach(() => {
@@ -392,6 +417,39 @@ test('customer cannot access RAG admin endpoints', async () => {
     .get('/api/admin/rag/overview')
     .set('Authorization', `Bearer ${tokenFor(1)}`)
     .expect(403);
+});
+
+test('admin RAG test returns retrieved chunks when context is found', async () => {
+  const { createApp } = require('../src/app');
+  process.env.GEMINI_API_KEY = 'test-gemini-key';
+  global.fetch = async (url) => ({
+    ok: true,
+    async json() {
+      if (String(url).includes(':embedContent')) {
+        return { embedding: { values: Array.from({ length: 768 }, () => 0.1) } };
+      }
+      return { candidates: [{ content: { parts: [{ text: 'Solely hỗ trợ đổi trả theo điều kiện còn nguyên hộp.' }] } }] };
+    }
+  });
+
+  const response = await request(createApp())
+    .post('/api/admin/rag/test')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ message: 'Chính sách đổi trả như thế nào?' })
+    .expect(200);
+
+  assert.equal(response.body.answer, 'Solely hỗ trợ đổi trả theo điều kiện còn nguyên hộp.');
+  assert.deepEqual(response.body.chunks, [
+    {
+      id: 501,
+      sourceType: 'document',
+      sourceId: 7,
+      title: 'Chính sách đổi trả',
+      content: 'Khách có thể đổi trả khi giày còn nguyên hộp, tem và chưa sử dụng ngoài phạm vi thử size trong nhà.',
+      metadata: { documentType: 'returns', slug: 'chinh-sach-doi-tra' },
+      score: 0.92
+    }
+  ]);
 });
 
 test('creates and updates a product', async () => {

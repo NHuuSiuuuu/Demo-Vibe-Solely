@@ -72,7 +72,7 @@ function buildFallbackAnswer(hasContext) {
   return 'Solely đã tìm thấy một số thông tin liên quan, nhưng hiện chưa tạo được câu trả lời từ Gemini. Anh có thể thử hỏi ngắn gọn hơn hoặc kiểm tra lại cấu hình Gemini.';
 }
 
-async function answerWithRag({ user, message }) {
+async function answerWithRag({ user, message, includeChunks = false }) {
   const cleanedMessage = cleanMessage(message);
   if (!cleanedMessage) {
     throw new HttpError(400, 'Message is required');
@@ -82,7 +82,8 @@ async function answerWithRag({ user, message }) {
     return {
       answer: GREETING_ANSWER,
       products: [],
-      sources: []
+      sources: [],
+      ...(includeChunks ? { chunks: [] } : {})
     };
   }
 
@@ -98,7 +99,8 @@ async function answerWithRag({ user, message }) {
   return {
     answer: generatedAnswer || buildFallbackAnswer(context.chunks.length > 0),
     products,
-    sources: context.sources
+    sources: context.sources,
+    ...(includeChunks ? { chunks: context.chunks } : {})
   };
 }
 

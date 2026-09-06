@@ -217,7 +217,7 @@ router.post(
   '/test',
   asyncHandler(async (req, res) => {
     const body = req.body || {};
-    const result = await answerWithRag({ user: req.user, message: body.message });
+    const result = await answerWithRag({ user: req.user, message: body.message, includeChunks: true });
     res.json({
       answer: result.answer,
       products: result.products,

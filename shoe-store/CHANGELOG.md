@@ -72,6 +72,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật script `database/localize-vietnamese-products.sql` thành upsert để đồng bộ sản phẩm, ảnh và biến thể mới vào PostgreSQL thật mà không cần reset database.
 - Cập nhật script setup database để chạy schema, seed và upsert Việt hóa/RAG theo cùng một luồng lặp lại được.
 - Sửa service RAG để giữ marker `needs_reindex` cho sản phẩm khi Gemini embedding lỗi và loại product chunks khỏi context nếu sản phẩm bị filter loại bỏ.
+- Sửa API admin RAG test query để trả về các chunk tri thức đã truy xuất thay vì luôn trả mảng rỗng.
 
 ### Đã kiểm chứng
 
@@ -104,6 +105,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test database bắt buộc seed có ít nhất 20 sản phẩm, đủ nhóm danh mục chính và mô tả đủ dài để làm nguồn dữ liệu RAG.
 - Bổ sung test backend cho service RAG indexing/retrieval và câu chào nhanh của trợ lý RAG.
 - Bổ sung test backend bắt buộc admin xem được RAG overview và customer bị chặn khỏi endpoint admin RAG.
+- Bổ sung test backend bắt buộc admin RAG test query trả về chunk tri thức khi retrieval tìm thấy ngữ cảnh.
 
 ## 2026-09-05
 
