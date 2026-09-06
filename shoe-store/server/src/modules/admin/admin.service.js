@@ -197,14 +197,18 @@ function prepareVariantInput(input, requireAll) {
 }
 
 async function markProductChunksHidden(productId) {
-  await query(
-    `
-      UPDATE rag_chunks
-      SET status = 'hidden', updated_at = NOW()
-      WHERE source_type = 'product' AND source_id = $1
-    `,
-    [productId]
-  );
+  try {
+    await query(
+      `
+        UPDATE rag_chunks
+        SET status = 'hidden', updated_at = NOW()
+        WHERE source_type = 'product' AND source_id = $1
+      `,
+      [productId]
+    );
+  } catch (_error) {
+    // RAG bookkeeping must not block admin product saves.
+  }
 }
 
 async function reindexProductBestEffort(productId) {
@@ -212,10 +216,14 @@ async function reindexProductBestEffort(productId) {
     const { reindexProduct } = require('../rag/ragIndex.service');
     await reindexProduct(productId);
   } catch (_error) {
-    await query(
-      `UPDATE rag_chunks SET status = 'needs_reindex', updated_at = NOW() WHERE source_type = 'product' AND source_id = $1`,
-      [productId]
-    );
+    try {
+      await query(
+        `UPDATE rag_chunks SET status = 'needs_reindex', updated_at = NOW() WHERE source_type = 'product' AND source_id = $1`,
+        [productId]
+      );
+    } catch (_fallbackError) {
+      // RAG bookkeeping must not block admin product saves.
+    }
   }
 }
 

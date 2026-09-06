@@ -22,6 +22,7 @@ let queryLog;
 let ragReindexCalls;
 let ragReindexShouldFail;
 let ragChunkStatusUpdates;
+let ragChunkUpdateShouldFail;
 
 function resetStore() {
   users = [
@@ -115,6 +116,7 @@ function resetStore() {
   ragReindexCalls = [];
   ragReindexShouldFail = false;
   ragChunkStatusUpdates = [];
+  ragChunkUpdateShouldFail = false;
 }
 
 function tokenFor(userId) {
@@ -226,6 +228,9 @@ async function mockQuery(text, params = []) {
   if (text.includes('UPDATE rag_chunks') && text.includes("source_type = 'product'") && text.includes('source_id = $1')) {
     const statusMatch = text.match(/SET status = '([^']+)'/);
     ragChunkStatusUpdates.push({ productId: Number(params[0]), status: statusMatch ? statusMatch[1] : null });
+    if (ragChunkUpdateShouldFail) {
+      throw new Error('RAG chunk update failed');
+    }
     return { rows: [], rowCount: 1 };
   }
 
@@ -582,6 +587,21 @@ test('product save succeeds and marks RAG chunks needs_reindex when reindex fail
   assert.deepEqual(ragChunkStatusUpdates, [{ productId: 10, status: 'needs_reindex' }]);
 });
 
+test('product save still succeeds when RAG fallback bookkeeping fails', async () => {
+  const { createApp } = require('../src/app');
+  ragReindexShouldFail = true;
+  ragChunkUpdateShouldFail = true;
+
+  const response = await request(createApp())
+    .patch('/api/admin/products/10')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ name: 'Road Runner Resilient' })
+    .expect(200);
+
+  assert.equal(response.body.product.name, 'Road Runner Resilient');
+  assert.deepEqual(ragChunkStatusUpdates, [{ productId: 10, status: 'needs_reindex' }]);
+});
+
 test('hiding a product marks related RAG chunks hidden', async () => {
   const { createApp } = require('../src/app');
 
@@ -592,6 +612,20 @@ test('hiding a product marks related RAG chunks hidden', async () => {
     .expect(200);
 
   assert.deepEqual(ragReindexCalls, []);
+  assert.deepEqual(ragChunkStatusUpdates, [{ productId: 10, status: 'hidden' }]);
+});
+
+test('hiding a product still succeeds when hidden RAG bookkeeping fails', async () => {
+  const { createApp } = require('../src/app');
+  ragChunkUpdateShouldFail = true;
+
+  const response = await request(createApp())
+    .patch('/api/admin/products/10')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ status: 'hidden' })
+    .expect(200);
+
+  assert.equal(response.body.product.status, 'hidden');
   assert.deepEqual(ragChunkStatusUpdates, [{ productId: 10, status: 'hidden' }]);
 });
 
