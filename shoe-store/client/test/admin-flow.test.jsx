@@ -240,7 +240,18 @@ describe('admin flow', () => {
     expect(await screen.findByText('12')).toBeTruthy();
     expect(screen.getByText('3')).toBeTruthy();
     expect(screen.getByText('1')).toBeTruthy();
-    expect(screen.getByText(/12\.995\.000\s*₫/)).toBeTruthy();
+    expect(screen.getAllByText(/12\.995\.000\s*₫/).length).toBeGreaterThan(0);
+  });
+
+  it('renders admin pages without the customer storefront shell', async () => {
+    renderWithToken('/admin');
+
+    expect(await screen.findByRole('heading', { name: 'Tổng quan quản trị' })).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Điều hướng quản trị' })).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Điều hướng chính' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Hàng mới' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Túi hàng/i })).toBeNull();
+    expect(screen.queryByRole('contentinfo')).toBeNull();
   });
 
   it('renders product admin table', async () => {

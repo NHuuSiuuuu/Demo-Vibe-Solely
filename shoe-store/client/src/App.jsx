@@ -65,38 +65,38 @@ function createAppRouter() {
               element: <RegisterPage />
             },
             {
-              path: 'admin',
-              element: <AdminLayout />,
-              children: [
-                {
-                  index: true,
-                  element: <AdminDashboardPage />
-                },
-                {
-                  path: 'products',
-                  element: <AdminProductsPage />
-                },
-                {
-                  path: 'products/new',
-                  element: <AdminProductFormPage />
-                },
-                {
-                  path: 'products/:id/edit',
-                  element: <AdminProductFormPage />
-                },
-                {
-                  path: 'orders',
-                  element: <AdminOrdersPage />
-                },
-                {
-                  path: 'orders/:id',
-                  element: <AdminOrderDetailPage />
-                }
-              ]
-            },
-            {
               path: '*',
               element: <Navigate to="/" replace />
+            }
+          ]
+        },
+        {
+          path: 'admin',
+          element: <AdminLayout />,
+          children: [
+            {
+              index: true,
+              element: <AdminDashboardPage />
+            },
+            {
+              path: 'products',
+              element: <AdminProductsPage />
+            },
+            {
+              path: 'products/new',
+              element: <AdminProductFormPage />
+            },
+            {
+              path: 'products/:id/edit',
+              element: <AdminProductFormPage />
+            },
+            {
+              path: 'orders',
+              element: <AdminOrdersPage />
+            },
+            {
+              path: 'orders/:id',
+              element: <AdminOrderDetailPage />
             }
           ]
         }
