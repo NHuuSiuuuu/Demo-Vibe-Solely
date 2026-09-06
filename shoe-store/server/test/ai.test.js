@@ -56,6 +56,22 @@ const matchingProductRows = [
   }
 ];
 
+const hikingProductRows = [
+  {
+    id: '12',
+    name: 'Solely Trail Guard',
+    slug: 'trail-guard-pro',
+    brand: 'Solely',
+    category: 'trail',
+    gender: 'men',
+    price: '2490000.00',
+    imageUrl: '/images/solely-trail-guard.jpg',
+    availableSizes: ['42', '43'],
+    availableColors: ['olive'],
+    totalStock: '5'
+  }
+];
+
 let storedMessages;
 let lastProductQuery;
 
@@ -93,6 +109,10 @@ async function mockQuery(text, params = []) {
 
   if (text.includes('FROM products p') && text.includes("p.status = 'active'")) {
     lastProductQuery = { text, params };
+
+    if (params.includes('%trail%') && params.includes('%trekking%') && params.includes('%outdoor%')) {
+      return { rows: hikingProductRows, rowCount: hikingProductRows.length };
+    }
 
     if (params.includes('42') && params.includes('1000000') && params.includes('men')) {
       return { rows: matchingProductRows, rowCount: matchingProductRows.length };
@@ -149,6 +169,23 @@ test('returns catalog recommendations for budget and size', async () => {
   assert.match(response.body.answer, /Nike Air Zoom Pegasus/);
   assert.match(lastProductQuery.text, /p\.base_price <=/);
   assert.match(lastProductQuery.text, /filtered_variant\.size =/);
+});
+
+test('filters hiking advice to trail and outdoor products', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .post('/api/ai/chat')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send({ message: 'Tôi cần giày đi leo núi hoặc trekking cuối tuần' })
+    .expect(200);
+
+  assert.deepEqual(response.body.products, hikingProductRows.map(normalizeCard));
+  assert.match(response.body.answer, /Solely Trail Guard/);
+  assert.match(lastProductQuery.text, /p\.category/);
+  assert.equal(lastProductQuery.params.includes('%trail%'), true);
+  assert.equal(lastProductQuery.params.includes('%trekking%'), true);
+  assert.equal(lastProductQuery.params.includes('%outdoor%'), true);
 });
 
 test('returns a helpful fallback when no product matches', async () => {

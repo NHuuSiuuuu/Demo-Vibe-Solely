@@ -2,6 +2,28 @@ const { query } = require('../../db/pool');
 const { HttpError } = require('../../utils/httpError');
 
 const COMMON_BRANDS = ['nike', 'adidas', 'puma', 'converse', 'vans', 'new balance', 'asics', 'reebok'];
+const PRODUCT_INTENTS = [
+  {
+    pattern: /\b(chay bo|running|runner)\b/,
+    keywords: ['running']
+  },
+  {
+    pattern: /\b(leo nui|trekking|hiking|di rung|duong mon|trail|outdoor|dia hinh)\b/,
+    keywords: ['trail', 'trekking', 'outdoor']
+  },
+  {
+    pattern: /\b(bong ro|basketball)\b/,
+    keywords: ['basketball']
+  },
+  {
+    pattern: /\b(lifestyle|di choi|hang ngay|casual)\b/,
+    keywords: ['lifestyle']
+  },
+  {
+    pattern: /\b(tennis|court)\b/,
+    keywords: ['tennis']
+  }
+];
 
 function normalizeText(value) {
   return String(value || '')
@@ -96,21 +118,15 @@ function extractKeywords(message) {
   const normalized = normalizeText(message);
   const keywords = [];
 
-  if (/\b(chay bo|running|runner)\b/.test(normalized)) {
-    keywords.push('running');
-  }
-
-  if (/\b(bong ro|basketball)\b/.test(normalized)) {
-    keywords.push('basketball');
-  }
-
-  if (/\b(lifestyle|di choi|hang ngay|casual)\b/.test(normalized)) {
-    keywords.push('lifestyle');
-  }
-
-  if (/\b(tennis|court)\b/.test(normalized)) {
-    keywords.push('tennis');
-  }
+  PRODUCT_INTENTS.forEach((intent) => {
+    if (intent.pattern.test(normalized)) {
+      intent.keywords.forEach((keyword) => {
+        if (!keywords.includes(keyword)) {
+          keywords.push(keyword);
+        }
+      });
+    }
+  });
 
   return keywords;
 }
