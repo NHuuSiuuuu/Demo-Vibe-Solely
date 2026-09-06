@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, Headphones, ShieldCheck, Truck } from 'lucid
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
+import ImageStreamHero from '../components/ImageStreamHero.jsx';
 import ProductCard, { formatMoney } from '../components/ProductCard.jsx';
 
 const FALLBACK_EDITORIAL_IMAGES = [
@@ -69,6 +70,14 @@ export default function HomePage() {
     [products]
   );
   const currentSlide = heroSlides[activeSlide];
+  const streamImages = useMemo(
+    () =>
+      Array.from({ length: Math.max(products.length, FALLBACK_EDITORIAL_IMAGES.length) }, (_, index) => ({
+        src: productImage(products, index),
+        alt: products[index]?.name || `Sneaker Solely ${index + 1}`
+      })),
+    [products]
+  );
   const arrivals = products.slice(0, 4);
   const saleProduct = products[0];
 
@@ -102,34 +111,35 @@ export default function HomePage() {
   return (
     <section className="home-page editorial-storefront" aria-labelledby="home-title">
       <section className="editorial-hero" aria-label="Bộ sưu tập nổi bật">
-        <img className="editorial-hero__image" src={currentSlide.image} alt={currentSlide.product?.name || 'Sneaker Solely nổi bật'} />
-        <div className="editorial-hero__overlay">
-          <p className="eyebrow">{currentSlide.label}</p>
-          <h1 id="home-title">{currentSlide.title}</h1>
-          <p>{currentSlide.text}</p>
-          <Link className="button-secondary editorial-hero__cta" to="/products">
-            Xem thêm
-            <span aria-hidden="true">→</span>
-          </Link>
-        </div>
-        <div className="carousel-controls" aria-label="Điều khiển hero carousel">
-          <button type="button" aria-label="Slide trước" onClick={showPreviousSlide}>
-            <ChevronLeft size={18} aria-hidden="true" />
-          </button>
-          {heroSlides.map((slide, index) => (
-            <button
-              type="button"
-              key={slide.title}
-              className={index === activeSlide ? 'is-active' : ''}
-              aria-label={`Xem slide ${index + 1}`}
-              aria-pressed={index === activeSlide}
-              onClick={() => setActiveSlide(index)}
-            />
-          ))}
-          <button type="button" aria-label="Slide tiếp theo" onClick={showNextSlide}>
-            <ChevronRight size={18} aria-hidden="true" />
-          </button>
-        </div>
+        <ImageStreamHero className="editorial-hero__stream" images={streamImages} cards={10} speed={20} axis={54}>
+          <div className="editorial-hero__overlay">
+            <p className="eyebrow">{currentSlide.label}</p>
+            <h1 id="home-title">{currentSlide.title}</h1>
+            <p>{currentSlide.text}</p>
+            <Link className="button-secondary editorial-hero__cta" to="/products">
+              Xem thêm
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+          <div className="carousel-controls" aria-label="Điều khiển hero carousel">
+            <button type="button" aria-label="Slide trước" onClick={showPreviousSlide}>
+              <ChevronLeft size={18} aria-hidden="true" />
+            </button>
+            {heroSlides.map((slide, index) => (
+              <button
+                type="button"
+                key={slide.title}
+                className={index === activeSlide ? 'is-active' : ''}
+                aria-label={`Xem slide ${index + 1}`}
+                aria-pressed={index === activeSlide}
+                onClick={() => setActiveSlide(index)}
+              />
+            ))}
+            <button type="button" aria-label="Slide tiếp theo" onClick={showNextSlide}>
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+          </div>
+        </ImageStreamHero>
       </section>
 
       <section className="editorial-section" aria-labelledby="new-arrivals-title">

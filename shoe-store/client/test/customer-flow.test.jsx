@@ -202,6 +202,7 @@ describe('customer shopping flow', () => {
     renderAsCustomer('/');
 
     expect(await screen.findByRole('heading', { name: /Tất cả điểm nhấn mới/i })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Hiệu ứng ảnh sneaker chuyển động' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Hàng mới về' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Ưu đãi cuối tuần' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Sản phẩm bán chạy' })).toBeTruthy();

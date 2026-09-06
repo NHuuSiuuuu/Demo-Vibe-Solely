@@ -19,6 +19,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm ảnh sản phẩm thật từ `images.unsplash.com` cho bộ sản phẩm Solely, thay cho ảnh placeholder.
 - Thêm giao diện storefront phong cách editorial tối giản cho Solely, gồm hero carousel, hàng mới về, banner ưu đãi, bento sản phẩm bán chạy, Solely Journal, Instagram strip và footer nền tối.
 - Thêm giao diện chi tiết sản phẩm mới với breadcrumb, đánh giá, quantity stepper, nút mua ngay, danh sách review và carousel sản phẩm liên quan.
+- Thêm component `ImageStreamHero` cho hero trang Home với hiệu ứng hai luồng ảnh sneaker chạy theo chiều sâu/perspective.
 
 ### Đã thay đổi
 
@@ -35,6 +36,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật input giá trong admin theo bước VND `1000`.
 - Áp phong cách từ prompt furniture editorial vào shop giày Solely nhưng giữ nguyên domain shop giày Việt, sản phẩm sneaker, giá VND và nghiệp vụ hiện có.
 - Cập nhật hover card ảnh sản phẩm, CTA terracotta, typography uppercase, divider mảnh, responsive grid và header hamburger cho mobile.
+- Thay ảnh hero tĩnh bằng corridor image stream có hỗ trợ reduced motion và vẫn giữ điều hướng slide bằng nút/dot.
 
 ### Đã kiểm chứng
 
@@ -48,6 +50,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm test bắt buộc UI hiển thị VND thay vì USD trong customer/admin flow.
 - Thêm test bắt buộc seed dùng giá VND-scale và không còn ảnh placeholder.
 - Thêm test cho homepage editorial carousel và trang chi tiết sản phẩm có quantity stepper/nút mua ngay.
+- Thêm test bắt buộc homepage render hiệu ứng image stream trong hero.
 
 ## 2026-09-05
 

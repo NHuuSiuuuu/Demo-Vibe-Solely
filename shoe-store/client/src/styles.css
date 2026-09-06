@@ -1760,19 +1760,57 @@ button:hover:not(:disabled),
 
 .editorial-hero {
   align-items: stretch;
-  background: #e8e0d6;
+  background: var(--solely-dark);
   display: grid;
   min-height: min(76vh, 44rem);
   overflow: hidden;
   position: relative;
 }
 
-.editorial-hero__image {
-  filter: saturate(0.96);
+.editorial-hero__stream {
+  min-height: inherit;
+  width: 100%;
+}
+
+.image-stream-hero {
+  background:
+    radial-gradient(circle at 50% 52%, rgb(201 101 59 / 22%), transparent 30%),
+    linear-gradient(115deg, #1b1714, #2c211b 52%, #171412);
+  display: grid;
+  min-height: inherit;
+  overflow: hidden;
+  position: relative;
+}
+
+.image-stream-layer {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+}
+
+.image-stream-stage {
   height: 100%;
   inset: 0;
-  object-fit: cover;
   position: absolute;
+  transform-style: preserve-3d;
+  width: 100%;
+}
+
+.image-stream-card {
+  backface-visibility: hidden;
+  background: #efe9e2;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 30%);
+  overflow: hidden;
+  position: absolute;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.image-stream-card img {
+  filter: saturate(0.96) contrast(1.04);
+  height: 100%;
+  object-fit: cover;
   width: 100%;
 }
 
