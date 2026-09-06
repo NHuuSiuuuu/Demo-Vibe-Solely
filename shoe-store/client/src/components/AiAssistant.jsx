@@ -53,15 +53,18 @@ export default function AiAssistant() {
 
     try {
       const data = await apiClient.post('/api/ai/chat', { message: trimmedMessage }, { token });
+      const returnedProducts = Array.isArray(data.products) ? data.products : [];
+      const returnedSources = Array.isArray(data.sources) ? data.sources : [];
       setMessages((currentMessages) => [
         ...currentMessages,
         {
           id: `assistant-${requestId}`,
           sender: 'assistant',
-          content: data.answer
+          content: data.answer,
+          sources: returnedSources
         }
       ]);
-      setProducts(data.products || []);
+      setProducts(returnedProducts);
     } catch (err) {
       setError(err.message);
       setMessages((currentMessages) => [

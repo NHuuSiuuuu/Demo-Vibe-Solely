@@ -73,6 +73,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật script `database/localize-vietnamese-products.sql` thành upsert để đồng bộ sản phẩm, ảnh và biến thể mới vào PostgreSQL thật mà không cần reset database.
 - Cập nhật script setup database để chạy schema, seed và upsert Việt hóa/RAG theo cùng một luồng lặp lại được.
 - Chuyển API chat khách hàng `/api/ai/chat` sang trả lời qua RAG/Gemini, trả về `answer`, `products`, `sources` và không còn lưu hội thoại vào `ai_chat_messages`.
+- Cập nhật trợ lý mua sắm để nhận `sources` từ RAG nội bộ, hiển thị câu trả lời chính sách không kèm sản phẩm và chỉ render card khi API trả sản phẩm.
 - Sửa service RAG để giữ marker `needs_reindex` cho sản phẩm khi Gemini embedding lỗi và loại product chunks khỏi context nếu sản phẩm bị filter loại bỏ.
 - Sửa API admin RAG test query để trả về các chunk tri thức đã truy xuất thay vì luôn trả mảng rỗng.
 - Đồng bộ các thao tác tạo/sửa sản phẩm và biến thể trong admin với RAG: reindex best-effort, fallback `needs_reindex` khi lỗi và đánh dấu chunk `hidden` khi ẩn sản phẩm.
@@ -113,6 +114,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test backend bắt buộc admin RAG test query trả về chunk tri thức khi retrieval tìm thấy ngữ cảnh.
 - Bổ sung test backend bắt buộc `/api/ai/chat` dùng RAG, không lưu tin nhắn chat và trả `sources` cùng sản phẩm/tri thức liên quan.
 - Bổ sung test frontend bắt buộc admin navigation hiển thị "Kho tri thức AI" và route `/admin/rag` render tổng quan tri thức, chính sách và kiểm thử truy vấn.
+- Bổ sung test frontend bắt buộc trợ lý mua sắm hiển thị câu trả lời chính sách RAG mà không render "Sản phẩm gợi ý" khi API trả `products: []`.
 
 ## 2026-09-05
 

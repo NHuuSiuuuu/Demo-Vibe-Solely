@@ -107,6 +107,8 @@ const order = {
   ]
 };
 
+let apiOverrides = new Map();
+
 function jsonResponse(payload, ok = true) {
   return {
     ok,
@@ -115,10 +117,18 @@ function jsonResponse(payload, ok = true) {
   };
 }
 
+function mockApi(path, payload) {
+  apiOverrides.set(path, payload);
+}
+
 function createFetchMock() {
   return vi.fn(async (url, options = {}) => {
     const parsed = new URL(String(url));
     const path = parsed.pathname;
+
+    if (apiOverrides.has(path)) {
+      return jsonResponse(apiOverrides.get(path));
+    }
 
     if (path === '/api/auth/me') {
       return jsonResponse({
@@ -178,6 +188,20 @@ function renderAsCustomer(path = '/') {
   return fetchMock;
 }
 
+function renderCustomerHome() {
+  return renderAsCustomer('/');
+}
+
+async function askAssistant(question) {
+  fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý mua sắm' }));
+  const advisorInput = await screen.findByLabelText('Nhập câu hỏi tư vấn sản phẩm');
+
+  fireEvent.change(advisorInput, {
+    target: { value: question }
+  });
+  fireEvent.keyDown(advisorInput, { key: 'Enter', code: 'Enter' });
+}
+
 function renderLoggedOut(path) {
   window.history.pushState({}, '', path);
   const fetchMock = createFetchMock();
@@ -191,6 +215,7 @@ describe('customer shopping flow', () => {
     localStorage.clear();
     window.history.pushState({}, '', '/');
     global.fetch = vi.fn();
+    apiOverrides = new Map();
   });
 
   afterEach(() => {
@@ -396,6 +421,20 @@ describe('customer shopping flow', () => {
 
     const assistantPanel = screen.getByRole('complementary', { name: 'Trợ lý mua sắm' }).querySelector('.ai-panel');
     expect(assistantPanel.lastElementChild.className).toContain('ai-form');
+  });
+
+  it('shows policy RAG answers without product recommendations', async () => {
+    mockApi('/api/ai/chat', {
+      answer: 'Solely hỗ trợ đổi trả theo điều kiện sản phẩm còn nguyên tem.',
+      products: [],
+      sources: [{ type: 'document', title: 'Đổi trả' }]
+    });
+
+    renderCustomerHome();
+    await askAssistant('Shop đổi trả như thế nào?');
+
+    expect(await screen.findByText(/hỗ trợ đổi trả/i)).toBeTruthy();
+    expect(screen.queryByText('Sản phẩm gợi ý')).toBeNull();
   });
 
   it('shows login/register guidance on logged-out checkout without calling protected APIs', () => {
