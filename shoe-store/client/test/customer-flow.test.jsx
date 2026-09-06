@@ -379,6 +379,11 @@ describe('customer shopping flow', () => {
     expect(await within(messageLog).findByText('Gợi ý phù hợp cho bạn: Road Runner 1.')).toBeTruthy();
     expect(within(messageLog).getByText('Sản phẩm gợi ý')).toBeTruthy();
     expect(within(messageLog).getByRole('heading', { name: 'Road Runner 1' })).toBeTruthy();
+    const recommendations = within(messageLog).getByRole('region', { name: 'Sản phẩm gợi ý' });
+    expect(recommendations.className).toContain('ai-recommendations--message');
+    expect(recommendations.closest('.ai-message-row--assistant')).toBeTruthy();
+    expect(recommendations.querySelector('.ai-product-grid--mini')).toBeTruthy();
+    expect(recommendations.querySelector('.product-card--compact')).toBeTruthy();
 
     const assistantPanel = screen.getByRole('complementary', { name: 'Trợ lý mua sắm' }).querySelector('.ai-panel');
     expect(assistantPanel.lastElementChild.className).toContain('ai-form');

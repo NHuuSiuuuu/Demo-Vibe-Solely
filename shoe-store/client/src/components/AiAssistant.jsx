@@ -139,14 +139,22 @@ export default function AiAssistant() {
                   </div>
                 ) : null}
                 {products.length > 0 ? (
-                  <section className="ai-recommendations" aria-labelledby="ai-recommendations-title">
-                    <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
-                    <div className="ai-product-grid">
-                      {products.map((product) => (
-                        <ProductCard key={product.id} product={product} compact />
-                      ))}
-                    </div>
-                  </section>
+                  <div className="ai-message-row ai-message-row--assistant">
+                    <span className="ai-message-avatar" aria-hidden="true">
+                      <Sparkles size={14} />
+                    </span>
+                    <section
+                      className="ai-recommendations ai-recommendations--message"
+                      aria-labelledby="ai-recommendations-title"
+                    >
+                      <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
+                      <div className="ai-product-grid ai-product-grid--mini">
+                        {products.map((product) => (
+                          <ProductCard key={product.id} product={product} compact />
+                        ))}
+                      </div>
+                    </section>
+                  </div>
                 ) : null}
                 <div ref={messagesEndRef} />
               </div>

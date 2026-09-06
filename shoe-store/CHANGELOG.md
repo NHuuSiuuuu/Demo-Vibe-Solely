@@ -52,6 +52,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Chuyển UI trợ lý mua sắm từ form trả lời đơn sang trải nghiệm chat hỗ trợ người dùng, giữ stack React/CSS hiện tại thay vì copy nguyên component shadcn/Tailwind/TypeScript.
 - Sửa lại UI trợ lý mua sắm sau review để composer luôn nằm cuối panel, label đủ tương phản trên nền tối và message log tự cuộn xuống tin nhắn mới.
 - Đưa sản phẩm gợi ý vào trong luồng chat của trợ lý mua sắm, tách ô nhập khỏi nút gửi, đổi nút gửi sang icon-only và cho phép nhấn Enter để gửi.
+- Thu nhỏ sản phẩm gợi ý trong trợ lý mua sắm và hiển thị như một tin nhắn assistant nằm trong vùng chat có thể cuộn.
 
 ### Đã kiểm chứng
 
@@ -73,6 +74,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Smoke test API đã kiểm chứng customer register/login, catalog/detail, AI advisor, cart, checkout COD, customer order list/detail và admin chuyển trạng thái `pending -> confirmed -> shipping -> completed`.
 - Thêm test frontend bắt buộc trợ lý mua sắm hiển thị message log, tin nhắn user, typing indicator, câu trả lời assistant và sản phẩm gợi ý.
 - Bổ sung test frontend bắt buộc sản phẩm gợi ý nằm trong message log, nút mở/nút gửi không có text hiển thị và Enter gửi được tin nhắn.
+- Bổ sung test frontend bắt buộc sản phẩm gợi ý là một message assistant trong vùng chat scrollable và dùng layout mini.
 
 ## 2026-09-05
 
