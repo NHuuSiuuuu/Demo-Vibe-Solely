@@ -22,6 +22,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm component `ImageStreamHero` cho hero trang Home với hiệu ứng hai luồng ảnh sneaker chạy theo chiều sâu/perspective.
 - Thêm admin workspace riêng cho `/admin/*` với sidebar quản trị có icon, collapse, dark mode cục bộ, header admin và dashboard mở rộng.
 - Thêm test bảo vệ để admin không render header, footer, nav, túi hàng và các page shell của người dùng.
+- Thêm `AGENTS.md` ở root project để quy định workflow cho coding agent, gồm rule changelog, kiểm chứng, git và vị trí tài liệu.
 
 ### Đã thay đổi
 
