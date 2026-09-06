@@ -103,7 +103,12 @@ export default function AiAssistant() {
                 <p>Online - tư vấn theo catalog Solely</p>
               </div>
             </div>
-            <button type="button" className="ai-close-button" onClick={() => setIsOpen(false)} aria-label="Đóng trợ lý mua sắm">
+            <button
+              type="button"
+              className="ai-close-button ai-close-button--themed"
+              onClick={() => setIsOpen(false)}
+              aria-label="Đóng trợ lý mua sắm"
+            >
               <X size={18} aria-hidden="true" />
             </button>
           </div>

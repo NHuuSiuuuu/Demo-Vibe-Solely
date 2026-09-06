@@ -685,10 +685,10 @@ button:disabled {
 
 .ai-close-button {
   align-items: center;
-  background: rgb(255 255 255 / 8%);
-  border: 1px solid rgb(255 255 255 / 10%);
+  background: var(--theme-chat-assistant, rgb(255 255 255 / 8%));
+  border: 1px solid var(--theme-chat-line, rgb(255 255 255 / 10%));
   border-radius: 999px;
-  color: #fbfaf7;
+  color: var(--theme-chat-text, #fbfaf7);
   display: inline-flex;
   height: 2.25rem;
   justify-content: center;
@@ -697,7 +697,8 @@ button:disabled {
 }
 
 .ai-close-button:hover:not(:disabled) {
-  background: rgb(255 255 255 / 14%);
+  background: var(--solely-accent);
+  border-color: var(--solely-accent);
   color: #ffffff;
 }
 

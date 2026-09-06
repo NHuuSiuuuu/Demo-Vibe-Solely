@@ -358,6 +358,8 @@ describe('customer shopping flow', () => {
     expect(openAssistantButton.textContent).toBe('');
     fireEvent.click(openAssistantButton);
     const messageLog = screen.getByRole('log', { name: 'Tin nhắn trợ lý mua sắm' });
+    const closeAssistantButton = screen.getByRole('button', { name: 'Đóng trợ lý mua sắm' });
+    expect(closeAssistantButton.className).toContain('ai-close-button--themed');
     const advisorInput = screen.getByLabelText('Nhập câu hỏi tư vấn sản phẩm');
     const sendButton = screen.getByRole('button', { name: 'Gửi yêu cầu tư vấn' });
     expect(sendButton.textContent).toBe('');
