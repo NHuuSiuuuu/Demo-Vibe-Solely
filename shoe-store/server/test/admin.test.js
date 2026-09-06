@@ -160,6 +160,19 @@ async function mockQuery(text, params = []) {
     };
   }
 
+  if (text.includes('AS document_count') && text.includes('AS chunk_count')) {
+    return {
+      rows: [
+        {
+          document_count: 2,
+          chunk_count: 5,
+          needs_reindex_count: 1
+        }
+      ],
+      rowCount: 1
+    };
+  }
+
   if (text.includes('FROM products p') && text.includes('ORDER BY p.created_at DESC')) {
     return { rows: products.map(productRow), rowCount: products.length };
   }
@@ -358,6 +371,27 @@ test('returns dashboard totals for admin', async () => {
     pendingOrdersCount: 1,
     completedRevenue: 0
   });
+});
+
+test('admin can fetch RAG overview', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .get('/api/admin/rag/overview')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .expect(200);
+
+  assert.equal(typeof response.body.overview.geminiConfigured, 'boolean');
+  assert.equal(typeof response.body.overview.documentCount, 'number');
+});
+
+test('customer cannot access RAG admin endpoints', async () => {
+  const { createApp } = require('../src/app');
+
+  await request(createApp())
+    .get('/api/admin/rag/overview')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .expect(403);
 });
 
 test('creates and updates a product', async () => {

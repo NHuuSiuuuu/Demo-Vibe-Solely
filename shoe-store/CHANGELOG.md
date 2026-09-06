@@ -34,6 +34,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm schema RAG gồm `rag_documents`, `rag_chunks`, pgvector `embedding vector(768)` và dữ liệu seed chính sách mặc định cho trợ lý AI Solely.
 - Thêm Gemini client phía backend cho embedding và trả lời dựa trên ngữ cảnh RAG, cùng helper tạo nội dung/chia đoạn tri thức sản phẩm.
 - Thêm service backend cho RAG indexing/retrieval bằng Gemini, gồm reindex sản phẩm, reindex tài liệu, reindex toàn bộ, truy xuất context và trả lời dựa trên nguồn tri thức.
+- Thêm API admin cho RAG tại `/api/admin/rag` để xem overview, quản lý tài liệu tri thức, reindex và kiểm thử truy vấn bằng quyền admin.
 
 ### Đã thay đổi
 
@@ -102,6 +103,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test backend bắt buộc trợ lý mua sắm dùng OpenAI ranking khi có `OPENAI_API_KEY` và không dùng câu fallback số nhiều khi chỉ có một sản phẩm phù hợp.
 - Bổ sung test database bắt buộc seed có ít nhất 20 sản phẩm, đủ nhóm danh mục chính và mô tả đủ dài để làm nguồn dữ liệu RAG.
 - Bổ sung test backend cho service RAG indexing/retrieval và câu chào nhanh của trợ lý RAG.
+- Bổ sung test backend bắt buộc admin xem được RAG overview và customer bị chặn khỏi endpoint admin RAG.
 
 ## 2026-09-05
 
