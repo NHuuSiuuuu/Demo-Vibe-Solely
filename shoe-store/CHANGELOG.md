@@ -80,6 +80,8 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Đồng bộ các thao tác tạo/sửa sản phẩm và biến thể trong admin với RAG: reindex best-effort, fallback `needs_reindex` khi lỗi và đánh dấu chunk `hidden` khi ẩn sản phẩm.
 - Cô lập lỗi cập nhật trạng thái chunk RAG để thao tác lưu sản phẩm/biến thể trong admin không thất bại khi phần bookkeeping RAG gặp lỗi database.
 - Bổ sung fallback rõ ràng khi trợ lý RAG chưa có Gemini hoặc bảng RAG chưa sẵn sàng để khách không gặp lỗi nội bộ.
+- Cập nhật script setup database để `psql` dừng và trả exit code lỗi khi SQL lỗi, tránh báo setup RAG thành công giả khi thiếu pgvector.
+- Bổ sung README mô tả trạng thái RAG degraded/unconfigured và fallback chat khi thiếu `GEMINI_API_KEY`.
 
 ### Đã kiểm chứng
 

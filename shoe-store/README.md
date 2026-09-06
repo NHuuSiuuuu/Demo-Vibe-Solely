@@ -20,6 +20,9 @@ backend's local filtered fallback response.
 Do not commit Gemini or OpenAI keys. Gemini keys belong only in
 `server/.env` for local development or in the backend deployment
 environment; the frontend must never receive or store `GEMINI_API_KEY`.
+When `GEMINI_API_KEY` is missing, RAG stays in a degraded/unconfigured
+state: admin RAG checks can show setup gaps and customer chat receives a
+graceful fallback response instead of grounded Gemini answers.
 
 ## Local URLs
 
@@ -54,7 +57,9 @@ RAG_TOP_K=6
 
 Never commit Gemini keys. Set secrets in `server/.env` locally and in
 the deployment environment for production. The frontend must never
-receive or store `GEMINI_API_KEY`.
+receive or store `GEMINI_API_KEY`. If `GEMINI_API_KEY` is empty, the
+admin RAG page may show an unconfigured/degraded status and customers
+will receive a graceful fallback response from chat.
 
 Set up the database and start the app:
 

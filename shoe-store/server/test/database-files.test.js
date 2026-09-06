@@ -1,5 +1,7 @@
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
@@ -149,4 +151,35 @@ test('database setup applies localization after schema and seed files', () => {
   const setup = fs.readFileSync(path.join(rootDir, 'scripts', 'db-setup.js'), 'utf8');
 
   assert.match(setup, /'database\/schema\.sql',\s*'database\/seed\.sql',\s*'database\/localize-vietnamese-products\.sql'/);
+});
+
+test('database setup stops when psql reports a SQL error', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'shoestore-db-setup-'));
+  t.after(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  const fakePsqlPath = path.join(tempDir, 'psql');
+  fs.writeFileSync(
+    fakePsqlPath,
+    `#!/usr/bin/env node
+const hasOnErrorStop = process.argv.includes('ON_ERROR_STOP=1');
+console.error('ERROR: extension "vector" is not available');
+process.exit(hasOnErrorStop ? 3 : 0);
+`,
+    { mode: 0o755 }
+  );
+
+  const result = spawnSync(process.execPath, [path.join(rootDir, 'scripts', 'db-setup.js')], {
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      DATABASE_URL: 'postgres://shoestore:test@localhost:5432/shoe_store',
+      PATH: `${tempDir}${path.delimiter}${process.env.PATH}`
+    },
+    encoding: 'utf8'
+  });
+
+  assert.equal(result.status, 3);
+  assert.match(result.stderr, /extension "vector" is not available/);
 });

@@ -11,7 +11,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 for (const file of ['database/schema.sql', 'database/seed.sql', 'database/localize-vietnamese-products.sql']) {
-  const result = spawnSync('psql', [process.env.DATABASE_URL, '-f', path.join(rootDir, file)], {
+  const result = spawnSync('psql', [process.env.DATABASE_URL, '-v', 'ON_ERROR_STOP=1', '-f', path.join(rootDir, file)], {
     stdio: 'inherit'
   });
 
