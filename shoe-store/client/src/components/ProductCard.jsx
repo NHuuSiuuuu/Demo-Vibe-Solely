@@ -21,7 +21,7 @@ export default function ProductCard({ product, compact = false }) {
 
     try {
       await addItem(product.defaultVariantId, 1);
-      setToast('Đã thêm vào túi hàng.');
+      setToast('Đã thêm vào giỏ hàng.');
     } catch (error) {
       setToast(error.message);
     }
@@ -61,7 +61,7 @@ export default function ProductCard({ product, compact = false }) {
         <p className="product-card__sizes">Size: {(product.availableSizes || []).join(', ') || 'Tạm hết'}</p>
         <button type="button" className="product-card__add" onClick={handleAddToCart}>
           <ShoppingBag size={17} aria-hidden="true" />
-          Thêm vào túi hàng
+          Thêm vào giỏ hàng
         </button>
         {toast ? (
           <p className="toast-inline" role="status" aria-label="Thông báo giỏ hàng">

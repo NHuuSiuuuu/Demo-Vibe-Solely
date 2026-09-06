@@ -198,22 +198,21 @@ describe('customer shopping flow', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders the editorial storefront sections and changes hero slides', async () => {
+  it('renders the editorial storefront sections without legacy slide controls', async () => {
     renderAsCustomer('/');
 
     expect(await screen.findByRole('heading', { name: /Tất cả điểm nhấn mới/i })).toBeTruthy();
     const stream = screen.getByRole('img', { name: 'Hiệu ứng ảnh sneaker chuyển động' });
     expect(stream).toBeTruthy();
     expect(stream.querySelectorAll('.image-stream-card')).toHaveLength(24);
+    expect(screen.queryByRole('button', { name: 'Slide trước' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Xem slide/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Slide tiếp theo' })).toBeNull();
     expect(screen.getByRole('heading', { name: 'Hàng mới về' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Ưu đãi cuối tuần' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Sản phẩm bán chạy' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Từ Solely Journal' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Theo dõi Solely trên Instagram' })).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Xem slide 2' }));
-
-    expect(screen.getByRole('heading', { name: /Sneaker nhẹ cho nhịp sống Việt/i })).toBeTruthy();
   });
 
   it('renders products from the API', async () => {
@@ -247,10 +246,10 @@ describe('customer shopping flow', () => {
     expect(screen.getAllByText(/1\.300\.000\s*₫/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByLabelText(/Size 9, màu đen, 1\.200\.000\s*₫/));
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Số lượng' }), { target: { value: '2' } });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Thêm vào túi hàng' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Thêm vào giỏ hàng' })[0]);
 
     await screen.findByRole('status', { name: 'Thông báo giỏ hàng' });
-    expect(screen.getByText('Đã thêm vào túi hàng.')).toBeTruthy();
+    expect(screen.getByText('Đã thêm vào giỏ hàng.')).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/cart/items'),
       expect.objectContaining({

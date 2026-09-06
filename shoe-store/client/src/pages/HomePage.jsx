@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Headphones, ShieldCheck, Truck } from 'lucide-react';
+import { Headphones, ShieldCheck, Truck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
@@ -36,40 +36,8 @@ function productImage(products, index) {
   return products[index]?.imageUrl || FALLBACK_EDITORIAL_IMAGES[index % FALLBACK_EDITORIAL_IMAGES.length];
 }
 
-function slideProduct(products, index) {
-  return products[index % Math.max(products.length, 1)] || products[0];
-}
-
 export default function HomePage() {
   const [products, setProducts] = useState([]);
-  const [activeSlide, setActiveSlide] = useState(0);
-  const heroSlides = useMemo(
-    () => [
-      {
-        label: 'BỘ SƯU TẬP / 2026',
-        title: 'Tất cả điểm nhấn mới cho tủ giày của bạn',
-        text: 'Sneaker Solely tối giản, êm nhẹ và đủ chỉn chu cho nhịp sống Việt mỗi ngày.',
-        image: productImage(products, 0),
-        product: slideProduct(products, 0)
-      },
-      {
-        label: 'EDITORIAL DROP',
-        title: 'Sneaker nhẹ cho nhịp sống Việt',
-        text: 'Từ đi làm, cà phê đến cuối tuần, mỗi đôi giày giữ phom gọn và cảm giác thoải mái lâu dài.',
-        image: productImage(products, 1),
-        product: slideProduct(products, 1)
-      },
-      {
-        label: 'SOLELY SELECT',
-        title: 'Tối giản nhưng vẫn nổi bật',
-        text: 'Bảng màu trung tính, chất liệu dễ chăm sóc và kiểu dáng dễ phối đồ.',
-        image: productImage(products, 2),
-        product: slideProduct(products, 2)
-      }
-    ],
-    [products]
-  );
-  const currentSlide = heroSlides[activeSlide];
   const streamImages = useMemo(
     () =>
       Array.from({ length: Math.max(products.length, FALLBACK_EDITORIAL_IMAGES.length) }, (_, index) => ({
@@ -100,48 +68,22 @@ export default function HomePage() {
     };
   }, []);
 
-  function showPreviousSlide() {
-    setActiveSlide((current) => (current === 0 ? heroSlides.length - 1 : current - 1));
-  }
-
-  function showNextSlide() {
-    setActiveSlide((current) => (current + 1) % heroSlides.length);
-  }
-
   return (
-    <section className="home-page editorial-storefront" aria-labelledby="home-title">
+    <section className="home-page editorial-storefront" aria-label="Trang chủ Solely">
       <section className="editorial-hero" aria-label="Bộ sưu tập nổi bật">
         <ImageStreamHero className="editorial-hero__stream" images={streamImages} cards={12} speed={18} axis={55}>
           <div className="editorial-hero__overlay">
             <div className="editorial-hero__headline">
-              <p className="eyebrow">{currentSlide.label}</p>
-              <h1 id="home-title">{currentSlide.title}</h1>
+              <p className="eyebrow">BỘ SƯU TẬP / 2026</p>
+              <h1 id="home-title">Tất cả điểm nhấn mới cho tủ giày của bạn</h1>
             </div>
             <div className="editorial-hero__support">
-              <p>{currentSlide.text}</p>
+              <p>Sneaker Solely tối giản, êm nhẹ và đủ chỉn chu cho nhịp sống Việt mỗi ngày.</p>
               <Link className="button-secondary editorial-hero__cta" to="/products">
                 Xem thêm
                 <span aria-hidden="true">→</span>
               </Link>
             </div>
-          </div>
-          <div className="carousel-controls" aria-label="Điều khiển hero carousel">
-            <button type="button" aria-label="Slide trước" onClick={showPreviousSlide}>
-              <ChevronLeft size={18} aria-hidden="true" />
-            </button>
-            {heroSlides.map((slide, index) => (
-              <button
-                type="button"
-                key={slide.title}
-                className={index === activeSlide ? 'is-active' : ''}
-                aria-label={`Xem slide ${index + 1}`}
-                aria-pressed={index === activeSlide}
-                onClick={() => setActiveSlide(index)}
-              />
-            ))}
-            <button type="button" aria-label="Slide tiếp theo" onClick={showNextSlide}>
-              <ChevronRight size={18} aria-hidden="true" />
-            </button>
           </div>
         </ImageStreamHero>
       </section>

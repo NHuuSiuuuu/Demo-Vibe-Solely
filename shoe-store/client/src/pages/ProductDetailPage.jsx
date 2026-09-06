@@ -105,7 +105,7 @@ export default function ProductDetailPage() {
 
     try {
       await addItem(selectedVariant.id, Number(quantity));
-      setMessage('Đã thêm vào túi hàng.');
+      setMessage('Đã thêm vào giỏ hàng.');
     } catch (err) {
       setError(err.message);
     }
@@ -237,7 +237,7 @@ export default function ProductDetailPage() {
             {error ? <p className="form-error">{error}</p> : null}
             <div className="detail-actions">
               <button type="submit" className="button-secondary" disabled={!selectedVariant}>
-                Thêm vào túi hàng
+                Thêm vào giỏ hàng
               </button>
               <button type="button" onClick={handleBuyNow} disabled={!selectedVariant}>
                 Mua ngay

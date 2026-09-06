@@ -36,8 +36,9 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật input giá trong admin theo bước VND `1000`.
 - Áp phong cách từ prompt furniture editorial vào shop giày Solely nhưng giữ nguyên domain shop giày Việt, sản phẩm sneaker, giá VND và nghiệp vụ hiện có.
 - Cập nhật hover card ảnh sản phẩm, CTA terracotta, typography uppercase, divider mảnh, responsive grid và header hamburger cho mobile.
-- Thay ảnh hero tĩnh bằng corridor image stream có hỗ trợ reduced motion và vẫn giữ điều hướng slide bằng nút/dot.
+- Thay ảnh hero tĩnh bằng corridor image stream có hỗ trợ reduced motion.
 - Tinh chỉnh hero image stream gần demo hơn: tăng mật độ lên 12 card mỗi rail, đặt nội dung giữa màn hình và làm luồng ảnh nổi rõ hơn.
+- Căn trái nội dung hero, bỏ nút đổi slide cũ, đổi nút sản phẩm sang “Thêm vào giỏ hàng”, giảm độ đậm chữ, nới khoảng cách nội dung và chỉnh card để chỉ ảnh phóng to khi hover.
 
 ### Đã kiểm chứng
 
@@ -50,8 +51,9 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - API products đã được kiểm chứng trả dữ liệu Solely tiếng Việt từ PostgreSQL thật.
 - Thêm test bắt buộc UI hiển thị VND thay vì USD trong customer/admin flow.
 - Thêm test bắt buộc seed dùng giá VND-scale và không còn ảnh placeholder.
-- Thêm test cho homepage editorial carousel và trang chi tiết sản phẩm có quantity stepper/nút mua ngay.
+- Thêm test cho homepage editorial và trang chi tiết sản phẩm có quantity stepper/nút mua ngay.
 - Thêm test bắt buộc homepage render hiệu ứng image stream trong hero.
+- Thêm test bắt buộc Home không còn nút đổi slide cũ và nút sản phẩm dùng “Thêm vào giỏ hàng”.
 
 ## 2026-09-05
 
