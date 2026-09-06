@@ -25,6 +25,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm `AGENTS.md` ở root project để quy định workflow cho coding agent, gồm rule changelog, kiểm chứng, git và vị trí tài liệu.
 - Thêm `DEVELOPMENT_PROMPT.md` ở root project để người dùng dán prompt phát triển và agent đọc trước khi lập kế hoạch hoặc code.
 - Thêm giao diện chat bubble cho trợ lý mua sắm, gồm message log, bubble user/assistant, typing indicator và composer cố định trong panel.
+- Thêm nút mở trợ lý mua sắm dạng tròn, chỉ dùng icon và có animation pulse.
 
 ### Đã thay đổi
 
@@ -50,6 +51,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật `AGENTS.md` để yêu cầu đọc `DEVELOPMENT_PROMPT.md` khi file có prompt hiện hành.
 - Chuyển UI trợ lý mua sắm từ form trả lời đơn sang trải nghiệm chat hỗ trợ người dùng, giữ stack React/CSS hiện tại thay vì copy nguyên component shadcn/Tailwind/TypeScript.
 - Sửa lại UI trợ lý mua sắm sau review để composer luôn nằm cuối panel, label đủ tương phản trên nền tối và message log tự cuộn xuống tin nhắn mới.
+- Đưa sản phẩm gợi ý vào trong luồng chat của trợ lý mua sắm, tách ô nhập khỏi nút gửi, đổi nút gửi sang icon-only và cho phép nhấn Enter để gửi.
 
 ### Đã kiểm chứng
 
@@ -70,6 +72,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - `git diff --check` đã pass sau khi tách admin workspace.
 - Smoke test API đã kiểm chứng customer register/login, catalog/detail, AI advisor, cart, checkout COD, customer order list/detail và admin chuyển trạng thái `pending -> confirmed -> shipping -> completed`.
 - Thêm test frontend bắt buộc trợ lý mua sắm hiển thị message log, tin nhắn user, typing indicator, câu trả lời assistant và sản phẩm gợi ý.
+- Bổ sung test frontend bắt buộc sản phẩm gợi ý nằm trong message log, nút mở/nút gửi không có text hiển thị và Enter gửi được tin nhắn.
 
 ## 2026-09-05
 

@@ -27,8 +27,7 @@ export default function AiAssistant() {
     }
   }, [messages, isSending]);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function sendMessage() {
     if (!token || !user) {
       return;
     }
@@ -78,8 +77,20 @@ export default function AiAssistant() {
     }
   }
 
+  async function handleSubmit(event) {
+    event.preventDefault();
+    await sendMessage();
+  }
+
+  function handleMessageKeyDown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
+  }
+
   return (
-    <aside className="ai-assistant" aria-label="Trợ lý mua sắm">
+    <aside className={`ai-assistant ${isOpen ? 'ai-assistant--open' : 'ai-assistant--closed'}`} aria-label="Trợ lý mua sắm">
       {isOpen ? (
         <div className="ai-panel">
           <div className="ai-panel__header">
@@ -127,18 +138,18 @@ export default function AiAssistant() {
                     </div>
                   </div>
                 ) : null}
+                {products.length > 0 ? (
+                  <section className="ai-recommendations" aria-labelledby="ai-recommendations-title">
+                    <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
+                    <div className="ai-product-grid">
+                      {products.map((product) => (
+                        <ProductCard key={product.id} product={product} compact />
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
                 <div ref={messagesEndRef} />
               </div>
-              {products.length > 0 ? (
-                <section className="ai-recommendations" aria-labelledby="ai-recommendations-title">
-                  <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
-                  <div className="ai-product-grid">
-                    {products.map((product) => (
-                      <ProductCard key={product.id} product={product} compact />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
               <form className="ai-form" onSubmit={handleSubmit}>
                 <label htmlFor="ai-message">Nhập câu hỏi tư vấn sản phẩm</label>
                 <div className="ai-composer">
@@ -146,13 +157,13 @@ export default function AiAssistant() {
                     id="ai-message"
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
+                    onKeyDown={handleMessageKeyDown}
                     rows="2"
                     required
                     placeholder="Ví dụ: giày nam size 42 dưới 2 triệu để chạy bộ"
                   />
-                  <button type="submit" disabled={isSending || !message.trim()}>
+                  <button type="submit" disabled={isSending || !message.trim()} aria-label="Gửi yêu cầu tư vấn">
                     <Send size={16} aria-hidden="true" />
-                    <span>Gửi yêu cầu tư vấn</span>
                   </button>
                 </div>
                 {error ? <p className="form-error">{error}</p> : null}
@@ -161,9 +172,8 @@ export default function AiAssistant() {
           )}
         </div>
       ) : (
-        <button type="button" className="ai-toggle" onClick={() => setIsOpen(true)}>
+        <button type="button" className="ai-toggle" onClick={() => setIsOpen(true)} aria-label="Mở trợ lý mua sắm">
           <Sparkles size={18} aria-hidden="true" />
-          <span>Mở trợ lý mua sắm</span>
         </button>
       )}
     </aside>

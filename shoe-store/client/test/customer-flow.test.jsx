@@ -354,15 +354,21 @@ describe('customer shopping flow', () => {
       return originalFetch(url, options);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý mua sắm' }));
+    const openAssistantButton = screen.getByRole('button', { name: 'Mở trợ lý mua sắm' });
+    expect(openAssistantButton.textContent).toBe('');
+    fireEvent.click(openAssistantButton);
     const messageLog = screen.getByRole('log', { name: 'Tin nhắn trợ lý mua sắm' });
+    const advisorInput = screen.getByLabelText('Nhập câu hỏi tư vấn sản phẩm');
+    const sendButton = screen.getByRole('button', { name: 'Gửi yêu cầu tư vấn' });
+    expect(sendButton.textContent).toBe('');
 
-    fireEvent.change(screen.getByLabelText('Nhập câu hỏi tư vấn sản phẩm'), {
+    fireEvent.change(advisorInput, {
       target: { value: 'running shoes size 9' }
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tư vấn' }));
+    fireEvent.keyDown(advisorInput, { key: 'Enter', code: 'Enter' });
 
     expect(within(messageLog).getByText('running shoes size 9')).toBeTruthy();
+    expect(advisorInput.value).toBe('');
     expect(within(messageLog).getByRole('status', { name: 'Trợ lý đang trả lời' })).toBeTruthy();
 
     await act(async () => {
@@ -371,8 +377,8 @@ describe('customer shopping flow', () => {
     });
 
     expect(await within(messageLog).findByText('Gợi ý phù hợp cho bạn: Road Runner 1.')).toBeTruthy();
-    expect(screen.getByText('Sản phẩm gợi ý')).toBeTruthy();
-    expect(screen.getAllByRole('heading', { name: 'Road Runner 1' }).length).toBeGreaterThan(1);
+    expect(within(messageLog).getByText('Sản phẩm gợi ý')).toBeTruthy();
+    expect(within(messageLog).getByRole('heading', { name: 'Road Runner 1' })).toBeTruthy();
 
     const assistantPanel = screen.getByRole('complementary', { name: 'Trợ lý mua sắm' }).querySelector('.ai-panel');
     expect(assistantPanel.lastElementChild.className).toContain('ai-form');
