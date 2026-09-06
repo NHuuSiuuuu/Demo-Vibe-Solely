@@ -806,7 +806,7 @@ button:disabled {
   color: rgb(251 250 247 / 68%);
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -1981,6 +1981,10 @@ textarea {
 .admin-form label {
   color: var(--solely-text);
   font-weight: 800;
+}
+
+.ai-panel .ai-form label {
+  color: rgb(251 250 247 / 68%);
 }
 
 .product-detail,

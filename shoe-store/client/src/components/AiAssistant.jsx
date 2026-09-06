@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
@@ -19,6 +19,13 @@ export default function AiAssistant() {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof messagesEndRef.current?.scrollIntoView === 'function') {
+      messagesEndRef.current.scrollIntoView({ block: 'end' });
+    }
+  }, [messages, isSending]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -120,7 +127,18 @@ export default function AiAssistant() {
                     </div>
                   </div>
                 ) : null}
+                <div ref={messagesEndRef} />
               </div>
+              {products.length > 0 ? (
+                <section className="ai-recommendations" aria-labelledby="ai-recommendations-title">
+                  <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
+                  <div className="ai-product-grid">
+                    {products.map((product) => (
+                      <ProductCard key={product.id} product={product} compact />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
               <form className="ai-form" onSubmit={handleSubmit}>
                 <label htmlFor="ai-message">Nhập câu hỏi tư vấn sản phẩm</label>
                 <div className="ai-composer">
@@ -141,16 +159,6 @@ export default function AiAssistant() {
               </form>
             </>
           )}
-          {products.length > 0 ? (
-            <section className="ai-recommendations" aria-labelledby="ai-recommendations-title">
-              <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
-              <div className="ai-product-grid">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} compact />
-                ))}
-              </div>
-            </section>
-          ) : null}
         </div>
       ) : (
         <button type="button" className="ai-toggle" onClick={() => setIsOpen(true)}>

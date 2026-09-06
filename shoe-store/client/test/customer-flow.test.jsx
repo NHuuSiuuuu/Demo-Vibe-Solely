@@ -373,6 +373,9 @@ describe('customer shopping flow', () => {
     expect(await within(messageLog).findByText('Gợi ý phù hợp cho bạn: Road Runner 1.')).toBeTruthy();
     expect(screen.getByText('Sản phẩm gợi ý')).toBeTruthy();
     expect(screen.getAllByRole('heading', { name: 'Road Runner 1' }).length).toBeGreaterThan(1);
+
+    const assistantPanel = screen.getByRole('complementary', { name: 'Trợ lý mua sắm' }).querySelector('.ai-panel');
+    expect(assistantPanel.lastElementChild.className).toContain('ai-form');
   });
 
   it('shows login/register guidance on logged-out checkout without calling protected APIs', () => {
