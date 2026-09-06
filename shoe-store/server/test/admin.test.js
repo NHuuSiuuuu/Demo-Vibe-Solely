@@ -19,6 +19,9 @@ let nextProductId;
 let nextVariantId;
 let restoredStockUpdates;
 let queryLog;
+let ragReindexCalls;
+let ragReindexShouldFail;
+let ragChunkStatusUpdates;
 
 function resetStore() {
   users = [
@@ -109,6 +112,9 @@ function resetStore() {
   nextProductId = 11;
   nextVariantId = 102;
   restoredStockUpdates = [];
+  ragReindexCalls = [];
+  ragReindexShouldFail = false;
+  ragChunkStatusUpdates = [];
 }
 
 function tokenFor(userId) {
@@ -207,9 +213,20 @@ async function mockQuery(text, params = []) {
     return { rows: product ? [productRow(product)] : [], rowCount: product ? 1 : 0 };
   }
 
+  if (text.includes('SELECT status') && text.includes('FROM products') && text.includes('WHERE id = $1')) {
+    const product = products.find((candidate) => candidate.id === Number(params[0]));
+    return { rows: product ? [{ status: product.status }] : [], rowCount: product ? 1 : 0 };
+  }
+
   if (text.includes('FROM products') && text.includes('WHERE id = $1')) {
     const product = products.find((candidate) => candidate.id === Number(params[0]));
     return { rows: product ? [{ id: product.id }] : [], rowCount: product ? 1 : 0 };
+  }
+
+  if (text.includes('UPDATE rag_chunks') && text.includes("source_type = 'product'") && text.includes('source_id = $1')) {
+    const statusMatch = text.match(/SET status = '([^']+)'/);
+    ragChunkStatusUpdates.push({ productId: Number(params[0]), status: statusMatch ? statusMatch[1] : null });
+    return { rows: [], rowCount: 1 };
   }
 
   if (text.includes('INSERT INTO products')) {
@@ -352,6 +369,18 @@ Module._load = function patchedLoad(requestPath, parent, isMain) {
     return { withTransaction: async (callback) => callback({ query: mockQuery }) };
   }
 
+  if (requestPath === '../rag/ragIndex.service' || requestPath.endsWith('/modules/rag/ragIndex.service')) {
+    return {
+      reindexProduct: async (productId) => {
+        ragReindexCalls.push(Number(productId));
+        if (ragReindexShouldFail) {
+          throw new Error('RAG reindex failed');
+        }
+        return { status: 'indexed', chunksIndexed: 1 };
+      }
+    };
+  }
+
   return originalLoad.call(this, requestPath, parent, isMain);
 };
 
@@ -484,6 +513,86 @@ test('creates and updates a product', async () => {
   assert.equal(updateResponse.body.product.name, 'Court Classic LX');
   assert.equal(updateResponse.body.product.price, 79.99);
   assert.equal(updateResponse.body.product.status, 'hidden');
+});
+
+test('updating a product triggers RAG reindex for that product', async () => {
+  const { createApp } = require('../src/app');
+
+  await request(createApp())
+    .patch('/api/admin/products/10')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ description: 'Mô tả mới cho giày trail chống trượt.' })
+    .expect(200);
+
+  assert.equal(ragReindexCalls.includes(10), true);
+});
+
+test('creating a product triggers RAG reindex for the new product', async () => {
+  const { createApp } = require('../src/app');
+
+  await request(createApp())
+    .post('/api/admin/products')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({
+      slug: 'trail-grip-pro',
+      name: 'Trail Grip Pro',
+      description: 'Giày trail chống trượt cho đường mòn ẩm.',
+      brand: 'Solely',
+      category: 'Trail',
+      gender: 'unisex',
+      price: 1290000,
+      status: 'active',
+      featured: false
+    })
+    .expect(201);
+
+  assert.equal(ragReindexCalls.includes(11), true);
+});
+
+test('variant mutations trigger RAG reindex for the affected product', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(2);
+
+  const createResponse = await request(createApp())
+    .post('/api/admin/products/10/variants')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ sku: 'RR1-11-NAV', size: '11', color: 'Navy', stockQuantity: 3, priceDelta: 0 })
+    .expect(201);
+
+  await request(createApp())
+    .patch(`/api/admin/variants/${createResponse.body.variant.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ stockQuantity: 4 })
+    .expect(200);
+
+  assert.deepEqual(ragReindexCalls, [10, 10]);
+});
+
+test('product save succeeds and marks RAG chunks needs_reindex when reindex fails', async () => {
+  const { createApp } = require('../src/app');
+  ragReindexShouldFail = true;
+
+  const response = await request(createApp())
+    .patch('/api/admin/products/10')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ name: 'Road Runner Trail' })
+    .expect(200);
+
+  assert.equal(response.body.product.name, 'Road Runner Trail');
+  assert.deepEqual(ragChunkStatusUpdates, [{ productId: 10, status: 'needs_reindex' }]);
+});
+
+test('hiding a product marks related RAG chunks hidden', async () => {
+  const { createApp } = require('../src/app');
+
+  await request(createApp())
+    .patch('/api/admin/products/10')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ status: 'hidden' })
+    .expect(200);
+
+  assert.deepEqual(ragReindexCalls, []);
+  assert.deepEqual(ragChunkStatusUpdates, [{ productId: 10, status: 'hidden' }]);
 });
 
 test('lists admin products with authoritative variants and totalStock', async () => {

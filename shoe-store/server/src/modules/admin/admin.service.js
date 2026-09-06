@@ -196,6 +196,52 @@ function prepareVariantInput(input, requireAll) {
   return output;
 }
 
+async function markProductChunksHidden(productId) {
+  await query(
+    `
+      UPDATE rag_chunks
+      SET status = 'hidden', updated_at = NOW()
+      WHERE source_type = 'product' AND source_id = $1
+    `,
+    [productId]
+  );
+}
+
+async function reindexProductBestEffort(productId) {
+  try {
+    const { reindexProduct } = require('../rag/ragIndex.service');
+    await reindexProduct(productId);
+  } catch (_error) {
+    await query(
+      `UPDATE rag_chunks SET status = 'needs_reindex', updated_at = NOW() WHERE source_type = 'product' AND source_id = $1`,
+      [productId]
+    );
+  }
+}
+
+async function getProductStatus(productId) {
+  const result = await query(
+    `
+      SELECT status
+      FROM products
+      WHERE id = $1
+    `,
+    [productId]
+  );
+
+  return result.rows[0] ? result.rows[0].status : null;
+}
+
+async function syncProductRag(productId, status) {
+  const productStatus = status || (await getProductStatus(productId));
+  if (productStatus === 'hidden') {
+    await markProductChunksHidden(productId);
+    return;
+  }
+
+  await reindexProductBestEffort(productId);
+}
+
 async function getDashboard() {
   const result = await query(`
     SELECT
@@ -278,7 +324,9 @@ async function createProduct(input) {
     ]
   );
 
-  return mapProduct(result.rows[0]);
+  const createdProduct = mapProduct(result.rows[0]);
+  await syncProductRag(createdProduct.id, createdProduct.status);
+  return createdProduct;
 }
 
 async function updateProduct(id, input) {
@@ -316,7 +364,9 @@ async function updateProduct(id, input) {
     throw new HttpError(404, 'Product not found');
   }
 
-  return mapProduct(result.rows[0]);
+  const updatedProduct = mapProduct(result.rows[0]);
+  await syncProductRag(updatedProduct.id, updatedProduct.status);
+  return updatedProduct;
 }
 
 async function createVariant(productId, input) {
@@ -350,7 +400,9 @@ async function createVariant(productId, input) {
     [productId, variant.sku, variant.size, variant.color, variant.stockQuantity, variant.priceDelta]
   );
 
-  return mapVariant(result.rows[0]);
+  const createdVariant = mapVariant(result.rows[0]);
+  await syncProductRag(createdVariant.productId);
+  return createdVariant;
 }
 
 async function updateVariant(id, input) {
@@ -383,7 +435,9 @@ async function updateVariant(id, input) {
     throw new HttpError(404, 'Variant not found');
   }
 
-  return mapVariant(result.rows[0]);
+  const updatedVariant = mapVariant(result.rows[0]);
+  await syncProductRag(updatedVariant.productId);
+  return updatedVariant;
 }
 
 async function listOrders() {
