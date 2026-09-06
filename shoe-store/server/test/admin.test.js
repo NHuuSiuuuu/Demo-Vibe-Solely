@@ -16,6 +16,7 @@ let orderItems;
 let nextProductId;
 let nextVariantId;
 let restoredStockUpdates;
+let queryLog;
 
 function resetStore() {
   users = [
@@ -134,6 +135,8 @@ function orderItemRows(orderId) {
 }
 
 async function mockQuery(text, params = []) {
+  queryLog.push({ text, params });
+
   if (text.includes('FROM users') && text.includes('WHERE id = $1')) {
     const user = users.find((candidate) => String(candidate.id) === String(params[0]));
     return { rows: user ? [publicUserRow(user)] : [], rowCount: user ? 1 : 0 };
@@ -298,7 +301,7 @@ async function mockQuery(text, params = []) {
       return { rows: [], rowCount: 0 };
     }
     order.order_status = params[0];
-    if (text.includes("THEN 'paid'")) {
+    if (text.includes("THEN 'paid'") && (params[2] ?? params[0]) === 'completed') {
       order.payment_status = 'paid';
     }
     order.updated_at = '2026-09-05T00:00:00.000Z';
@@ -326,6 +329,7 @@ test.after(() => {
 
 test.beforeEach(() => {
   resetStore();
+  queryLog = [];
 });
 
 test('rejects customer access to admin dashboard with 403', async () => {
@@ -559,6 +563,22 @@ test('sets payment_status paid when order is completed', async () => {
     .expect(200);
 
   assert.equal(response.body.order.paymentStatus, 'paid');
+});
+
+test('uses a separate typed parameter when deriving payment status from order status', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(2);
+
+  await request(createApp())
+    .patch('/api/admin/orders/900/status')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ status: 'confirmed' })
+    .expect(200);
+
+  const updateQuery = queryLog.find((entry) => entry.text.includes('UPDATE orders'));
+
+  assert.match(updateQuery.text, /CASE WHEN \$3::order_status = 'completed'/);
+  assert.deepEqual(updateQuery.params, ['confirmed', '900', 'confirmed']);
 });
 
 test('rejects invalid order status transition with 400', async () => {

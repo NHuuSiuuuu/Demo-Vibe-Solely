@@ -498,12 +498,12 @@ async function updateOrderStatus(id, status) {
       `
         UPDATE orders
         SET order_status = $1,
-            payment_status = CASE WHEN $1 = 'completed' THEN 'paid' ELSE payment_status END,
+            payment_status = CASE WHEN $3::order_status = 'completed' THEN 'paid' ELSE payment_status END,
             updated_at = NOW()
         WHERE id = $2
         RETURNING *
       `,
-      [status, id]
+      [status, id, status]
     );
 
     return mapOrder(updateResult.rows[0], items);
