@@ -383,7 +383,11 @@ describe('customer shopping flow', () => {
     expect(recommendations.className).toContain('ai-recommendations--message');
     expect(recommendations.closest('.ai-message-row--assistant')).toBeTruthy();
     expect(recommendations.querySelector('.ai-product-grid--mini')).toBeTruthy();
-    expect(recommendations.querySelector('.product-card--compact')).toBeTruthy();
+    expect(within(recommendations).getByText(/1\.200\.000\s*₫/)).toBeTruthy();
+    expect(within(recommendations).queryByRole('img')).toBeNull();
+    expect(within(recommendations).queryByText('Chạy bộ')).toBeNull();
+    expect(within(recommendations).queryByText('Size: 9, 10')).toBeNull();
+    expect(within(recommendations).queryByRole('button', { name: /Thêm vào giỏ hàng/i })).toBeNull();
 
     const assistantPanel = screen.getByRole('complementary', { name: 'Trợ lý mua sắm' }).querySelector('.ai-panel');
     expect(assistantPanel.lastElementChild.className).toContain('ai-form');

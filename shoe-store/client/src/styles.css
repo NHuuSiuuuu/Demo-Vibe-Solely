@@ -906,59 +906,36 @@ button:disabled {
   padding-right: 0.15rem;
 }
 
-.ai-product-grid--mini .product-card {
+.ai-recommendation-card {
   background: rgb(251 250 247 / 98%);
   border-radius: 8px;
   color: #24211f;
-  display: grid;
-  grid-template-columns: 4.25rem minmax(0, 1fr);
-  overflow: hidden;
-}
-
-.ai-product-grid--mini .product-card__media {
-  min-width: 0;
-}
-
-.ai-product-grid--mini .product-card__image-link {
-  aspect-ratio: 1 / 1;
-  height: 100%;
-}
-
-.ai-product-grid--mini .product-badge,
-.ai-product-grid--mini .product-card__wishlist,
-.ai-product-grid--mini .product-card__sizes {
-  display: none;
-}
-
-.ai-product-grid--mini .product-card__body {
-  align-content: center;
+  display: flex;
+  flex-direction: column;
   gap: 0.25rem;
   min-width: 0;
-  padding: 0.55rem;
+  padding: 0.6rem 0.7rem;
 }
 
-.ai-product-grid--mini .product-card__meta {
-  color: #74665d;
-  font-size: 0.62rem;
-}
-
-.ai-product-grid--mini .product-card h2 {
+.ai-recommendation-card h4 {
   font-size: 0.78rem;
   line-height: 1.25;
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ai-product-grid--mini .product-card__price {
+.ai-recommendation-card a {
   color: #24211f;
-  font-size: 0.8rem;
+  text-decoration: none;
 }
 
-.ai-product-grid--mini .product-card__add {
-  font-size: 0.68rem;
-  min-height: 1.8rem;
-  padding: 0.35rem 0.45rem;
+.ai-recommendation-card p {
+  color: #6f3d27;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin: 0;
 }
 
 .admin-shell {

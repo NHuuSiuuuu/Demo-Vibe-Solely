@@ -3,7 +3,7 @@ import { Send, Sparkles, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
-import ProductCard from './ProductCard.jsx';
+import { formatMoney } from '../utils/formatters.js';
 
 const welcomeMessage = {
   id: 'welcome',
@@ -150,7 +150,12 @@ export default function AiAssistant() {
                       <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
                       <div className="ai-product-grid ai-product-grid--mini">
                         {products.map((product) => (
-                          <ProductCard key={product.id} product={product} compact />
+                          <article className="ai-recommendation-card" key={product.id}>
+                            <h4>
+                              <Link to={`/products/${product.slug}`}>{product.name}</Link>
+                            </h4>
+                            <p>{formatMoney(product.price)}</p>
+                          </article>
                         ))}
                       </div>
                     </section>

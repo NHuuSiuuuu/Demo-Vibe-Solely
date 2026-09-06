@@ -53,6 +53,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Sửa lại UI trợ lý mua sắm sau review để composer luôn nằm cuối panel, label đủ tương phản trên nền tối và message log tự cuộn xuống tin nhắn mới.
 - Đưa sản phẩm gợi ý vào trong luồng chat của trợ lý mua sắm, tách ô nhập khỏi nút gửi, đổi nút gửi sang icon-only và cho phép nhấn Enter để gửi.
 - Thu nhỏ sản phẩm gợi ý trong trợ lý mua sắm và hiển thị như một tin nhắn assistant nằm trong vùng chat có thể cuộn.
+- Rút gọn sản phẩm gợi ý trong trợ lý mua sắm để chỉ hiển thị tên sản phẩm và giá.
 
 ### Đã kiểm chứng
 
@@ -75,6 +76,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm test frontend bắt buộc trợ lý mua sắm hiển thị message log, tin nhắn user, typing indicator, câu trả lời assistant và sản phẩm gợi ý.
 - Bổ sung test frontend bắt buộc sản phẩm gợi ý nằm trong message log, nút mở/nút gửi không có text hiển thị và Enter gửi được tin nhắn.
 - Bổ sung test frontend bắt buộc sản phẩm gợi ý là một message assistant trong vùng chat scrollable và dùng layout mini.
+- Bổ sung test frontend bắt buộc sản phẩm gợi ý không hiển thị ảnh, meta, size hoặc nút thêm giỏ trong chat.
 
 ## 2026-09-05
 
