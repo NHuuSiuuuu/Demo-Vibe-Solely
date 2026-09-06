@@ -228,7 +228,7 @@ describe('admin flow', () => {
   it('redirects non-admin users away from admin pages', async () => {
     renderWithToken('/admin', 'customer');
 
-    await screen.findByRole('heading', { name: 'Di chuyển thật đẹp.' });
+    await screen.findByRole('heading', { name: 'Tất cả điểm nhấn mới cho tủ giày của bạn' });
     expect(screen.queryByRole('heading', { name: 'Tổng quan quản trị' })).toBeNull();
     expect(window.location.pathname).toBe('/');
   });

@@ -71,8 +71,10 @@ describe('App', () => {
     expect(screen.getAllByRole('link', { name: 'Tài khoản' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Danh sách yêu thích' })).toBeTruthy();
     expect(screen.getAllByRole('link', { name: /Túi hàng/ }).length).toBeGreaterThan(0);
-    expect(screen.getByRole('heading', { name: 'Di chuyển thật đẹp.' })).toBeTruthy();
-    expect(screen.getByText('Giày sneaker nhẹ, êm và tinh gọn cho chuyển động mỗi ngày.')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Tất cả điểm nhấn mới cho tủ giày của bạn' })).toBeTruthy();
+    expect(
+      screen.getByText('Sneaker Solely tối giản, êm nhẹ và đủ chỉn chu cho nhịp sống Việt mỗi ngày.')
+    ).toBeTruthy();
   });
 
   it('logs in and stores the current user', async () => {

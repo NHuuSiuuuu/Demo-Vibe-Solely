@@ -198,6 +198,21 @@ describe('customer shopping flow', () => {
     vi.restoreAllMocks();
   });
 
+  it('renders the editorial storefront sections and changes hero slides', async () => {
+    renderAsCustomer('/');
+
+    expect(await screen.findByRole('heading', { name: /Tất cả điểm nhấn mới/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Hàng mới về' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Ưu đãi cuối tuần' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Sản phẩm bán chạy' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Từ Solely Journal' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Theo dõi Solely trên Instagram' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Xem slide 2' }));
+
+    expect(screen.getByRole('heading', { name: /Sneaker nhẹ cho nhịp sống Việt/i })).toBeTruthy();
+  });
+
   it('renders products from the API', async () => {
     renderAsCustomer('/products');
 
@@ -228,8 +243,8 @@ describe('customer shopping flow', () => {
     fireEvent.click(screen.getByLabelText(/Size 10, màu trắng, 1\.300\.000\s*₫/));
     expect(screen.getAllByText(/1\.300\.000\s*₫/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByLabelText(/Size 9, màu đen, 1\.200\.000\s*₫/));
-    fireEvent.change(screen.getByLabelText('Số lượng'), { target: { value: '2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Thêm vào túi hàng' }));
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Số lượng' }), { target: { value: '2' } });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Thêm vào túi hàng' })[0]);
 
     await screen.findByRole('status', { name: 'Thông báo giỏ hàng' });
     expect(screen.getByText('Đã thêm vào túi hàng.')).toBeTruthy();
@@ -238,6 +253,30 @@ describe('customer shopping flow', () => {
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ variantId: 101, quantity: 2 })
+      })
+    );
+  });
+
+  it('updates product detail quantity with stepper controls and buys now', async () => {
+    const fetchMock = renderAsCustomer('/products/road-runner-1');
+    await screen.findByRole('heading', { name: 'Road Runner 1' });
+
+    expect(screen.getByRole('navigation', { name: 'Đường dẫn sản phẩm' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Đánh giá:' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Có thể bạn cũng thích' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tăng số lượng' }));
+    expect(screen.getByRole('spinbutton', { name: 'Số lượng' }).value).toBe('2');
+    fireEvent.click(screen.getByRole('button', { name: 'Giảm số lượng' }));
+    expect(screen.getByRole('spinbutton', { name: 'Số lượng' }).value).toBe('1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mua ngay' }));
+
+    await screen.findByRole('status', { name: 'Thông báo giỏ hàng' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/cart/items'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ variantId: 101, quantity: 1 })
       })
     );
   });
