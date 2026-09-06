@@ -20,6 +20,8 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm giao diện storefront phong cách editorial tối giản cho Solely, gồm hero carousel, hàng mới về, banner ưu đãi, bento sản phẩm bán chạy, Solely Journal, Instagram strip và footer nền tối.
 - Thêm giao diện chi tiết sản phẩm mới với breadcrumb, đánh giá, quantity stepper, nút mua ngay, danh sách review và carousel sản phẩm liên quan.
 - Thêm component `ImageStreamHero` cho hero trang Home với hiệu ứng hai luồng ảnh sneaker chạy theo chiều sâu/perspective.
+- Thêm admin workspace riêng cho `/admin/*` với sidebar quản trị có icon, collapse, dark mode cục bộ, header admin và dashboard mở rộng.
+- Thêm test bảo vệ để admin không render header, footer, nav, túi hàng và các page shell của người dùng.
 
 ### Đã thay đổi
 
@@ -39,6 +41,9 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thay ảnh hero tĩnh bằng corridor image stream có hỗ trợ reduced motion.
 - Tinh chỉnh hero image stream gần demo hơn: tăng mật độ lên 12 card mỗi rail, đặt nội dung giữa màn hình và làm luồng ảnh nổi rõ hơn.
 - Căn trái nội dung hero, bỏ nút đổi slide cũ, đổi nút sản phẩm sang “Thêm vào giỏ hàng”, giảm độ đậm chữ, nới khoảng cách nội dung và chỉnh card để chỉ ảnh phóng to khi hover.
+- Tách route `/admin/*` khỏi layout storefront để admin chỉ thấy các màn quản trị, không còn điều hướng mua hàng của user.
+- Cập nhật dashboard admin dùng dữ liệu thật cho doanh thu, sản phẩm, đơn chờ xử lý, tồn kho, hoạt động gần đây và sản phẩm nổi bật.
+- Sửa query cập nhật trạng thái đơn hàng admin để tránh lỗi PostgreSQL `inconsistent types deduced for parameter $1` khi chuyển đơn sang đã xác nhận.
 
 ### Đã kiểm chứng
 
@@ -54,6 +59,10 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm test cho homepage editorial và trang chi tiết sản phẩm có quantity stepper/nút mua ngay.
 - Thêm test bắt buộc homepage render hiệu ứng image stream trong hero.
 - Thêm test bắt buộc Home không còn nút đổi slide cũ và nút sản phẩm dùng “Thêm vào giỏ hàng”.
+- `npm test` đã pass sau fix trạng thái đơn và admin workspace: server 54/54, client 23/23.
+- `npm run build` đã pass sau khi tách admin workspace.
+- `git diff --check` đã pass sau khi tách admin workspace.
+- Smoke test API đã kiểm chứng customer register/login, catalog/detail, AI advisor, cart, checkout COD, customer order list/detail và admin chuyển trạng thái `pending -> confirmed -> shipping -> completed`.
 
 ## 2026-09-05
 
