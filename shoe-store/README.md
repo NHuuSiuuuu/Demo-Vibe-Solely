@@ -7,6 +7,7 @@ Local shoe store MVP scaffold with a React + Vite client and Node.js/Express API
 - Node.js 20 or newer
 - npm
 - PostgreSQL client tools
+- PostgreSQL with pgvector for the full RAG setup
 - A PostgreSQL database URL in `server/.env` or exported as `DATABASE_URL`
 - Optional: `OPENAI_API_KEY` in `server/.env` for AI-ranked product advice
 - Optional: `GEMINI_API_KEY` in `server/.env` or deployment environment for RAG embeddings and grounded answers
@@ -33,8 +34,31 @@ environment; the frontend must never receive or store `GEMINI_API_KEY`.
 ## Setup
 
 ```bash
-cp server/.env.example server/.env
+cd shoe-store
 npm install
+cp server/.env.example server/.env
+```
+
+Edit `server/.env` for local backend configuration. Use local-only
+placeholder values first, then replace them outside git:
+
+```env
+DATABASE_URL=postgres://...
+JWT_SECRET=...
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+GEMINI_EMBEDDING_DIMENSIONS=768
+GEMINI_CHAT_MODEL=gemini-2.5-flash
+RAG_TOP_K=6
+```
+
+Never commit Gemini keys. Set secrets in `server/.env` locally and in
+the deployment environment for production. The frontend must never
+receive or store `GEMINI_API_KEY`.
+
+Set up the database and start the app:
+
+```bash
 npm run db:setup
 npm run dev
 ```
@@ -50,9 +74,31 @@ npm run dev
 
 ```bash
 npm run dev
-npm run test
+npm test
 npm run build
 npm run db:setup
 ```
 
 - Health check: `GET /api/health`
+
+## RAG Admin Workflow
+
+The Gemini/RAG integration stores product and policy knowledge in
+PostgreSQL tables backed by pgvector embeddings. After `npm run db:setup`
+has created the schema and seeded local data, sign in with the demo admin
+account and open `/admin/rag`.
+
+From the "Kho tri thức AI" page, admins can:
+
+- Review the overview counters for policy documents, active chunks and
+  entries that need reindexing.
+- Create or edit policy documents such as returns, shipping, warranty,
+  terms and size guidance.
+- Reindex one document after changing its content, or run a full reindex
+  after product/catalog changes.
+- Test grounded answers with prompts such as `Shop đổi trả thế nào?`.
+
+Customer chat at `/api/ai/chat` uses the same RAG context. With Gemini
+configured and the RAG tables indexed, a prompt such as `giày leo núi nam
+dưới 3 triệu` should return trail/outdoor products and sources from the
+knowledge base.

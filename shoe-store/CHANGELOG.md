@@ -36,6 +36,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm service backend cho RAG indexing/retrieval bằng Gemini, gồm reindex sản phẩm, reindex tài liệu, reindex toàn bộ, truy xuất context và trả lời dựa trên nguồn tri thức.
 - Thêm API admin cho RAG tại `/api/admin/rag` để xem overview, quản lý tài liệu tri thức, reindex và kiểm thử truy vấn bằng quyền admin.
 - Thêm trang admin `/admin/rag` "Kho tri thức AI" để xem trạng thái RAG, quản lý tài liệu chính sách, reindex và kiểm thử truy vấn qua backend.
+- Thêm tài liệu setup Gemini/RAG, database pgvector, quy trình reindex và cách kiểm thử admin/customer assistant.
 
 ### Đã thay đổi
 
