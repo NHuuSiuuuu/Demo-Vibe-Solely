@@ -220,6 +220,7 @@ describe('customer shopping flow', () => {
 
     expect(await screen.findByRole('heading', { name: 'Road Runner 1' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Court Classic' })).toBeTruthy();
+    expect(screen.getAllByText('Mới')[0].className).toContain('product-badge--themed');
     expect(screen.getAllByText('Chạy bộ').length).toBeGreaterThan(0);
     expect(screen.getByText('Size: 9, 10')).toBeTruthy();
   });

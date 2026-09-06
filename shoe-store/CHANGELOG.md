@@ -57,6 +57,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm lại ảnh nhỏ cho sản phẩm gợi ý trong chat, bỏ thanh scroll riêng của gợi ý và ẩn thanh scroll lịch sử trò chuyện.
 - Thêm chuyển đổi giao diện light/dark cho storefront, lưu theme vào `localStorage` và đồng bộ màu trợ lý mua sắm theo theme hiện tại.
 - Cập nhật nút đóng trợ lý mua sắm để dùng màu theo theme light/dark, hover rõ hơn và không còn bị lệch màu trên nền sáng.
+- Cập nhật `product-badge` để dùng màu nền, viền và chữ theo theme light/dark.
 
 ### Đã kiểm chứng
 
@@ -83,6 +84,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test frontend bắt buộc gợi ý trong chat có ảnh nhỏ, không dùng scroll riêng và message log có class ẩn scrollbar.
 - Bổ sung test frontend bắt buộc storefront có nút đổi theme, class light/dark và lưu lựa chọn theme sau khi render lại.
 - Bổ sung test frontend bắt buộc nút đóng trợ lý mua sắm dùng class theme-aware.
+- Bổ sung test frontend bắt buộc `product-badge` dùng class theme-aware.
 
 ## 2026-09-05
 

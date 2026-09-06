@@ -37,7 +37,7 @@ export default function ProductCard({ product, compact = false }) {
             <div className="product-card__image-fallback">Solely</div>
           )}
         </Link>
-        <span className="product-badge">{badge}</span>
+        <span className="product-badge product-badge--themed">{badge}</span>
         <button
           type="button"
           className={`icon-button product-card__wishlist${isWishlisted ? ' is-active' : ''}`}
