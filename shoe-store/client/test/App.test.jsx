@@ -62,6 +62,8 @@ describe('App', () => {
   it('renders navigation links', () => {
     render(<App />);
 
+    expect(screen.getByRole('button', { name: 'Chuyển sang dark mode' })).toBeTruthy();
+    expect(document.querySelector('.app-shell')?.className).toContain('app-shell--light');
     expect(screen.getAllByRole('link', { name: 'Solely' }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: 'Hàng mới' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Sneaker' })).toBeTruthy();
@@ -75,6 +77,22 @@ describe('App', () => {
     expect(
       screen.getByText('Sneaker Solely tối giản, êm nhẹ và đủ chỉn chu cho nhịp sống Việt mỗi ngày.')
     ).toBeTruthy();
+  });
+
+  it('toggles storefront theme and persists the selected mode', () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chuyển sang dark mode' }));
+
+    expect(localStorage.getItem('shoe_store_theme')).toBe('dark');
+    expect(document.querySelector('.app-shell')?.className).toContain('app-shell--dark');
+    expect(screen.getByRole('button', { name: 'Chuyển sang light mode' })).toBeTruthy();
+
+    unmount();
+    render(<App />);
+
+    expect(document.querySelector('.app-shell')?.className).toContain('app-shell--dark');
+    expect(screen.getByRole('button', { name: 'Chuyển sang light mode' })).toBeTruthy();
   });
 
   it('logs in and stores the current user', async () => {

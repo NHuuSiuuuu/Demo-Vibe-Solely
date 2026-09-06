@@ -1,20 +1,28 @@
-import { Heart, Menu, Search, ShoppingBag, User, X } from 'lucide-react';
-import { useState } from 'react';
+import { Heart, Menu, Moon, Search, ShoppingBag, Sun, User, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
 import AiAssistant from './AiAssistant.jsx';
+
+const THEME_STORAGE_KEY = 'shoe_store_theme';
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth();
   const { cart } = useCart();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || 'light');
   const itemCount = cart.items?.reduce((total, item) => total + Number(item.quantity || 0), 0) || 0;
   const isCustomerPage = !['/login', '/register', '/admin'].some((path) => location.pathname.startsWith(path));
+  const isDarkTheme = theme === 'dark';
+
+  useEffect(() => {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell app-shell--${theme}`}>
       <header className="site-header">
         <NavLink className="brand-link" to="/">
           Solely
@@ -51,6 +59,15 @@ export default function Layout() {
           ) : null}
         </nav>
         <div className="header-actions">
+          <button
+            type="button"
+            className="icon-button theme-toggle"
+            aria-label={isDarkTheme ? 'Chuyển sang light mode' : 'Chuyển sang dark mode'}
+            aria-pressed={isDarkTheme}
+            onClick={() => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'))}
+          >
+            {isDarkTheme ? <Sun size={19} aria-hidden="true" /> : <Moon size={19} aria-hidden="true" />}
+          </button>
           <button type="button" className="icon-button" aria-label="Tìm kiếm sản phẩm">
             <Search size={19} aria-hidden="true" />
           </button>

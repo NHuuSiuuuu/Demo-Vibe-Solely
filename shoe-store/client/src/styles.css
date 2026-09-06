@@ -3080,6 +3080,214 @@ button:hover:not(:disabled),
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.app-shell--light {
+  --solely-bg: #fbfaf7;
+  --solely-text: #24211f;
+  --solely-muted: #77716c;
+  --solely-border: #e6ded5;
+  --solely-mint: #f3eee8;
+  --solely-mint-strong: #c9653b;
+  --solely-accent: #c9653b;
+  --solely-accent-dark: #9f4726;
+  --solely-dark: #171412;
+  --theme-panel: #ffffff;
+  --theme-panel-soft: #f3eee8;
+  --theme-header-bg: rgb(255 255 255 / 92%);
+  --theme-input-bg: #ffffff;
+  --theme-chat-panel: #ffffff;
+  --theme-chat-text: #24211f;
+  --theme-chat-muted: #74665d;
+  --theme-chat-line: rgb(36 33 31 / 10%);
+  --theme-chat-assistant: #f3eee8;
+  --theme-chat-user: #24211f;
+  --theme-chat-user-text: #ffffff;
+  --theme-recommendation-bg: #fbfaf7;
+  --theme-recommendation-card: #ffffff;
+  background: var(--solely-bg);
+  color: var(--solely-text);
+  color-scheme: light;
+}
+
+.app-shell--dark {
+  --solely-bg: #12100e;
+  --solely-text: #f7f0e9;
+  --solely-muted: #b8aaa0;
+  --solely-border: #382f29;
+  --solely-mint: #2b241f;
+  --solely-mint-strong: #e07d4f;
+  --solely-accent: #e07d4f;
+  --solely-accent-dark: #f0a06f;
+  --solely-dark: #080706;
+  --theme-panel: #1b1714;
+  --theme-panel-soft: #211b17;
+  --theme-header-bg: rgb(18 16 14 / 92%);
+  --theme-input-bg: #211b17;
+  --theme-chat-panel: #1b1714;
+  --theme-chat-text: #f7f0e9;
+  --theme-chat-muted: #b8aaa0;
+  --theme-chat-line: rgb(247 240 233 / 10%);
+  --theme-chat-assistant: #2b241f;
+  --theme-chat-user: #f7f0e9;
+  --theme-chat-user-text: #171412;
+  --theme-recommendation-bg: #2b241f;
+  --theme-recommendation-card: #171412;
+  background: var(--solely-bg);
+  color: var(--solely-text);
+  color-scheme: dark;
+}
+
+.app-shell--light .site-header,
+.app-shell--dark .site-header {
+  background: var(--theme-header-bg);
+}
+
+.theme-toggle[aria-pressed="true"] {
+  background: var(--solely-accent);
+  border-color: var(--solely-accent);
+  color: #ffffff;
+}
+
+.app-shell--light .content-panel,
+.app-shell--light .auth-panel,
+.app-shell--light .auth-required,
+.app-shell--light .detail-panel,
+.app-shell--light .checkout-form,
+.app-shell--light .order-summary,
+.app-shell--light .reviews-section,
+.app-shell--light .related-section,
+.app-shell--dark .content-panel,
+.app-shell--dark .auth-panel,
+.app-shell--dark .auth-required,
+.app-shell--dark .detail-panel,
+.app-shell--dark .checkout-form,
+.app-shell--dark .order-summary,
+.app-shell--dark .reviews-section,
+.app-shell--dark .related-section {
+  background: var(--theme-panel);
+  border-color: var(--solely-border);
+  color: var(--solely-text);
+}
+
+.app-shell--light input,
+.app-shell--light select,
+.app-shell--light textarea,
+.app-shell--dark input,
+.app-shell--dark select,
+.app-shell--dark textarea {
+  background: var(--theme-input-bg);
+  border-color: var(--solely-border);
+  color: var(--solely-text);
+}
+
+.app-shell--dark .button-secondary,
+.app-shell--dark .text-button,
+.app-shell--dark .icon-button,
+.app-shell--dark .related-controls button {
+  background: var(--theme-panel);
+  border-color: var(--solely-border);
+  color: var(--solely-text);
+}
+
+.app-shell--dark .button-secondary:hover,
+.app-shell--dark .text-button:hover,
+.app-shell--dark .icon-button:hover {
+  background: var(--solely-mint);
+}
+
+.app-shell--dark .product-card,
+.app-shell--dark .journal-card,
+.app-shell--dark .instagram-strip,
+.app-shell--dark .feature-banner,
+.app-shell--dark .story-section,
+.app-shell--dark .newsletter-section,
+.app-shell--dark .promo-countdown,
+.app-shell--dark .trust-badges,
+.app-shell--dark .price-metric,
+.app-shell--dark .quantity-stepper {
+  background: var(--theme-panel);
+  border-color: var(--solely-border);
+  color: var(--solely-text);
+}
+
+.app-shell--dark .product-card__image-link,
+.app-shell--dark .review-avatar,
+.app-shell--dark .newsletter-control,
+.app-shell--dark .image-stream-card {
+  background: var(--theme-panel-soft);
+}
+
+.app-shell--light .ai-panel,
+.app-shell--dark .ai-panel {
+  background: var(--theme-chat-panel);
+  border-color: var(--theme-chat-line);
+  color: var(--theme-chat-text);
+}
+
+.app-shell--light .ai-panel__identity p,
+.app-shell--dark .ai-panel__identity p,
+.app-shell--light .ai-form label,
+.app-shell--dark .ai-form label {
+  color: var(--theme-chat-muted);
+}
+
+.app-shell--light .ai-message-log,
+.app-shell--dark .ai-message-log {
+  border-color: var(--theme-chat-line);
+}
+
+.app-shell--light .ai-message-row--assistant .ai-message-bubble,
+.app-shell--light .ai-typing,
+.app-shell--dark .ai-message-row--assistant .ai-message-bubble,
+.app-shell--dark .ai-typing {
+  background: var(--theme-chat-assistant);
+  color: var(--theme-chat-text);
+}
+
+.app-shell--light .ai-message-row--user .ai-message-bubble,
+.app-shell--dark .ai-message-row--user .ai-message-bubble {
+  background: var(--theme-chat-user);
+  color: var(--theme-chat-user-text);
+}
+
+.app-shell--light .ai-form,
+.app-shell--dark .ai-form {
+  background: var(--theme-chat-panel);
+}
+
+.app-shell--light .ai-composer textarea,
+.app-shell--dark .ai-composer textarea {
+  background: var(--theme-input-bg);
+  border-color: var(--theme-chat-line);
+  color: var(--theme-chat-text);
+}
+
+.app-shell--light .ai-recommendations,
+.app-shell--dark .ai-recommendations {
+  background: var(--theme-recommendation-bg);
+  color: var(--theme-chat-text);
+}
+
+.app-shell--light .ai-recommendations h3,
+.app-shell--dark .ai-recommendations h3 {
+  color: var(--theme-chat-text);
+}
+
+.app-shell--light .ai-recommendation-card,
+.app-shell--dark .ai-recommendation-card {
+  background: var(--theme-recommendation-card);
+  color: var(--theme-chat-text);
+}
+
+.app-shell--light .ai-recommendation-card a,
+.app-shell--dark .ai-recommendation-card a {
+  color: var(--theme-chat-text);
+}
+
+.app-shell--light .ai-recommendation-card__image,
+.app-shell--dark .ai-recommendation-card__image {
+  background: var(--theme-panel-soft);
+}
+
 @media (max-width: 1024px) {
   .bento-grid {
     grid-template-columns: 1fr 1fr;

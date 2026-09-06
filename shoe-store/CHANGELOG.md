@@ -55,6 +55,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thu nhỏ sản phẩm gợi ý trong trợ lý mua sắm và hiển thị như một tin nhắn assistant nằm trong vùng chat có thể cuộn.
 - Rút gọn sản phẩm gợi ý trong trợ lý mua sắm để chỉ hiển thị tên sản phẩm và giá.
 - Thêm lại ảnh nhỏ cho sản phẩm gợi ý trong chat, bỏ thanh scroll riêng của gợi ý và ẩn thanh scroll lịch sử trò chuyện.
+- Thêm chuyển đổi giao diện light/dark cho storefront, lưu theme vào `localStorage` và đồng bộ màu trợ lý mua sắm theo theme hiện tại.
 
 ### Đã kiểm chứng
 
@@ -79,6 +80,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test frontend bắt buộc sản phẩm gợi ý là một message assistant trong vùng chat scrollable và dùng layout mini.
 - Bổ sung test frontend bắt buộc sản phẩm gợi ý không hiển thị ảnh, meta, size hoặc nút thêm giỏ trong chat.
 - Bổ sung test frontend bắt buộc gợi ý trong chat có ảnh nhỏ, không dùng scroll riêng và message log có class ẩn scrollbar.
+- Bổ sung test frontend bắt buộc storefront có nút đổi theme, class light/dark và lưu lựa chọn theme sau khi render lại.
 
 ## 2026-09-05
 
