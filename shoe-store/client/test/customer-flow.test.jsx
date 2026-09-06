@@ -202,7 +202,9 @@ describe('customer shopping flow', () => {
     renderAsCustomer('/');
 
     expect(await screen.findByRole('heading', { name: /Tất cả điểm nhấn mới/i })).toBeTruthy();
-    expect(screen.getByRole('img', { name: 'Hiệu ứng ảnh sneaker chuyển động' })).toBeTruthy();
+    const stream = screen.getByRole('img', { name: 'Hiệu ứng ảnh sneaker chuyển động' });
+    expect(stream).toBeTruthy();
+    expect(stream.querySelectorAll('.image-stream-card')).toHaveLength(24);
     expect(screen.getByRole('heading', { name: 'Hàng mới về' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Ưu đãi cuối tuần' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Sản phẩm bán chạy' })).toBeTruthy();

@@ -37,6 +37,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Áp phong cách từ prompt furniture editorial vào shop giày Solely nhưng giữ nguyên domain shop giày Việt, sản phẩm sneaker, giá VND và nghiệp vụ hiện có.
 - Cập nhật hover card ảnh sản phẩm, CTA terracotta, typography uppercase, divider mảnh, responsive grid và header hamburger cho mobile.
 - Thay ảnh hero tĩnh bằng corridor image stream có hỗ trợ reduced motion và vẫn giữ điều hướng slide bằng nút/dot.
+- Tinh chỉnh hero image stream gần demo hơn: tăng mật độ lên 12 card mỗi rail, đặt nội dung giữa màn hình và làm luồng ảnh nổi rõ hơn.
 
 ### Đã kiểm chứng
 

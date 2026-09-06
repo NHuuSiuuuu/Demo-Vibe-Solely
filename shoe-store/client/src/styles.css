@@ -1801,6 +1801,7 @@ button:hover:not(:disabled),
   backface-visibility: hidden;
   background: #efe9e2;
   box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 30%);
+  opacity: 0.94;
   overflow: hidden;
   position: absolute;
   transform-style: preserve-3d;
@@ -1815,21 +1816,28 @@ button:hover:not(:disabled),
 }
 
 .editorial-hero::after {
-  background: linear-gradient(90deg, rgb(23 20 18 / 78%), rgb(23 20 18 / 28%) 54%, rgb(23 20 18 / 4%));
+  background: linear-gradient(180deg, rgb(23 20 18 / 24%), rgb(23 20 18 / 58%) 62%, rgb(23 20 18 / 82%));
   content: "";
   inset: 0;
+  pointer-events: none;
   position: absolute;
+  z-index: 1;
 }
 
 .editorial-hero__overlay {
-  align-self: center;
+  align-content: space-between;
+  align-self: stretch;
   color: #ffffff;
   display: grid;
   gap: 1.1rem;
-  max-width: 42rem;
-  padding: clamp(2rem, 7vw, 5rem);
+  justify-items: center;
+  margin-inline: auto;
+  min-height: inherit;
+  max-width: 48rem;
+  padding: clamp(2.5rem, 6vw, 4.5rem) 1.5rem 5.25rem;
   position: relative;
-  z-index: 1;
+  text-align: center;
+  z-index: 2;
 }
 
 .editorial-hero__overlay .eyebrow,
@@ -1837,11 +1845,22 @@ button:hover:not(:disabled),
   color: #f6ede6;
 }
 
+.editorial-hero__headline,
+.editorial-hero__support {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+}
+
+.editorial-hero__support {
+  max-width: 31rem;
+}
+
 .editorial-hero h1 {
   font-size: clamp(3rem, 8vw, 6.75rem);
   line-height: 0.9;
   margin: 0;
-  max-width: 9ch;
+  max-width: 11ch;
   text-transform: uppercase;
   text-wrap: balance;
 }
@@ -1863,7 +1882,7 @@ button:hover:not(:disabled),
   left: 50%;
   position: absolute;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 3;
 }
 
 .carousel-controls button,
@@ -2434,8 +2453,7 @@ button:hover:not(:disabled),
   }
 
   .editorial-hero__overlay {
-    align-self: end;
-    padding: 1.5rem;
+    padding: 2rem 1.25rem 4.75rem;
   }
 
   .editorial-hero h1 {

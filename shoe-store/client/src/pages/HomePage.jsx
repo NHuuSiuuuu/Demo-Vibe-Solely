@@ -111,15 +111,19 @@ export default function HomePage() {
   return (
     <section className="home-page editorial-storefront" aria-labelledby="home-title">
       <section className="editorial-hero" aria-label="Bộ sưu tập nổi bật">
-        <ImageStreamHero className="editorial-hero__stream" images={streamImages} cards={10} speed={20} axis={54}>
+        <ImageStreamHero className="editorial-hero__stream" images={streamImages} cards={12} speed={18} axis={55}>
           <div className="editorial-hero__overlay">
-            <p className="eyebrow">{currentSlide.label}</p>
-            <h1 id="home-title">{currentSlide.title}</h1>
-            <p>{currentSlide.text}</p>
-            <Link className="button-secondary editorial-hero__cta" to="/products">
-              Xem thêm
-              <span aria-hidden="true">→</span>
-            </Link>
+            <div className="editorial-hero__headline">
+              <p className="eyebrow">{currentSlide.label}</p>
+              <h1 id="home-title">{currentSlide.title}</h1>
+            </div>
+            <div className="editorial-hero__support">
+              <p>{currentSlide.text}</p>
+              <Link className="button-secondary editorial-hero__cta" to="/products">
+                Xem thêm
+                <span aria-hidden="true">→</span>
+              </Link>
+            </div>
           </div>
           <div className="carousel-controls" aria-label="Điều khiển hero carousel">
             <button type="button" aria-label="Slide trước" onClick={showPreviousSlide}>
