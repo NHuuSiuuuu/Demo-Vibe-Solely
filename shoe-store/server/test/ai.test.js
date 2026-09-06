@@ -47,6 +47,35 @@ const productRows = [
   }
 ];
 
+const additionalProductRows = [
+  {
+    id: '13',
+    name: 'Solely City Walk',
+    slug: 'city-walk',
+    brand: 'Solely',
+    category: 'walking',
+    gender: 'unisex',
+    price: '1690000.00',
+    imageUrl: '/images/solely-city-walk.jpg',
+    availableSizes: ['40', '41'],
+    availableColors: ['black'],
+    totalStock: '4'
+  },
+  {
+    id: '14',
+    name: 'Solely Daily Court',
+    slug: 'daily-court',
+    brand: 'Solely',
+    category: 'sneakers',
+    gender: 'unisex',
+    price: '1490000.00',
+    imageUrl: '/images/solely-daily-court.jpg',
+    availableSizes: ['41', '42'],
+    availableColors: ['white'],
+    totalStock: '7'
+  }
+];
+
 const policyRetrievalRows = [
   {
     id: '101',
@@ -69,6 +98,28 @@ const productRetrievalRows = [
     content: 'Giày trail nam cho trekking cuối tuần, đi rừng nhẹ và đường mòn khô.',
     metadata: { productId: 12, slug: 'trail-guard-pro', category: 'trail', gender: 'men' },
     score: '0.94'
+  }
+];
+
+const threeProductRetrievalRows = [
+  ...productRetrievalRows,
+  {
+    id: '202',
+    source_type: 'product',
+    source_id: '13',
+    title: 'Solely City Walk',
+    content: 'Giày đi bộ êm cho lịch trình hằng ngày.',
+    metadata: { productId: 13, slug: 'city-walk', category: 'walking', gender: 'unisex' },
+    score: '0.91'
+  },
+  {
+    id: '203',
+    source_type: 'product',
+    source_id: '14',
+    title: 'Solely Daily Court',
+    content: 'Sneaker đi chơi nhẹ, dễ phối đồ.',
+    metadata: { productId: 14, slug: 'daily-court', category: 'sneakers', gender: 'unisex' },
+    score: '0.88'
   }
 ];
 
@@ -113,7 +164,7 @@ async function mockQuery(text, params = []) {
 
   if (text.includes('FROM products p') && text.includes('p.id = ANY($1::bigint[])')) {
     const ids = new Set((params[0] || []).map((id) => String(id)));
-    const rows = productRows.filter((product) => ids.has(String(product.id)));
+    const rows = [...productRows, ...additionalProductRows].filter((product) => ids.has(String(product.id)));
     return { rows, rowCount: rows.length };
   }
 
@@ -220,6 +271,23 @@ test('returns RAG product cards and sources for product advice', async () => {
       slug: 'trail-guard-pro'
     }
   ]);
+});
+
+test('limits RAG product cards when Vietnamese message requests two products', async () => {
+  const { createApp } = require('../src/app');
+  retrievalRows = threeProductRetrievalRows;
+
+  const response = await request(createApp())
+    .post('/api/ai/chat')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send({ message: '2 sản phẩm' })
+    .expect(200);
+
+  assert.equal(response.body.products.length, 2);
+  assert.deepEqual(
+    response.body.products.map((product) => product.id),
+    [12, 13]
+  );
 });
 
 test('does not persist casual AI chat messages', async () => {

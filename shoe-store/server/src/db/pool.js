@@ -6,12 +6,19 @@ const { env } = require('../config/env');
 
 let demoDbPromise = null;
 
+function makeDemoSchema(sql) {
+  return sql
+    .replace(/CREATE EXTENSION IF NOT EXISTS vector;\s*/i, '')
+    .replace(/embedding vector\(768\)/i, 'embedding TEXT')
+    .replace(/CREATE INDEX rag_chunks_embedding_idx ON rag_chunks USING ivfflat \(embedding vector_cosine_ops\) WITH \(lists = 100\);\s*/i, '');
+}
+
 async function createDemoDb() {
   const db = new PGlite();
   const schemaPath = path.resolve(__dirname, '../../../database/schema.sql');
   const seedPath = path.resolve(__dirname, '../../../database/seed.sql');
 
-  await db.exec(fs.readFileSync(schemaPath, 'utf8'));
+  await db.exec(makeDemoSchema(fs.readFileSync(schemaPath, 'utf8')));
   await db.exec(fs.readFileSync(seedPath, 'utf8'));
   console.warn('DATABASE_URL is not set. Using in-memory demo database.');
   return db;

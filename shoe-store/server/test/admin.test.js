@@ -15,14 +15,20 @@ let products;
 let variants;
 let orders;
 let orderItems;
+let ragDocuments;
 let nextProductId;
+let nextDocumentId;
 let nextVariantId;
 let restoredStockUpdates;
 let queryLog;
 let ragReindexCalls;
 let ragReindexShouldFail;
+let ragDocumentReindexCalls;
+let ragDocumentReindexShouldFail;
 let ragChunkStatusUpdates;
 let ragChunkUpdateShouldFail;
+let ragDocumentStatusUpdates;
+let ragOverviewUnavailable;
 
 function resetStore() {
   users = [
@@ -110,13 +116,31 @@ function resetStore() {
       line_total: '89.99'
     }
   ];
+  ragDocuments = [
+    {
+      id: 7,
+      title: 'Chính sách đổi trả',
+      slug: 'chinh-sach-doi-tra',
+      document_type: 'returns',
+      content: 'Khách có thể đổi trả khi giày còn nguyên hộp.',
+      status: 'active',
+      last_indexed_at: '2026-09-05T12:00:00.000Z',
+      created_at: '2026-09-05T00:00:00.000Z',
+      updated_at: '2026-09-05T00:00:00.000Z'
+    }
+  ];
   nextProductId = 11;
+  nextDocumentId = 8;
   nextVariantId = 102;
   restoredStockUpdates = [];
   ragReindexCalls = [];
   ragReindexShouldFail = false;
+  ragDocumentReindexCalls = [];
+  ragDocumentReindexShouldFail = false;
   ragChunkStatusUpdates = [];
   ragChunkUpdateShouldFail = false;
+  ragDocumentStatusUpdates = [];
+  ragOverviewUnavailable = false;
 }
 
 function tokenFor(userId) {
@@ -170,13 +194,38 @@ async function mockQuery(text, params = []) {
     };
   }
 
+  if (text.includes('to_regclass') && text.includes('rag_documents') && text.includes('rag_chunks')) {
+    return {
+      rows: [
+        {
+          has_documents_table: !ragOverviewUnavailable,
+          has_chunks_table: !ragOverviewUnavailable
+        }
+      ],
+      rowCount: 1
+    };
+  }
+
+  if (text.includes('pg_extension') && text.includes("extname = 'vector'")) {
+    return { rows: [{ available: !ragOverviewUnavailable }], rowCount: 1 };
+  }
+
   if (text.includes('AS document_count') && text.includes('AS chunk_count')) {
+    if (ragOverviewUnavailable) throw new Error('relation "rag_documents" does not exist');
     return {
       rows: [
         {
           document_count: 2,
           chunk_count: 5,
-          needs_reindex_count: 1
+          needs_reindex_count: 1,
+          active_document_count: 1,
+          hidden_document_count: 0,
+          stale_document_count: 1,
+          document_chunk_count: 3,
+          product_chunk_count: 2,
+          indexed_product_count: 1,
+          stale_product_count: 1,
+          last_indexed_at: '2026-09-05T12:00:00.000Z'
         }
       ],
       rowCount: 1
@@ -198,6 +247,55 @@ async function mockQuery(text, params = []) {
       ],
       rowCount: 1
     };
+  }
+
+  if (text.includes('FROM rag_documents') && text.includes('ORDER BY updated_at DESC')) {
+    return { rows: ragDocuments.map((document) => ({ ...document })), rowCount: ragDocuments.length };
+  }
+
+  if (text.includes('INSERT INTO rag_documents')) {
+    const [title, slug, documentType, content, status] = params;
+    const document = {
+      id: nextDocumentId++,
+      title,
+      slug,
+      document_type: documentType,
+      content,
+      status,
+      last_indexed_at: null,
+      created_at: '2026-09-05T00:00:00.000Z',
+      updated_at: '2026-09-05T00:00:00.000Z'
+    };
+    ragDocuments.push(document);
+    return { rows: [{ ...document }], rowCount: 1 };
+  }
+
+  if (text.includes('UPDATE rag_documents') && text.includes('WHERE id = $') && text.includes('RETURNING id')) {
+    const document = ragDocuments.find((candidate) => candidate.id === Number(params.at(-1)));
+    if (!document) return { rows: [], rowCount: 0 };
+    const assignments = text.match(/SET([\s\S]*?)WHERE id =/)[1];
+    const fields = [
+      ['title', 'title'],
+      ['slug', 'slug'],
+      ['document_type', 'document_type'],
+      ['content', 'content'],
+      ['status', 'status']
+    ];
+    let paramIndex = 0;
+    for (const [sqlName, propertyName] of fields) {
+      if (assignments.includes(`${sqlName} = $`)) {
+        document[propertyName] = params[paramIndex++];
+      }
+    }
+    document.updated_at = '2026-09-05T00:00:00.000Z';
+    return { rows: [{ ...document }], rowCount: 1 };
+  }
+
+  if (text.includes('UPDATE rag_documents') && text.includes("status = 'needs_reindex'")) {
+    ragDocumentStatusUpdates.push({ documentId: Number(params[0]), status: 'needs_reindex' });
+    const document = ragDocuments.find((candidate) => candidate.id === Number(params[0]));
+    if (document) document.status = 'needs_reindex';
+    return { rows: [], rowCount: document ? 1 : 0 };
   }
 
   if (text.includes('FROM products p') && text.includes('ORDER BY p.created_at DESC')) {
@@ -231,6 +329,10 @@ async function mockQuery(text, params = []) {
     if (ragChunkUpdateShouldFail) {
       throw new Error('RAG chunk update failed');
     }
+    return { rows: [], rowCount: 1 };
+  }
+
+  if (text.includes('UPDATE rag_chunks') && text.includes("source_type = 'document'") && text.includes('source_id = $1')) {
     return { rows: [], rowCount: 1 };
   }
 
@@ -374,12 +476,19 @@ Module._load = function patchedLoad(requestPath, parent, isMain) {
     return { withTransaction: async (callback) => callback({ query: mockQuery }) };
   }
 
-  if (requestPath === '../rag/ragIndex.service' || requestPath.endsWith('/modules/rag/ragIndex.service')) {
+  if (requestPath === '../rag/ragIndex.service' || requestPath === './ragIndex.service' || requestPath.endsWith('/modules/rag/ragIndex.service')) {
     return {
       reindexProduct: async (productId) => {
         ragReindexCalls.push(Number(productId));
         if (ragReindexShouldFail) {
           throw new Error('RAG reindex failed');
+        }
+        return { status: 'indexed', chunksIndexed: 1 };
+      },
+      reindexDocument: async (documentId) => {
+        ragDocumentReindexCalls.push(Number(documentId));
+        if (ragDocumentReindexShouldFail) {
+          throw new Error('RAG document reindex failed');
         }
         return { status: 'indexed', chunksIndexed: 1 };
       }
@@ -442,6 +551,33 @@ test('admin can fetch RAG overview', async () => {
 
   assert.equal(typeof response.body.overview.geminiConfigured, 'boolean');
   assert.equal(typeof response.body.overview.documentCount, 'number');
+  assert.deepEqual(response.body.overview.documentCountsByStatus, {
+    active: 1,
+    hidden: 0,
+    needsReindex: 1
+  });
+  assert.deepEqual(response.body.overview.chunkCountsBySourceType, {
+    document: 3,
+    product: 2
+  });
+  assert.equal(response.body.overview.indexedProductCount, 1);
+  assert.equal(response.body.overview.staleProductCount, 1);
+  assert.equal(response.body.overview.lastIndexedAt, '2026-09-05T12:00:00.000Z');
+  assert.equal(response.body.overview.pgvectorAvailable, true);
+});
+
+test('admin RAG overview reports unavailable tables without a generic 500', async () => {
+  const { createApp } = require('../src/app');
+  ragOverviewUnavailable = true;
+
+  const response = await request(createApp())
+    .get('/api/admin/rag/overview')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .expect(200);
+
+  assert.equal(response.body.overview.available, false);
+  assert.equal(response.body.overview.pgvectorAvailable, false);
+  assert.match(response.body.overview.message, /RAG tables/i);
 });
 
 test('customer cannot access RAG admin endpoints', async () => {
@@ -484,6 +620,46 @@ test('admin RAG test returns retrieved chunks when context is found', async () =
       score: 0.92
     }
   ]);
+});
+
+test('creating an active RAG document reindexes it after the save', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .post('/api/admin/rag/documents')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({
+      title: 'Thanh toán COD',
+      slug: 'thanh-toan-cod',
+      documentType: 'payment',
+      content: 'Solely hỗ trợ thanh toán COD.',
+      status: 'active'
+    })
+    .expect(201);
+
+  assert.equal(response.body.document.title, 'Thanh toán COD');
+  assert.deepEqual(ragDocumentReindexCalls, [8]);
+});
+
+test('RAG document save succeeds and marks document needs_reindex when reindex fails', async () => {
+  const { createApp } = require('../src/app');
+  ragDocumentReindexShouldFail = true;
+
+  const response = await request(createApp())
+    .put('/api/admin/rag/documents/7')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({
+      title: 'Chính sách đổi trả mới',
+      slug: 'chinh-sach-doi-tra',
+      documentType: 'returns',
+      content: 'Nội dung đổi trả cập nhật.',
+      status: 'active'
+    })
+    .expect(200);
+
+  assert.equal(response.body.document.title, 'Chính sách đổi trả mới');
+  assert.deepEqual(ragDocumentReindexCalls, [7]);
+  assert.deepEqual(ragDocumentStatusUpdates, [{ documentId: 7, status: 'needs_reindex' }]);
 });
 
 test('creates and updates a product', async () => {

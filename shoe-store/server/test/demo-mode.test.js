@@ -12,7 +12,7 @@ function clearAppModules() {
 
 test('serves catalog and registers customers when DATABASE_URL is missing', async () => {
   const originalDatabaseUrl = process.env.DATABASE_URL;
-  delete process.env.DATABASE_URL;
+  process.env.DATABASE_URL = '';
   process.env.NODE_ENV = 'test';
   process.env.JWT_SECRET = 'test-jwt-secret';
   clearAppModules();
@@ -37,7 +37,7 @@ test('serves catalog and registers customers when DATABASE_URL is missing', asyn
     assert.equal(registerResponse.body.user.role, 'customer');
     assert.equal(typeof registerResponse.body.token, 'string');
   } finally {
-    if (originalDatabaseUrl) {
+    if (originalDatabaseUrl !== undefined) {
       process.env.DATABASE_URL = originalDatabaseUrl;
     } else {
       delete process.env.DATABASE_URL;

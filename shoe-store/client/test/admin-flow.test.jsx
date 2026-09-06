@@ -160,6 +160,46 @@ function createAdminFetchMock({ role = 'admin' } = {}) {
       });
     }
 
+    if (path === '/api/admin/rag/overview' && method === 'GET') {
+      return jsonResponse({
+        overview: {
+          available: true,
+          geminiConfigured: true,
+          pgvectorAvailable: true,
+          documentCount: 2,
+          chunkCount: 8,
+          needsReindexCount: 1,
+          documentCountsByStatus: { active: 1, hidden: 0, needsReindex: 1 },
+          chunkCountsBySourceType: { document: 4, product: 4 },
+          indexedProductCount: 1,
+          staleProductCount: 1,
+          lastIndexedAt: '2026-09-05T12:00:00.000Z'
+        }
+      });
+    }
+
+    if (path === '/api/admin/rag/documents' && method === 'GET') {
+      return jsonResponse({
+        documents: [
+          {
+            id: 7,
+            title: 'Chính sách đổi trả',
+            slug: 'chinh-sach-doi-tra',
+            documentType: 'returns',
+            content: 'Khách có thể đổi trả khi sản phẩm còn nguyên hộp.',
+            status: 'active',
+            lastIndexedAt: '2026-09-05T12:00:00.000Z',
+            createdAt: '2026-09-05T00:00:00.000Z',
+            updatedAt: '2026-09-05T00:00:00.000Z'
+          }
+        ]
+      });
+    }
+
+    if (path === '/api/admin/rag/products/10/reindex' && method === 'POST') {
+      return jsonResponse({ result: { status: 'indexed', chunksIndexed: 1 } });
+    }
+
     if (path === '/api/admin/products' && method === 'GET') {
       return jsonResponse({ products: adminProducts });
     }
@@ -266,6 +306,22 @@ describe('admin flow', () => {
     expect(await screen.findByText('Tổng quan tri thức')).toBeTruthy();
     expect(screen.getByText('Chính sách')).toBeTruthy();
     expect(screen.getByText('Kiểm thử truy vấn')).toBeTruthy();
+  });
+
+  it('renders RAG product indexing status and can reindex one product', async () => {
+    const fetchMock = renderWithToken('/admin/rag');
+
+    expect(await screen.findByRole('heading', { name: 'Sản phẩm' })).toBeTruthy();
+    expect(screen.getByText('Đã index')).toBeTruthy();
+    expect(screen.getAllByText('Cần reindex').length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByLabelText('ID sản phẩm'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Reindex sản phẩm' }));
+
+    await screen.findByText('Đã reindex sản phẩm #10.');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/admin/rag/products/10/reindex'),
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 
   it('renders product admin table', async () => {

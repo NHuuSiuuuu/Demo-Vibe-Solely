@@ -48,6 +48,8 @@ function extractRequestedCount(message) {
   const normalized = normalizeText(message);
   const explicit = normalized.match(/\b(?:top|goi y|lay|chon)\s*(\d)\b/);
   if (explicit) return Math.min(Math.max(Number(explicit[1]), 1), 6);
+  const explicitProductCount = normalized.match(/\b(\d)\s+(?:san pham|mau|doi)\b/);
+  if (explicitProductCount) return Math.min(Math.max(Number(explicitProductCount[1]), 1), 6);
   if (/\b(mot|1)\s+(doi|mau|san pham)\b/.test(normalized)) return 1;
   return 4;
 }

@@ -37,6 +37,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm API admin cho RAG tại `/api/admin/rag` để xem overview, quản lý tài liệu tri thức, reindex và kiểm thử truy vấn bằng quyền admin.
 - Thêm trang admin `/admin/rag` "Kho tri thức AI" để xem trạng thái RAG, quản lý tài liệu chính sách, reindex và kiểm thử truy vấn qua backend.
 - Thêm tài liệu setup Gemini/RAG, database pgvector, quy trình reindex và cách kiểm thử admin/customer assistant.
+- Thêm khu vực index sản phẩm trong admin RAG để xem số sản phẩm đã index/cần reindex và reindex một sản phẩm bằng ID.
 
 ### Đã thay đổi
 
@@ -82,6 +83,11 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung fallback rõ ràng khi trợ lý RAG chưa có Gemini hoặc bảng RAG chưa sẵn sàng để khách không gặp lỗi nội bộ.
 - Cập nhật script setup database để `psql` dừng và trả exit code lỗi khi SQL lỗi, tránh báo setup RAG thành công giả khi thiếu pgvector.
 - Bổ sung README mô tả trạng thái RAG degraded/unconfigured và fallback chat khi thiếu `GEMINI_API_KEY`.
+- Cập nhật admin RAG overview để trả trạng thái vận hành chi tiết: số tài liệu theo trạng thái, chunks theo nguồn, sản phẩm đã index/cần reindex, thời điểm index gần nhất và trạng thái pgvector.
+- Cập nhật lưu tài liệu chính sách RAG để reindex best-effort sau khi tạo/sửa tài liệu active; nếu Gemini hoặc indexing lỗi thì vẫn giữ bản lưu và đánh dấu `needs_reindex`.
+- Cập nhật parser yêu cầu số lượng của trợ lý RAG để hiểu các câu như `2 sản phẩm`, `2 mẫu`, `2 đôi`.
+- Cập nhật admin RAG overview để báo trạng thái bảng RAG/pgvector chưa sẵn sàng thay vì trả lỗi 500 chung.
+- Cập nhật demo database in-memory để bỏ cú pháp pgvector không được PGlite hỗ trợ nhưng vẫn giữ schema PostgreSQL thật có pgvector.
 
 ### Đã kiểm chứng
 
@@ -118,6 +124,8 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test backend bắt buộc `/api/ai/chat` dùng RAG, không lưu tin nhắn chat và trả `sources` cùng sản phẩm/tri thức liên quan.
 - Bổ sung test frontend bắt buộc admin navigation hiển thị "Kho tri thức AI" và route `/admin/rag` render tổng quan tri thức, chính sách và kiểm thử truy vấn.
 - Bổ sung test frontend bắt buộc trợ lý mua sắm hiển thị câu trả lời chính sách RAG mà không render "Sản phẩm gợi ý" khi API trả `products: []`.
+- Bổ sung test backend cho reindex tài liệu chính sách sau create/update, fallback `needs_reindex`, overview RAG vận hành và parser số lượng `2 sản phẩm`.
+- Bổ sung test frontend bắt buộc admin RAG hiển thị trạng thái index sản phẩm và gọi API reindex một sản phẩm.
 
 ## 2026-09-05
 

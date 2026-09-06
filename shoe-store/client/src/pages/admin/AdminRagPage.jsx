@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Database, FileText, RefreshCcw, Search, Sparkles } from 'lucide-react';
+import { Database, FileText, PackageSearch, RefreshCcw, Search, Sparkles } from 'lucide-react';
 import { apiClient } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 
 const emptyOverview = {
+  available: true,
   geminiConfigured: false,
+  pgvectorAvailable: false,
   documentCount: 0,
   chunkCount: 0,
-  needsReindexCount: 0
+  needsReindexCount: 0,
+  documentCountsByStatus: { active: 0, hidden: 0, needsReindex: 0 },
+  chunkCountsBySourceType: { document: 0, product: 0 },
+  indexedProductCount: 0,
+  staleProductCount: 0,
+  lastIndexedAt: null
 };
 
 const emptyDocumentForm = {
@@ -74,6 +81,8 @@ export default function AdminRagPage() {
   const [documentActionId, setDocumentActionId] = useState(null);
   const [isSavingDocument, setIsSavingDocument] = useState(false);
   const [isReindexingAll, setIsReindexingAll] = useState(false);
+  const [productReindexId, setProductReindexId] = useState('');
+  const [isReindexingProduct, setIsReindexingProduct] = useState(false);
   const [testMessage, setTestMessage] = useState('');
   const [testStatus, setTestStatus] = useState('idle');
   const [testResult, setTestResult] = useState(null);
@@ -246,6 +255,26 @@ export default function AdminRagPage() {
     }
   }
 
+  async function handleReindexProduct(event) {
+    event.preventDefault();
+    const productId = productReindexId.trim();
+    if (!productId) return;
+
+    setIsReindexingProduct(true);
+    setNotice('');
+    setError('');
+
+    try {
+      await apiClient.post(`/api/admin/rag/products/${productId}/reindex`, {}, { token });
+      setNotice(`Đã reindex sản phẩm #${productId}.`);
+      await loadRagData({ silent: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsReindexingProduct(false);
+    }
+  }
+
   async function handleTestSubmit(event) {
     event.preventDefault();
     const message = testMessage.trim();
@@ -289,10 +318,46 @@ export default function AdminRagPage() {
         </div>
         <div className="rag-admin-grid">
           <StatusCard icon={Sparkles} label="Gemini" value={overview.geminiConfigured ? 'Đã cấu hình' : 'Chưa cấu hình'} tone={overview.geminiConfigured ? 'green' : 'orange'} />
+          <StatusCard icon={Database} label="pgvector" value={overview.pgvectorAvailable ? 'Sẵn sàng' : 'Chưa sẵn sàng'} tone={overview.pgvectorAvailable ? 'green' : 'orange'} />
           <StatusCard icon={FileText} label="Tài liệu" value={overview.documentCount} tone="blue" />
           <StatusCard icon={Database} label="Chunks đang dùng" value={overview.chunkCount} tone="green" />
           <StatusCard icon={RefreshCcw} label="Cần reindex" value={overview.needsReindexCount} tone={overview.needsReindexCount ? 'orange' : 'blue'} />
         </div>
+        {!overview.available && overview.message ? <p className="form-error">{overview.message}</p> : null}
+        <div className="rag-overview-details" aria-label="Chi tiết trạng thái RAG">
+          <span>Tài liệu: {overview.documentCountsByStatus?.active || 0} đang dùng, {overview.documentCountsByStatus?.needsReindex || 0} cần reindex, {overview.documentCountsByStatus?.hidden || 0} ẩn</span>
+          <span>Chunks: {overview.chunkCountsBySourceType?.document || 0} chính sách, {overview.chunkCountsBySourceType?.product || 0} sản phẩm</span>
+          <span>Index gần nhất: {formatDateTime(overview.lastIndexedAt)}</span>
+        </div>
+      </section>
+
+      <section className="admin-subsection rag-product-index-panel" aria-labelledby="rag-products-title">
+        <div className="admin-panel-heading">
+          <h2 id="rag-products-title">Sản phẩm</h2>
+        </div>
+        <div className="rag-admin-grid rag-admin-grid--compact">
+          <StatusCard icon={PackageSearch} label="Đã index" value={overview.indexedProductCount || 0} tone="green" />
+          <StatusCard icon={RefreshCcw} label="Cần reindex" value={overview.staleProductCount || 0} tone={overview.staleProductCount ? 'orange' : 'blue'} />
+        </div>
+        <form className="admin-form rag-product-reindex-form" onSubmit={handleReindexProduct}>
+          <label>
+            ID sản phẩm
+            <input
+              inputMode="numeric"
+              pattern="[0-9]+"
+              value={productReindexId}
+              onChange={(event) => setProductReindexId(event.target.value)}
+              placeholder="Ví dụ: 10"
+              required
+            />
+          </label>
+          <div className="admin-form__actions">
+            <button type="submit" className="button-link" disabled={isReindexingProduct}>
+              <RefreshCcw size={16} aria-hidden="true" />
+              {isReindexingProduct ? 'Đang reindex...' : 'Reindex sản phẩm'}
+            </button>
+          </div>
+        </form>
       </section>
 
       <div className="rag-admin-layout">

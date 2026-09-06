@@ -68,20 +68,113 @@ function validateDocumentInput(input, { partial = false } = {}) {
 }
 
 async function getOverview() {
+  const availability = await getRagAvailability();
+  if (!availability.available) {
+    return {
+      available: false,
+      message: 'RAG tables or pgvector are unavailable. Run database setup before indexing knowledge.',
+      geminiConfigured: isGeminiConfigured(),
+      pgvectorAvailable: availability.pgvectorAvailable,
+      documentCount: 0,
+      chunkCount: 0,
+      needsReindexCount: 0,
+      documentCountsByStatus: { active: 0, hidden: 0, needsReindex: 0 },
+      chunkCountsBySourceType: { document: 0, product: 0 },
+      indexedProductCount: 0,
+      staleProductCount: 0,
+      lastIndexedAt: null
+    };
+  }
+
   const result = await query(`
     SELECT
       (SELECT COUNT(*)::int FROM rag_documents WHERE status <> 'hidden') AS document_count,
       (SELECT COUNT(*)::int FROM rag_chunks WHERE status = 'active') AS chunk_count,
-      (SELECT COUNT(*)::int FROM rag_chunks WHERE status = 'needs_reindex') AS needs_reindex_count
+      (SELECT COUNT(*)::int FROM rag_chunks WHERE status = 'needs_reindex') AS needs_reindex_count,
+      (SELECT COUNT(*)::int FROM rag_documents WHERE status = 'active') AS active_document_count,
+      (SELECT COUNT(*)::int FROM rag_documents WHERE status = 'hidden') AS hidden_document_count,
+      (SELECT COUNT(*)::int FROM rag_documents WHERE status = 'needs_reindex') AS stale_document_count,
+      (SELECT COUNT(*)::int FROM rag_chunks WHERE source_type = 'document') AS document_chunk_count,
+      (SELECT COUNT(*)::int FROM rag_chunks WHERE source_type = 'product') AS product_chunk_count,
+      (SELECT COUNT(DISTINCT source_id)::int FROM rag_chunks WHERE source_type = 'product' AND status = 'active') AS indexed_product_count,
+      (SELECT COUNT(DISTINCT source_id)::int FROM rag_chunks WHERE source_type = 'product' AND status = 'needs_reindex') AS stale_product_count,
+      (
+        SELECT MAX(indexed_at)
+        FROM (
+          SELECT last_indexed_at AS indexed_at FROM rag_documents
+          UNION ALL
+          SELECT updated_at AS indexed_at FROM rag_chunks WHERE status = 'active'
+        ) indexed_sources
+      ) AS last_indexed_at
   `);
   const row = result.rows[0] || {};
 
   return {
+    available: true,
     geminiConfigured: isGeminiConfigured(),
+    pgvectorAvailable: availability.pgvectorAvailable,
     documentCount: Number(row.document_count || 0),
     chunkCount: Number(row.chunk_count || 0),
-    needsReindexCount: Number(row.needs_reindex_count || 0)
+    needsReindexCount: Number(row.needs_reindex_count || 0),
+    documentCountsByStatus: {
+      active: Number(row.active_document_count || 0),
+      hidden: Number(row.hidden_document_count || 0),
+      needsReindex: Number(row.stale_document_count || 0)
+    },
+    chunkCountsBySourceType: {
+      document: Number(row.document_chunk_count || 0),
+      product: Number(row.product_chunk_count || 0)
+    },
+    indexedProductCount: Number(row.indexed_product_count || 0),
+    staleProductCount: Number(row.stale_product_count || 0),
+    lastIndexedAt: row.last_indexed_at || null
   };
+}
+
+async function getRagAvailability() {
+  try {
+    const [tablesResult, vectorResult] = await Promise.all([
+      query(`
+        SELECT
+          to_regclass('public.rag_documents') IS NOT NULL AS has_documents_table,
+          to_regclass('public.rag_chunks') IS NOT NULL AS has_chunks_table
+      `),
+      query("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') AS available")
+    ]);
+    const tableRow = tablesResult.rows[0] || {};
+    const pgvectorAvailable = Boolean(vectorResult.rows[0]?.available);
+
+    return {
+      available: Boolean(tableRow.has_documents_table && tableRow.has_chunks_table),
+      pgvectorAvailable
+    };
+  } catch (_error) {
+    return { available: false, pgvectorAvailable: false };
+  }
+}
+
+async function markDocumentNeedsReindex(documentId) {
+  await query("UPDATE rag_documents SET status = 'needs_reindex', updated_at = NOW() WHERE id = $1", [documentId]);
+  await query(
+    "UPDATE rag_chunks SET status = 'needs_reindex', updated_at = NOW() WHERE source_type = 'document' AND source_id = $1",
+    [documentId]
+  );
+}
+
+async function reindexDocumentBestEffort(document) {
+  if (!document || document.status !== 'active') return document;
+
+  try {
+    await reindexDocument(document.id);
+    return document;
+  } catch (_error) {
+    try {
+      await markDocumentNeedsReindex(document.id);
+      return { ...document, status: 'needs_reindex' };
+    } catch (_markError) {
+      return document;
+    }
+  }
 }
 
 async function listDocuments() {
@@ -105,7 +198,7 @@ async function createDocument(input) {
     [document.title, document.slug, document.documentType, document.content, document.status]
   );
 
-  return mapDocument(result.rows[0]);
+  return reindexDocumentBestEffort(mapDocument(result.rows[0]));
 }
 
 async function updateDocument(documentId, input) {
@@ -140,7 +233,7 @@ async function updateDocument(documentId, input) {
   );
 
   if (!result.rows[0]) throw new HttpError(404, 'Document not found');
-  return mapDocument(result.rows[0]);
+  return reindexDocumentBestEffort(mapDocument(result.rows[0]));
 }
 
 async function deleteDocument(documentId) {
