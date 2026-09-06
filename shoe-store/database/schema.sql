@@ -1,4 +1,6 @@
 DROP TABLE IF EXISTS ai_chat_messages;
+DROP TABLE IF EXISTS rag_chunks;
+DROP TABLE IF EXISTS rag_documents;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS cart_items;
@@ -19,6 +21,8 @@ CREATE TYPE product_status AS ENUM ('active', 'hidden');
 CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipping', 'completed', 'cancelled');
 CREATE TYPE payment_method AS ENUM ('cod');
 CREATE TYPE payment_status AS ENUM ('unpaid', 'paid');
+
+CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE users (
   id BIGSERIAL PRIMARY KEY,
@@ -120,6 +124,38 @@ CREATE TABLE order_items (
   line_total NUMERIC(10, 2) NOT NULL
 );
 
+CREATE TABLE rag_documents (
+  id BIGSERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  document_type TEXT NOT NULL,
+  content TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  last_indexed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT rag_documents_type_check CHECK (document_type IN ('ordering', 'payment', 'shipping', 'returns', 'warranty', 'terms', 'size_guide', 'general')),
+  CONSTRAINT rag_documents_status_check CHECK (status IN ('active', 'hidden', 'needs_reindex'))
+);
+
+CREATE TABLE rag_chunks (
+  id BIGSERIAL PRIMARY KEY,
+  source_type TEXT NOT NULL,
+  source_id BIGINT NOT NULL,
+  chunk_index INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  embedding vector(768),
+  embedding_model TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT rag_chunks_source_type_check CHECK (source_type IN ('product', 'document')),
+  CONSTRAINT rag_chunks_status_check CHECK (status IN ('active', 'hidden', 'needs_reindex')),
+  UNIQUE (source_type, source_id, chunk_index)
+);
+
 CREATE TABLE ai_chat_messages (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
@@ -141,4 +177,7 @@ CREATE INDEX product_images_product_id_idx ON product_images(product_id);
 CREATE INDEX product_variants_product_id_idx ON product_variants(product_id);
 CREATE INDEX cart_items_cart_id_idx ON cart_items(cart_id);
 CREATE INDEX order_items_order_id_idx ON order_items(order_id);
+CREATE INDEX rag_chunks_source_idx ON rag_chunks(source_type, source_id);
+CREATE INDEX rag_chunks_status_idx ON rag_chunks(status);
+CREATE INDEX rag_chunks_embedding_idx ON rag_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 CREATE INDEX ai_chat_messages_session_id_idx ON ai_chat_messages(session_id);

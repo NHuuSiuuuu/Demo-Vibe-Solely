@@ -30,6 +30,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm catalog 20 sản phẩm Solely với mô tả giàu thông tin về mục đích sử dụng, chất liệu, đệm, độ bám, form chân và ngữ cảnh phù hợp để chuẩn bị cho chatbot RAG.
 - Thêm spec thiết kế hệ thống RAG Gemini có trang quản trị `Kho tri thức AI`, dữ liệu sản phẩm, chính sách, điều khoản, vận chuyển, đổi trả và kiểm thử truy vấn trong admin.
 - Thêm plan triển khai hệ thống RAG Gemini cho admin và chatbot, gồm schema, Gemini client, indexing, retrieval, admin API, admin UI, đồng bộ sản phẩm và kiểm chứng end-to-end.
+- Thêm schema RAG gồm `rag_documents`, `rag_chunks`, pgvector `embedding vector(768)` và dữ liệu seed chính sách mặc định cho trợ lý AI Solely.
 
 ### Đã thay đổi
 
@@ -65,6 +66,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật retrieval trợ lý mua sắm để nhận diện nhu cầu leo núi/trekking/outdoor và chỉ lọc sản phẩm trail phù hợp trước khi tư vấn.
 - Cập nhật trợ lý mua sắm để dùng OpenAI ranking sau khi backend lọc catalog, kèm fallback nội bộ tự nhiên hơn khi thiếu API key hoặc chỉ có một sản phẩm phù hợp.
 - Cập nhật script `database/localize-vietnamese-products.sql` thành upsert để đồng bộ sản phẩm, ảnh và biến thể mới vào PostgreSQL thật mà không cần reset database.
+- Cập nhật script setup database để chạy schema, seed và upsert Việt hóa/RAG theo cùng một luồng lặp lại được.
 
 ### Đã kiểm chứng
 

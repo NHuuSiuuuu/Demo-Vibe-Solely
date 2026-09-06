@@ -10,7 +10,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-for (const file of ['database/schema.sql', 'database/seed.sql']) {
+for (const file of ['database/schema.sql', 'database/seed.sql', 'database/localize-vietnamese-products.sql']) {
   const result = spawnSync('psql', [process.env.DATABASE_URL, '-f', path.join(rootDir, file)], {
     stdio: 'inherit'
   });

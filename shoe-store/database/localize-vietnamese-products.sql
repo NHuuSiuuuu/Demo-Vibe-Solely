@@ -6,6 +6,22 @@ UPDATE users
 SET first_name = 'Khách hàng', last_name = 'Demo'
 WHERE email = 'customer@shoestore.local';
 
+INSERT INTO rag_documents (title, slug, document_type, content, status)
+VALUES
+  ('Cách đặt hàng', 'cach-dat-hang', 'ordering', 'Khách hàng chọn sản phẩm, chọn size và màu còn hàng, thêm vào giỏ rồi kiểm tra lại số lượng trước khi checkout. Khi đặt hàng COD, hãy nhập đúng họ tên, số điện thoại, email và địa chỉ nhận hàng để Solely xác nhận đơn. Sau khi đơn được tạo, khách có thể theo dõi trạng thái trong lịch sử đơn hàng.', 'active'),
+  ('Thanh toán COD', 'thanh-toan-cod', 'payment', 'Solely hỗ trợ thanh toán khi nhận hàng bằng COD. Khách không cần chuyển khoản trước trong flow mặc định. Nhân viên giao hàng thu đúng tổng tiền hiển thị trên đơn, gồm tiền sản phẩm và phí vận chuyển nếu có. Nếu cần đổi thông tin thanh toán, khách nên liên hệ Solely trước khi đơn chuyển sang trạng thái đang giao.', 'active'),
+  ('Vận chuyển', 'van-chuyen', 'shipping', 'Solely xử lý đơn sau khi xác nhận thông tin nhận hàng. Thời gian giao dự kiến phụ thuộc khu vực, tồn kho và lịch của đơn vị vận chuyển. Khách nên kiểm tra kỹ địa chỉ, số điện thoại và ghi chú giao hàng. Khi đơn đã chuyển sang đang giao, việc đổi địa chỉ có thể bị hạn chế.', 'active'),
+  ('Đổi trả', 'doi-tra', 'returns', 'Khách có thể yêu cầu đổi trả khi sản phẩm còn nguyên tình trạng, chưa sử dụng ngoài phạm vi thử size trong nhà và còn đầy đủ hộp, tem, phụ kiện đi kèm. Các yêu cầu đổi size hoặc lỗi giao nhầm cần gửi kèm mã đơn, ảnh sản phẩm và mô tả vấn đề để Solely kiểm tra nhanh hơn.', 'active'),
+  ('Bảo hành', 'bao-hanh', 'warranty', 'Solely hỗ trợ bảo hành cho lỗi sản xuất được xác nhận trong quá trình sử dụng thông thường. Chính sách không áp dụng cho hao mòn tự nhiên, sử dụng sai mục đích, va chạm mạnh, tự sửa chữa hoặc bảo quản không đúng cách. Khách cần cung cấp mã đơn và hình ảnh lỗi để được hướng dẫn.', 'active'),
+  ('Hướng dẫn chọn size', 'huong-dan-chon-size', 'size_guide', 'Khách nên đo chiều dài bàn chân vào cuối ngày, mang loại tất thường dùng và so sánh với bảng size của từng mẫu. Nếu chân bè hoặc thích mang thoải mái, cân nhắc tăng nửa size hoặc chọn form rộng. Với giày chạy bộ và trekking, nên chừa khoảng trống nhẹ ở mũi chân để giảm cấn khi di chuyển lâu.', 'active'),
+  ('Điều khoản mua hàng', 'dieu-khoan-mua-hang', 'terms', 'Khi đặt hàng tại Solely, khách đồng ý cung cấp thông tin chính xác để xử lý đơn, nhận hàng và hỗ trợ sau bán. Giá bán, tồn kho và chương trình khuyến mãi có thể thay đổi theo thời điểm. Solely có quyền liên hệ xác nhận hoặc từ chối đơn bất thường, sai thông tin hoặc không đáp ứng điều kiện mua hàng.', 'active')
+ON CONFLICT (slug) DO UPDATE
+SET title = EXCLUDED.title,
+    document_type = EXCLUDED.document_type,
+    content = EXCLUDED.content,
+    status = EXCLUDED.status,
+    updated_at = NOW();
+
 WITH product_data(slug, name, description, brand, category, gender, base_price, featured) AS (
   VALUES
     ('urban-runner-knit', 'Solely Air Knit', 'Mục đích: chạy bộ hằng ngày, đi bộ nhanh và mang cả ngày. Chất liệu knit thoáng khí, đệm foam êm, form ôm vừa chân. Phù hợp người cần giày nhẹ cho đường nhựa, văn phòng năng động và lịch tập nhẹ.', 'Solely', 'running', 'unisex', 1890000, true),

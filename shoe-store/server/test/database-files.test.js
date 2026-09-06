@@ -125,3 +125,28 @@ test('seed data includes a RAG-ready catalog with rich product descriptions', ()
     assert.match(localize, new RegExp(product.slug));
   });
 });
+
+test('schema defines RAG documents, chunks, pgvector extension, and vector indexes', () => {
+  const schema = readDatabaseFile('schema.sql');
+
+  assert.match(schema, /CREATE EXTENSION IF NOT EXISTS vector/i);
+  assert.match(schema, /CREATE TABLE rag_documents/i);
+  assert.match(schema, /CREATE TABLE rag_chunks/i);
+  assert.match(schema, /embedding vector\(768\)/i);
+  assert.match(schema, /rag_chunks_source_idx/i);
+  assert.match(schema, /rag_chunks_embedding_idx/i);
+});
+
+test('seed data includes default RAG policy documents', () => {
+  const seed = readDatabaseFile('seed.sql');
+
+  ['Cách đặt hàng', 'Thanh toán COD', 'Vận chuyển', 'Đổi trả', 'Bảo hành', 'Hướng dẫn chọn size', 'Điều khoản mua hàng'].forEach((title) => {
+    assert.match(seed, new RegExp(title));
+  });
+});
+
+test('database setup applies localization after schema and seed files', () => {
+  const setup = fs.readFileSync(path.join(rootDir, 'scripts', 'db-setup.js'), 'utf8');
+
+  assert.match(setup, /'database\/schema\.sql',\s*'database\/seed\.sql',\s*'database\/localize-vietnamese-products\.sql'/);
+});
