@@ -27,10 +27,12 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm giao diện chat bubble cho trợ lý mua sắm, gồm message log, bubble user/assistant, typing indicator và composer cố định trong panel.
 - Thêm nút mở trợ lý mua sắm dạng tròn, chỉ dùng icon và có animation pulse.
 - Thêm cấu hình mẫu `server/.env.example` cho `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` và `OPENAI_MODEL`.
+- Thêm cấu hình mẫu Gemini/RAG trong `server/.env.example` và tài liệu nhắc không commit API key.
 - Thêm catalog 20 sản phẩm Solely với mô tả giàu thông tin về mục đích sử dụng, chất liệu, đệm, độ bám, form chân và ngữ cảnh phù hợp để chuẩn bị cho chatbot RAG.
 - Thêm spec thiết kế hệ thống RAG Gemini có trang quản trị `Kho tri thức AI`, dữ liệu sản phẩm, chính sách, điều khoản, vận chuyển, đổi trả và kiểm thử truy vấn trong admin.
 - Thêm plan triển khai hệ thống RAG Gemini cho admin và chatbot, gồm schema, Gemini client, indexing, retrieval, admin API, admin UI, đồng bộ sản phẩm và kiểm chứng end-to-end.
 - Thêm schema RAG gồm `rag_documents`, `rag_chunks`, pgvector `embedding vector(768)` và dữ liệu seed chính sách mặc định cho trợ lý AI Solely.
+- Thêm Gemini client phía backend cho embedding và trả lời dựa trên ngữ cảnh RAG, cùng helper tạo nội dung/chia đoạn tri thức sản phẩm.
 
 ### Đã thay đổi
 

@@ -9,12 +9,16 @@ Local shoe store MVP scaffold with a React + Vite client and Node.js/Express API
 - PostgreSQL client tools
 - A PostgreSQL database URL in `server/.env` or exported as `DATABASE_URL`
 - Optional: `OPENAI_API_KEY` in `server/.env` for AI-ranked product advice
+- Optional: `GEMINI_API_KEY` in `server/.env` or deployment environment for RAG embeddings and grounded answers
 
 If `DATABASE_URL` is not set, the API starts with an in-memory demo
 database loaded from `database/schema.sql` and `database/seed.sql`. This
 is useful for quick local review, but data resets when the server restarts.
 If `OPENAI_API_KEY` is not set, product advice still works with the
 backend's local filtered fallback response.
+Do not commit Gemini or OpenAI keys. Gemini keys belong only in
+`server/.env` for local development or in the backend deployment
+environment; the frontend must never receive or store `GEMINI_API_KEY`.
 
 ## Local URLs
 
