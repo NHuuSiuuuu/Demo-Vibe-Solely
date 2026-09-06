@@ -325,21 +325,8 @@ async function adviseProducts({ user, message }) {
     throw new HttpError(400, 'Message is required');
   }
 
-  const filters = {
-    maxPrice: extractBudget(cleanedMessage),
-    size: extractSize(cleanedMessage),
-    gender: extractGender(cleanedMessage),
-    brand: extractBrand(cleanedMessage),
-    keywords: extractKeywords(cleanedMessage)
-  };
-
-  const products = await findMatchingProducts(filters);
-  const answer = await buildAnswer({ message: cleanedMessage, filters, products });
-
-  await storeMessage({ userId: user.id, role: 'user', content: cleanedMessage });
-  await storeMessage({ userId: user.id, role: 'assistant', content: answer });
-
-  return { answer, products };
+  const { answerWithRag } = require('../rag/rag.service');
+  return answerWithRag({ user, message: cleanedMessage });
 }
 
 module.exports = {

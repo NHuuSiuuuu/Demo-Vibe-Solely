@@ -8,6 +8,7 @@ const originalLoad = Module._load;
 const originalFetch = global.fetch;
 const originalOpenAiKey = process.env.OPENAI_API_KEY;
 const originalOpenAiModel = process.env.OPENAI_MODEL;
+const originalGeminiApiKey = process.env.GEMINI_API_KEY;
 
 process.env.JWT_SECRET = 'test-jwt-secret';
 
@@ -30,36 +31,7 @@ const users = [
   }
 ];
 
-const matchingProductRows = [
-  {
-    id: '10',
-    name: 'Nike Air Zoom Pegasus',
-    slug: 'nike-air-zoom-pegasus',
-    brand: 'Nike',
-    category: 'running',
-    gender: 'men',
-    price: '950000.00',
-    imageUrl: '/images/nike-air-zoom-pegasus.jpg',
-    availableSizes: ['41', '42'],
-    availableColors: ['black', 'white'],
-    totalStock: '7'
-  },
-  {
-    id: '11',
-    name: 'Nike Downshifter',
-    slug: 'nike-downshifter',
-    brand: 'Nike',
-    category: 'running',
-    gender: 'men',
-    price: '890000.00',
-    imageUrl: '/images/nike-downshifter.jpg',
-    availableSizes: ['42', '43'],
-    availableColors: ['blue'],
-    totalStock: '4'
-  }
-];
-
-const hikingProductRows = [
+const productRows = [
   {
     id: '12',
     name: 'Solely Trail Guard',
@@ -75,12 +47,37 @@ const hikingProductRows = [
   }
 ];
 
+const policyRetrievalRows = [
+  {
+    id: '101',
+    source_type: 'document',
+    source_id: '4',
+    title: 'Đổi trả',
+    content:
+      'Khách có thể yêu cầu đổi trả khi sản phẩm còn nguyên tình trạng, chưa sử dụng ngoài phạm vi thử size trong nhà và còn đầy đủ hộp, tem, phụ kiện đi kèm.',
+    metadata: { documentType: 'returns', slug: 'doi-tra' },
+    score: '0.91'
+  }
+];
+
+const productRetrievalRows = [
+  {
+    id: '201',
+    source_type: 'product',
+    source_id: '12',
+    title: 'Solely Trail Guard',
+    content: 'Giày trail nam cho trekking cuối tuần, đi rừng nhẹ và đường mòn khô.',
+    metadata: { productId: 12, slug: 'trail-guard-pro', category: 'trail', gender: 'men' },
+    score: '0.94'
+  }
+];
+
 let storedMessages;
-let lastProductQuery;
+let retrievalRows;
 
 function resetStore() {
   storedMessages = [];
-  lastProductQuery = null;
+  retrievalRows = policyRetrievalRows;
 }
 
 function tokenFor(userId) {
@@ -110,18 +107,14 @@ async function mockQuery(text, params = []) {
     return { rows: user ? [{ ...user }] : [], rowCount: user ? 1 : 0 };
   }
 
-  if (text.includes('FROM products p') && text.includes("p.status = 'active'")) {
-    lastProductQuery = { text, params };
+  if (text.includes('FROM rag_chunks') && text.includes('embedding <=>')) {
+    return { rows: retrievalRows, rowCount: retrievalRows.length };
+  }
 
-    if (params.includes('%trail%') && params.includes('%trekking%') && params.includes('%outdoor%')) {
-      return { rows: hikingProductRows, rowCount: hikingProductRows.length };
-    }
-
-    if (params.includes('42') && params.includes('1000000') && params.includes('men')) {
-      return { rows: matchingProductRows, rowCount: matchingProductRows.length };
-    }
-
-    return { rows: [], rowCount: 0 };
+  if (text.includes('FROM products p') && text.includes('p.id = ANY($1::bigint[])')) {
+    const ids = new Set((params[0] || []).map((id) => String(id)));
+    const rows = productRows.filter((product) => ids.has(String(product.id)));
+    return { rows, rowCount: rows.length };
   }
 
   if (text.includes('INSERT INTO ai_chat_messages')) {
@@ -131,6 +124,34 @@ async function mockQuery(text, params = []) {
   }
 
   throw new Error(`Unexpected SQL in ai test: ${text}`);
+}
+
+async function mockGeminiFetch(url, options = {}) {
+  if (String(url).includes(':embedContent')) {
+    return {
+      ok: true,
+      async json() {
+        return { embedding: { values: Array.from({ length: 768 }, () => 0.1) } };
+      }
+    };
+  }
+
+  if (String(url).includes(':generateContent')) {
+    const body = JSON.parse(options.body || '{}');
+    const prompt = body.contents?.[0]?.parts?.[0]?.text || '';
+    const text = prompt.includes('Đổi trả')
+      ? 'Solely hỗ trợ đổi trả khi sản phẩm còn nguyên tình trạng, chưa sử dụng ngoài phạm vi thử size trong nhà và còn đủ hộp, tem, phụ kiện.'
+      : 'Mình gợi ý Solely Trail Guard cho nhu cầu trekking vì mẫu này có độ bám cao và mũi giày gia cố.';
+
+    return {
+      ok: true,
+      async json() {
+        return { candidates: [{ content: { parts: [{ text }] } }] };
+      }
+    };
+  }
+
+  throw new Error(`Unexpected fetch in ai test: ${url}`);
 }
 
 Module._load = function patchedLoad(requestPath, parent, isMain) {
@@ -154,11 +175,17 @@ test.after(() => {
   } else {
     process.env.OPENAI_MODEL = originalOpenAiModel;
   }
+  if (originalGeminiApiKey === undefined) {
+    delete process.env.GEMINI_API_KEY;
+  } else {
+    process.env.GEMINI_API_KEY = originalGeminiApiKey;
+  }
 });
 
 test.beforeEach(() => {
   resetStore();
-  global.fetch = originalFetch;
+  global.fetch = mockGeminiFetch;
+  process.env.GEMINI_API_KEY = 'test-gemini-key';
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_MODEL;
 });
@@ -171,25 +198,9 @@ test('requires auth to use ai chat', async () => {
   assert.deepEqual(response.body, { message: 'Authentication required', details: null });
 });
 
-test('returns catalog recommendations for budget and size', async () => {
+test('returns RAG product cards and sources for product advice', async () => {
   const { createApp } = require('../src/app');
-
-  const response = await request(createApp())
-    .post('/api/ai/chat')
-    .set('Authorization', `Bearer ${tokenFor(1)}`)
-    .send({ message: 'Tôi cần giày nam size 42 dưới 1 triệu để chạy bộ Nike' })
-    .expect(200);
-
-  assert.equal(response.body.products.length, 2);
-  assert.deepEqual(response.body.products, matchingProductRows.map(normalizeCard));
-  assert.match(response.body.answer, /Gợi ý/i);
-  assert.match(response.body.answer, /Nike Air Zoom Pegasus/);
-  assert.match(lastProductQuery.text, /p\.base_price <=/);
-  assert.match(lastProductQuery.text, /filtered_variant\.size =/);
-});
-
-test('filters hiking advice to trail and outdoor products', async () => {
-  const { createApp } = require('../src/app');
+  retrievalRows = productRetrievalRows;
 
   const response = await request(createApp())
     .post('/api/ai/chat')
@@ -197,63 +208,48 @@ test('filters hiking advice to trail and outdoor products', async () => {
     .send({ message: 'Tôi cần giày đi leo núi hoặc trekking cuối tuần' })
     .expect(200);
 
-  assert.deepEqual(response.body.products, hikingProductRows.map(normalizeCard));
+  assert.deepEqual(response.body.products, productRows.map(normalizeCard));
   assert.match(response.body.answer, /Solely Trail Guard/);
-  assert.match(lastProductQuery.text, /p\.category/);
-  assert.equal(lastProductQuery.params.includes('%trail%'), true);
-  assert.equal(lastProductQuery.params.includes('%trekking%'), true);
-  assert.equal(lastProductQuery.params.includes('%outdoor%'), true);
+  assert.deepEqual(response.body.sources, [
+    {
+      type: 'product',
+      id: 12,
+      title: 'Solely Trail Guard',
+      score: 0.94,
+      productId: 12,
+      slug: 'trail-guard-pro'
+    }
+  ]);
 });
 
-test('uses singular fallback advice when only one product matches', async () => {
+test('does not persist casual AI chat messages', async () => {
+  const { createApp } = require('../src/app');
+
+  await request(createApp())
+    .post('/api/ai/chat')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send({ message: 'alo' })
+    .expect(200);
+
+  assert.equal(storedMessages.length, 0);
+});
+
+test('returns no product cards for policy-only RAG answer', async () => {
   const { createApp } = require('../src/app');
 
   const response = await request(createApp())
     .post('/api/ai/chat')
     .set('Authorization', `Bearer ${tokenFor(1)}`)
-    .send({ message: 'giày leo núi' })
+    .send({ message: 'Shop đổi trả như thế nào?' })
     .expect(200);
 
-  assert.equal(response.body.products.length, 1);
-  assert.match(response.body.answer, /Solely Trail Guard/);
-  assert.match(response.body.answer, /phù hợp nhất/i);
-  assert.doesNotMatch(response.body.answer, /Các mẫu này/i);
-});
-
-test('uses OpenAI ranking when an API key is configured', async () => {
-  const { createApp } = require('../src/app');
-  const requests = [];
-  process.env.OPENAI_API_KEY = 'test-openai-key';
-  process.env.OPENAI_MODEL = 'gpt-test-model';
-  global.fetch = async (url, options = {}) => {
-    requests.push({ url, options });
-    return {
-      ok: true,
-      async json() {
-        return {
-          output_text:
-            'Mình xếp Solely Trail Guard đầu tiên vì đây là mẫu trail phù hợp nhất cho trekking cuối tuần.'
-        };
-      }
-    };
-  };
-
-  const response = await request(createApp())
-    .post('/api/ai/chat')
-    .set('Authorization', `Bearer ${tokenFor(1)}`)
-    .send({ message: 'giày leo núi' })
-    .expect(200);
-
-  assert.equal(response.body.answer, 'Mình xếp Solely Trail Guard đầu tiên vì đây là mẫu trail phù hợp nhất cho trekking cuối tuần.');
-  assert.equal(requests.length, 1);
-  assert.equal(requests[0].url, 'https://api.openai.com/v1/responses');
-  assert.equal(requests[0].options.headers.Authorization, 'Bearer test-openai-key');
-  assert.match(requests[0].options.body, /gpt-test-model/);
-  assert.match(requests[0].options.body, /Solely Trail Guard/);
+  assert.equal(response.body.products.length, 0);
+  assert.match(response.body.answer, /đổi trả/i);
 });
 
 test('returns a helpful fallback when no product matches', async () => {
   const { createApp } = require('../src/app');
+  delete process.env.GEMINI_API_KEY;
 
   const response = await request(createApp())
     .post('/api/ai/chat')
@@ -262,8 +258,11 @@ test('returns a helpful fallback when no product matches', async () => {
     .expect(200);
 
   assert.deepEqual(response.body.products, []);
-  assert.match(response.body.answer, /không có sản phẩm phù hợp chính xác/i);
-  assert.match(response.body.answer, /mở rộng bộ lọc/i);
+  assert.deepEqual(response.body.sources, []);
+  assert.equal(
+    response.body.answer,
+    'Hiện trợ lý AI chưa được cấu hình đầy đủ. Anh có thể xem sản phẩm trên trang danh sách hoặc quay lại sau khi admin bật Gemini.'
+  );
 });
 
 test('returns 400 JSON when AI chat body is empty', async () => {
@@ -278,18 +277,15 @@ test('returns 400 JSON when AI chat body is empty', async () => {
   assert.deepEqual(response.body, { message: 'Message is required', details: null });
 });
 
-test('stores user and assistant messages', async () => {
+test('does not persist product advice messages', async () => {
   const { createApp } = require('../src/app');
+  retrievalRows = productRetrievalRows;
 
-  const response = await request(createApp())
+  await request(createApp())
     .post('/api/ai/chat')
     .set('Authorization', `Bearer ${tokenFor(1)}`)
-    .send({ message: 'Tôi cần giày nam size 42 dưới 1 triệu' })
+    .send({ message: 'Tôi cần giày leo núi' })
     .expect(200);
 
-  assert.equal(storedMessages.length, 2);
-  assert.deepEqual(storedMessages.map((message) => message.role), ['user', 'assistant']);
-  assert.equal(storedMessages[0].userId, 1);
-  assert.equal(storedMessages[0].content, 'Tôi cần giày nam size 42 dưới 1 triệu');
-  assert.equal(storedMessages[1].content, response.body.answer);
+  assert.equal(storedMessages.length, 0);
 });

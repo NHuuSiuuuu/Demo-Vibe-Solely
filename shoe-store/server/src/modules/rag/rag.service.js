@@ -9,6 +9,8 @@ const { retrieveContext } = require('./ragRetrieval.service');
 const { HttpError } = require('../../utils/httpError');
 
 const GREETING_ANSWER = 'Em đây, anh muốn tìm giày theo mục đích, size, ngân sách hay hỏi chính sách mua hàng nào?';
+const RAG_SETUP_FALLBACK_ANSWER =
+  'Hiện trợ lý AI chưa được cấu hình đầy đủ. Anh có thể xem sản phẩm trên trang danh sách hoặc quay lại sau khi admin bật Gemini.';
 
 function normalizeText(value) {
   return String(value || '')
@@ -89,7 +91,17 @@ async function answerWithRag({ user, message, includeChunks = false }) {
 
   const requestedCount = extractRequestedCount(cleanedMessage);
   const filters = buildFilters(cleanedMessage);
-  const context = await retrieveContext({ message: cleanedMessage, filters, limit: Math.max(6, requestedCount) });
+  let context;
+  try {
+    context = await retrieveContext({ message: cleanedMessage, filters, limit: Math.max(6, requestedCount) });
+  } catch (_error) {
+    return {
+      answer: RAG_SETUP_FALLBACK_ANSWER,
+      products: [],
+      sources: [],
+      ...(includeChunks ? { chunks: [] } : {})
+    };
+  }
   const products = context.products.slice(0, requestedCount);
   const contextText = buildContext(context.chunks);
   const generatedAnswer = context.chunks.length
