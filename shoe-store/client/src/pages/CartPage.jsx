@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
+import { colorLabel } from '../utils/formatters.js';
 
 export default function CartPage() {
   const { token } = useAuth();
@@ -14,30 +15,30 @@ export default function CartPage() {
   }
 
   if (!token) {
-    return <AuthPrompt message="Login or register to view your cart and checkout." />;
+    return <AuthPrompt message="Đăng nhập hoặc đăng ký để xem túi hàng và thanh toán." />;
   }
 
   return (
     <section className="shop-page" aria-labelledby="cart-title">
       <div className="section-heading">
-        <h1 id="cart-title">Cart</h1>
+        <h1 id="cart-title">Túi hàng</h1>
         <Link className="button-link" to="/checkout">
-          Checkout
+          Thanh toán
         </Link>
       </div>
-      {items.length === 0 ? <p className="muted">Your cart is empty.</p> : null}
+      {items.length === 0 ? <p className="muted">Túi hàng của bạn đang trống.</p> : null}
       <div className="line-items">
         {items.map((item) => (
           <article className="line-item" key={item.id}>
             <div>
               <h2>{item.productName}</h2>
               <p>
-                Size {item.size} / {item.color} / {item.sku}
+                Size {item.size} / {colorLabel(item.color)} / {item.sku}
               </p>
             </div>
             <p>{formatMoney(item.unitPrice)}</p>
             <label>
-              Quantity
+              Số lượng
               <input
                 type="number"
                 min="1"
@@ -48,13 +49,13 @@ export default function CartPage() {
             </label>
             <p>{formatMoney(item.lineTotal)}</p>
             <button type="button" className="button-secondary" onClick={() => removeItem(item.id)}>
-              Remove
+              Xóa
             </button>
           </article>
         ))}
       </div>
       <div className="summary-row">
-        <span>Subtotal</span>
+        <span>Tạm tính</span>
         <strong>{formatMoney(cart.subtotal)}</strong>
       </div>
     </section>

@@ -30,7 +30,7 @@ export default function LoginPage() {
 
   return (
     <section className="auth-panel" aria-labelledby="login-title">
-      <h1 id="login-title">Login</h1>
+      <h1 id="login-title">Đăng nhập</h1>
       <form onSubmit={handleSubmit}>
         <label htmlFor="login-email">Email</label>
         <input
@@ -43,7 +43,7 @@ export default function LoginPage() {
           required
         />
 
-        <label htmlFor="login-password">Password</label>
+        <label htmlFor="login-password">Mật khẩu</label>
         <input
           id="login-password"
           name="password"
@@ -56,11 +56,11 @@ export default function LoginPage() {
 
         {error ? <p className="form-error">{error}</p> : null}
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Logging in...' : 'Login'}
+          {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>
       <p className="auth-switch">
-        New here? <Link to="/register">Create an account</Link>
+        Chưa có tài khoản? <Link to="/register">Tạo tài khoản</Link>
       </p>
     </section>
   );

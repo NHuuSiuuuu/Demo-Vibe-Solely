@@ -4,6 +4,7 @@ import { apiClient } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatMoney } from '../../components/ProductCard.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import { colorLabel, orderStatusLabel, paymentStatusLabel } from '../../utils/formatters.js';
 import { formatOrderCode } from '../OrdersPage.jsx';
 
 const nextStatuses = {
@@ -54,14 +55,14 @@ export default function AdminOrderDetailPage() {
     try {
       const data = await apiClient.patch(`/api/admin/orders/${id}/status`, { status: nextStatus }, { token });
       setOrder(data.order);
-      setMessage('Order status updated.');
+      setMessage('Đã cập nhật trạng thái đơn hàng.');
     } catch (err) {
       setError(err.message);
     }
   }
 
   if (status === 'loading') {
-    return <p className="muted">Loading order...</p>;
+    return <p className="muted">Đang tải đơn hàng...</p>;
   }
 
   if (status === 'error') {
@@ -75,15 +76,15 @@ export default function AdminOrderDetailPage() {
       <div className="section-heading">
         <div>
           <Link className="text-link" to="/admin/orders">
-            Back to orders
+            Quay lại đơn hàng
           </Link>
-          <h1 id="admin-order-title">Order {formatOrderCode(order)}</h1>
+          <h1 id="admin-order-title">Đơn hàng {formatOrderCode(order)}</h1>
           <p>{order.customerEmail}</p>
-          {order.note ? <p>Note: {order.note}</p> : null}
+          {order.note ? <p>Ghi chú: {order.note}</p> : null}
         </div>
         <div className="admin-status-stack">
-          <StatusBadge tone="info">{order.orderStatus}</StatusBadge>
-          <StatusBadge>{order.paymentStatus}</StatusBadge>
+          <StatusBadge tone="info">{orderStatusLabel(order.orderStatus)}</StatusBadge>
+          <StatusBadge>{paymentStatusLabel(order.paymentStatus)}</StatusBadge>
         </div>
       </div>
       {message ? <p className="success-message">{message}</p> : null}
@@ -92,14 +93,14 @@ export default function AdminOrderDetailPage() {
       <div className="admin-actions">
         {availableStatuses.map((nextStatus) => (
           <button type="button" key={nextStatus} onClick={() => updateStatus(nextStatus)}>
-            Mark {nextStatus}
+            Chuyển sang {orderStatusLabel(nextStatus)}
           </button>
         ))}
       </div>
 
       <div className="detail-grid">
         <section className="content-panel" aria-labelledby="admin-customer-title">
-          <h2 id="admin-customer-title">Customer</h2>
+          <h2 id="admin-customer-title">Khách hàng</h2>
           <p>{order.customerName}</p>
           <p>{order.customerEmail}</p>
           <p>
@@ -109,17 +110,17 @@ export default function AdminOrderDetailPage() {
           </p>
         </section>
         <section className="content-panel" aria-labelledby="admin-order-items-title">
-          <h2 id="admin-order-items-title">Items</h2>
+          <h2 id="admin-order-items-title">Sản phẩm</h2>
           {(order.items || []).map((item) => (
             <article className="summary-item" key={item.id}>
               <span>
-                {item.productName} / {item.sku} / size {item.size} / {item.color} x {item.quantity}
+                {item.productName} / {item.sku} / size {item.size} / {colorLabel(item.color)} x {item.quantity}
               </span>
               <strong>{formatMoney(item.lineTotal)}</strong>
             </article>
           ))}
           <div className="summary-row">
-            <span>Total</span>
+            <span>Tổng cộng</span>
             <strong>{formatMoney(order.grandTotal)}</strong>
           </div>
         </section>

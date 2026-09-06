@@ -14,7 +14,9 @@ const products = [
     imageUrl: '/images/road-runner-1-main.jpg',
     availableSizes: ['9', '10'],
     availableColors: ['black', 'white'],
-    totalStock: 8
+    totalStock: 8,
+    defaultVariantId: 101,
+    defaultVariantStock: 3
   },
   {
     id: 2,
@@ -27,7 +29,9 @@ const products = [
     imageUrl: '/images/court-classic-main.jpg',
     availableSizes: ['7', '8'],
     availableColors: ['white', 'red'],
-    totalStock: 4
+    totalStock: 4,
+    defaultVariantId: 201,
+    defaultVariantStock: 4
   }
 ];
 
@@ -199,15 +203,15 @@ describe('customer shopping flow', () => {
 
     expect(await screen.findByRole('heading', { name: 'Road Runner 1' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Court Classic' })).toBeTruthy();
-    expect(screen.getByText('Stride')).toBeTruthy();
-    expect(screen.getByText('Sizes: 9, 10')).toBeTruthy();
+    expect(screen.getAllByText('Chạy bộ').length).toBeGreaterThan(0);
+    expect(screen.getByText('Size: 9, 10')).toBeTruthy();
   });
 
   it('filters products by search keyword', async () => {
     const fetchMock = renderAsCustomer('/products');
     await screen.findByRole('heading', { name: 'Road Runner 1' });
 
-    fireEvent.change(screen.getByLabelText('Search products'), { target: { value: 'court' } });
+    fireEvent.change(screen.getByLabelText('Tìm sản phẩm'), { target: { value: 'court' } });
 
     await screen.findByRole('heading', { name: 'Court Classic' });
     await waitFor(() => {
@@ -219,15 +223,16 @@ describe('customer shopping flow', () => {
   it('adds a selected variant to cart', async () => {
     const fetchMock = renderAsCustomer('/products/road-runner-1');
     await screen.findByRole('heading', { name: 'Road Runner 1' });
-    expect(screen.getAllByText('$120.00').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/120,00\s*US\$/).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByLabelText('Size 10, color white, $130.00'));
-    expect(screen.getAllByText('$130.00').length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByLabelText('Size 9, color black, $120.00'));
-    fireEvent.change(screen.getByLabelText('Quantity'), { target: { value: '2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add to cart' }));
+    fireEvent.click(screen.getByLabelText(/Size 10, màu trắng, 130,00\s*US\$/));
+    expect(screen.getAllByText(/130,00\s*US\$/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByLabelText(/Size 9, màu đen, 120,00\s*US\$/));
+    fireEvent.change(screen.getByLabelText('Số lượng'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm vào túi hàng' }));
 
-    await screen.findByText('Added to cart.');
+    await screen.findByRole('status', { name: 'Thông báo giỏ hàng' });
+    expect(screen.getByText('Đã thêm vào túi hàng.')).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/cart/items'),
       expect.objectContaining({
@@ -241,16 +246,16 @@ describe('customer shopping flow', () => {
     const fetchMock = renderAsCustomer('/checkout');
     await screen.findByText('Road Runner 1');
 
-    fireEvent.change(screen.getByLabelText('Receiver name'), { target: { value: 'Jordan Miles' } });
-    fireEvent.change(screen.getByLabelText('Phone'), { target: { value: '5551234567' } });
-    fireEvent.change(screen.getByLabelText('Shipping address'), { target: { value: '1 Main St' } });
-    fireEvent.change(screen.getByLabelText('City'), { target: { value: 'Austin' } });
-    fireEvent.change(screen.getByLabelText('State'), { target: { value: 'TX' } });
-    fireEvent.change(screen.getByLabelText('Postal code'), { target: { value: '78701' } });
-    fireEvent.change(screen.getByLabelText('Note'), { target: { value: 'Leave at door' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Place COD order' }));
+    fireEvent.change(screen.getByLabelText('Người nhận'), { target: { value: 'Jordan Miles' } });
+    fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '5551234567' } });
+    fireEvent.change(screen.getByLabelText('Địa chỉ giao hàng'), { target: { value: '1 Main St' } });
+    fireEvent.change(screen.getByLabelText('Tỉnh / thành phố'), { target: { value: 'Austin' } });
+    fireEvent.change(screen.getByLabelText('Quận / huyện'), { target: { value: 'TX' } });
+    fireEvent.change(screen.getByLabelText('Mã bưu chính'), { target: { value: '78701' } });
+    fireEvent.change(screen.getByLabelText('Ghi chú'), { target: { value: 'Leave at door' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt hàng COD' }));
 
-    expect(await screen.findByRole('heading', { name: 'Order ORD-20260905-ABC123' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Đơn hàng ORD-20260905-ABC123' })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/orders'),
       expect.objectContaining({
@@ -264,7 +269,7 @@ describe('customer shopping flow', () => {
             city: 'Austin',
             state: 'TX',
             postalCode: '78701',
-            country: 'US'
+            country: 'Việt Nam'
           },
           note: 'Leave at door'
         })
@@ -275,61 +280,61 @@ describe('customer shopping flow', () => {
   it('renders order status tracking', async () => {
     renderAsCustomer('/orders/900');
 
-    expect(await screen.findByRole('heading', { name: 'Order ORD-20260905-ABC123' })).toBeTruthy();
-    const timeline = screen.getByLabelText('Order status timeline');
-    expect(within(timeline).getByText('pending')).toBeTruthy();
-    expect(within(timeline).getByText('confirmed')).toBeTruthy();
-    expect(within(timeline).getByText('shipping')).toBeTruthy();
-    expect(within(timeline).getByText('completed')).toBeTruthy();
-    expect(within(timeline).getByText('Current')).toBeTruthy();
-    expect(screen.getByText('Payment: unpaid')).toBeTruthy();
-    expect(screen.getByText('Note: Leave at door')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Đơn hàng ORD-20260905-ABC123' })).toBeTruthy();
+    const timeline = screen.getByLabelText('Tiến trình trạng thái đơn hàng');
+    expect(within(timeline).getByText('Chờ xác nhận')).toBeTruthy();
+    expect(within(timeline).getByText('Đã xác nhận')).toBeTruthy();
+    expect(within(timeline).getByText('Đang giao')).toBeTruthy();
+    expect(within(timeline).getByText('Hoàn thành')).toBeTruthy();
+    expect(within(timeline).getByText('Hiện tại')).toBeTruthy();
+    expect(screen.getByText('Thanh toán: Chưa thanh toán')).toBeTruthy();
+    expect(screen.getByText('Ghi chú: Leave at door')).toBeTruthy();
   });
 
   it('shows AI product recommendations', async () => {
     renderAsCustomer('/products');
     await screen.findByRole('heading', { name: 'Road Runner 1' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open shopping assistant' }));
-    fireEvent.change(screen.getByLabelText('Ask for product advice'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý mua sắm' }));
+    fireEvent.change(screen.getByLabelText('Nhập câu hỏi tư vấn sản phẩm'), {
       target: { value: 'running shoes size 9' }
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Send advice request' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tư vấn' }));
 
     expect(await screen.findByText('Gợi ý phù hợp cho bạn: Road Runner 1.')).toBeTruthy();
-    expect(screen.getByText('Recommended products')).toBeTruthy();
+    expect(screen.getByText('Sản phẩm gợi ý')).toBeTruthy();
     expect(screen.getAllByRole('heading', { name: 'Road Runner 1' }).length).toBeGreaterThan(1);
   });
 
   it('shows login/register guidance on logged-out checkout without calling protected APIs', () => {
     const fetchMock = renderLoggedOut('/checkout');
-    const authPrompt = screen.getByRole('region', { name: 'Login to continue' });
+    const authPrompt = screen.getByRole('region', { name: 'Đăng nhập để tiếp tục' });
 
-    expect(within(authPrompt).getByRole('heading', { name: 'Login to continue' })).toBeTruthy();
-    expect(within(authPrompt).getByRole('link', { name: 'Login' })).toBeTruthy();
-    expect(within(authPrompt).getByRole('link', { name: 'Register' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Place COD order' })).toBeNull();
+    expect(within(authPrompt).getByRole('heading', { name: 'Đăng nhập để tiếp tục' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Đăng nhập' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Đăng ký' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Đặt hàng COD' })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/orders'), expect.any(Object));
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/cart'), expect.any(Object));
   });
 
   it('shows login/register guidance on logged-out orders without calling protected APIs', () => {
     const fetchMock = renderLoggedOut('/orders');
-    const authPrompt = screen.getByRole('region', { name: 'Login to continue' });
+    const authPrompt = screen.getByRole('region', { name: 'Đăng nhập để tiếp tục' });
 
-    expect(within(authPrompt).getByRole('heading', { name: 'Login to continue' })).toBeTruthy();
-    expect(within(authPrompt).getByRole('link', { name: 'Login' })).toBeTruthy();
-    expect(within(authPrompt).getByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('heading', { name: 'Đăng nhập để tiếp tục' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Đăng nhập' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Đăng ký' })).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/orders'), expect.any(Object));
   });
 
   it('shows login/register guidance on logged-out order detail without calling protected APIs', () => {
     const fetchMock = renderLoggedOut('/orders/900');
-    const authPrompt = screen.getByRole('region', { name: 'Login to continue' });
+    const authPrompt = screen.getByRole('region', { name: 'Đăng nhập để tiếp tục' });
 
-    expect(within(authPrompt).getByRole('heading', { name: 'Login to continue' })).toBeTruthy();
-    expect(within(authPrompt).getByRole('link', { name: 'Login' })).toBeTruthy();
-    expect(within(authPrompt).getByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('heading', { name: 'Đăng nhập để tiếp tục' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Đăng nhập' })).toBeTruthy();
+    expect(within(authPrompt).getByRole('link', { name: 'Đăng ký' })).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/orders/900'), expect.any(Object));
   });
 });

@@ -9,7 +9,7 @@ export default function AdminLayout() {
   }
 
   if (!user) {
-    return <p className="muted">Loading admin session...</p>;
+    return <p className="muted">Đang tải phiên quản trị...</p>;
   }
 
   if (!isAdmin) {
@@ -17,21 +17,21 @@ export default function AdminLayout() {
   }
 
   return (
-    <section className="admin-shell" aria-label="Admin workspace">
+    <section className="admin-shell" aria-label="Khu vực quản trị">
       <aside className="admin-sidebar">
-        <nav aria-label="Admin navigation">
+        <nav aria-label="Điều hướng quản trị">
           <NavLink end to="/admin">
-            Dashboard
+            Tổng quan
           </NavLink>
-          <NavLink to="/admin/products">Products</NavLink>
-          <NavLink to="/admin/orders">Orders</NavLink>
+          <NavLink to="/admin/products">Sản phẩm</NavLink>
+          <NavLink to="/admin/orders">Đơn hàng</NavLink>
         </nav>
       </aside>
       <div className="admin-workspace">
         <header className="admin-header">
           <div>
-            <p className="eyebrow">Admin</p>
-            <h1>Store operations</h1>
+            <p className="eyebrow">Quản trị</p>
+            <h1>Vận hành cửa hàng</h1>
           </div>
           <span className="current-user">{user.email}</span>
         </header>

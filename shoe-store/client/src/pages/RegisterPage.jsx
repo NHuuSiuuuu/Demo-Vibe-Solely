@@ -30,9 +30,9 @@ export default function RegisterPage() {
 
   return (
     <section className="auth-panel" aria-labelledby="register-title">
-      <h1 id="register-title">Register</h1>
+      <h1 id="register-title">Đăng ký</h1>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="register-name">Name</label>
+        <label htmlFor="register-name">Họ tên</label>
         <input
           id="register-name"
           name="name"
@@ -54,7 +54,7 @@ export default function RegisterPage() {
           required
         />
 
-        <label htmlFor="register-password">Password</label>
+        <label htmlFor="register-password">Mật khẩu</label>
         <input
           id="register-password"
           name="password"
@@ -67,11 +67,11 @@ export default function RegisterPage() {
 
         {error ? <p className="form-error">{error}</p> : null}
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating account...' : 'Register'}
+          {isSubmitting ? 'Đang tạo tài khoản...' : 'Đăng ký'}
         </button>
       </form>
       <p className="auth-switch">
-        Already have an account? <Link to="/login">Login</Link>
+        Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
       </p>
     </section>
   );

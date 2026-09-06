@@ -35,16 +35,16 @@ async function loginAs(role) {
   global.fetch = mockAuthResponse(role);
   render(<App />);
 
-  fireEvent.click(screen.getByRole('link', { name: /login/i }));
+  fireEvent.click(screen.getAllByRole('link', { name: 'Tài khoản' })[0]);
   fireEvent.change(screen.getByLabelText(/email/i), {
     target: { value: `${role}@example.com` }
   });
-  fireEvent.change(screen.getByLabelText(/password/i), {
+  fireEvent.change(screen.getByLabelText(/mật khẩu/i), {
     target: { value: 'password123' }
   });
-  fireEvent.click(screen.getByRole('button', { name: /login/i }));
+  fireEvent.click(screen.getByRole('button', { name: /đăng nhập/i }));
 
-  await screen.findByText(`${role}@example.com`);
+  await screen.findByRole('button', { name: /đăng xuất/i });
 }
 
 describe('App', () => {
@@ -62,12 +62,17 @@ describe('App', () => {
   it('renders navigation links', () => {
     render(<App />);
 
-    expect(screen.getByRole('link', { name: 'Shoe Store' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Products' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Cart' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Orders' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Login' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: 'Solely' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: 'Hàng mới' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Sneaker' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Chạy bộ' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Phong cách sống' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tìm kiếm sản phẩm' })).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: 'Tài khoản' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Danh sách yêu thích' })).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: /Túi hàng/ }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: 'Di chuyển thật đẹp.' })).toBeTruthy();
+    expect(screen.getByText('Giày sneaker nhẹ, êm và tinh gọn cho chuyển động mỗi ngày.')).toBeTruthy();
   });
 
   it('logs in and stores the current user', async () => {
@@ -76,19 +81,18 @@ describe('App', () => {
     await waitFor(() => {
       expect(localStorage.getItem('shoe_store_token')).toBe('customer-token');
     });
-    expect(screen.getByText('customer@example.com')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /logout/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /đăng xuất/i })).toBeTruthy();
   });
 
   it('hides admin navigation for customer', async () => {
     await loginAs('customer');
 
-    expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Quản trị' })).toBeNull();
   });
 
   it('shows admin navigation for admin', async () => {
     await loginAs('admin');
 
-    expect(screen.getByRole('link', { name: 'Admin' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Quản trị' })).toBeTruthy();
   });
 });

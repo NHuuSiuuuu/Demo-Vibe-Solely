@@ -36,24 +36,24 @@ export default function AiAssistant() {
   }
 
   return (
-    <aside className="ai-assistant" aria-label="Shopping assistant">
+    <aside className="ai-assistant" aria-label="Trợ lý mua sắm">
       {isOpen ? (
         <div className="ai-panel">
           <div className="ai-panel__header">
-            <h2>Shopping assistant</h2>
+            <h2>Trợ lý mua sắm</h2>
             <button type="button" className="button-secondary" onClick={() => setIsOpen(false)}>
-              Close
+              Đóng
             </button>
           </div>
           {!token || !user ? (
             <div className="ai-auth-links">
-              <p>Login or register to get product recommendations.</p>
-              <Link to="/login">Login</Link>
-              <Link to="/register">Register</Link>
+              <p>Đăng nhập hoặc đăng ký để nhận tư vấn sản phẩm phù hợp.</p>
+              <Link to="/login">Đăng nhập</Link>
+              <Link to="/register">Đăng ký</Link>
             </div>
           ) : (
             <form className="ai-form" onSubmit={handleSubmit}>
-              <label htmlFor="ai-message">Ask for product advice</label>
+              <label htmlFor="ai-message">Nhập câu hỏi tư vấn sản phẩm</label>
               <textarea
                 id="ai-message"
                 value={message}
@@ -63,14 +63,14 @@ export default function AiAssistant() {
               />
               {error ? <p className="form-error">{error}</p> : null}
               <button type="submit" disabled={isSending || !message.trim()}>
-                {isSending ? 'Sending...' : 'Send advice request'}
+                {isSending ? 'Đang gửi...' : 'Gửi yêu cầu tư vấn'}
               </button>
             </form>
           )}
           {answer ? <p className="ai-answer">{answer}</p> : null}
           {products.length > 0 ? (
             <section className="ai-recommendations" aria-labelledby="ai-recommendations-title">
-              <h3 id="ai-recommendations-title">Recommended products</h3>
+              <h3 id="ai-recommendations-title">Sản phẩm gợi ý</h3>
               <div className="ai-product-grid">
                 {products.map((product) => (
                   <ProductCard key={product.id} product={product} compact />
@@ -81,7 +81,7 @@ export default function AiAssistant() {
         </div>
       ) : (
         <button type="button" className="ai-toggle" onClick={() => setIsOpen(true)}>
-          Open shopping assistant
+          Mở trợ lý mua sắm
         </button>
       )}
     </aside>

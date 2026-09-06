@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import { colorLabel, orderStatusLabel, paymentStatusLabel } from '../utils/formatters.js';
 import { formatOrderCode } from './OrdersPage.jsx';
 
 const timelineSteps = ['pending', 'confirmed', 'shipping', 'completed'];
@@ -40,7 +41,7 @@ export default function OrderDetailPage() {
   }, [id, token]);
 
   if (!token) {
-    return <AuthPrompt message="Login or register to track this order." />;
+    return <AuthPrompt message="Đăng nhập hoặc đăng ký để theo dõi đơn hàng này." />;
   }
 
   if (error) {
@@ -48,7 +49,7 @@ export default function OrderDetailPage() {
   }
 
   if (!order) {
-    return <p className="muted">Loading order...</p>;
+    return <p className="muted">Đang tải đơn hàng...</p>;
   }
 
   const activeIndex = timelineSteps.indexOf(order.orderStatus);
@@ -57,25 +58,25 @@ export default function OrderDetailPage() {
     <section className="shop-page" aria-labelledby="order-title">
       <div className="section-heading">
         <div>
-          <h1 id="order-title">Order {formatOrderCode(order)}</h1>
-          <p>Payment: {order.paymentStatus}</p>
-          {order.note ? <p>Note: {order.note}</p> : null}
+          <h1 id="order-title">Đơn hàng {formatOrderCode(order)}</h1>
+          <p>Thanh toán: {paymentStatusLabel(order.paymentStatus)}</p>
+          {order.note ? <p>Ghi chú: {order.note}</p> : null}
         </div>
-        <StatusBadge tone="info">{order.orderStatus}</StatusBadge>
+        <StatusBadge tone="info">{orderStatusLabel(order.orderStatus)}</StatusBadge>
       </div>
 
-      <ol className="timeline" aria-label="Order status timeline">
+      <ol className="timeline" aria-label="Tiến trình trạng thái đơn hàng">
         {timelineSteps.map((step, index) => (
           <li className={index <= activeIndex ? 'timeline__step timeline__step--active' : 'timeline__step'} key={step}>
-            <span>{step}</span>
-            {index === activeIndex ? <strong>Current</strong> : null}
+            <span>{orderStatusLabel(step)}</span>
+            {index === activeIndex ? <strong>Hiện tại</strong> : null}
           </li>
         ))}
       </ol>
 
       <div className="detail-grid">
         <section className="content-panel" aria-labelledby="shipping-title">
-          <h2 id="shipping-title">Receiver and shipping</h2>
+          <h2 id="shipping-title">Người nhận và giao hàng</h2>
           <p>{order.customerName}</p>
           <p>{order.customerEmail}</p>
           <p>
@@ -86,17 +87,17 @@ export default function OrderDetailPage() {
         </section>
 
         <section className="content-panel" aria-labelledby="items-title">
-          <h2 id="items-title">Purchased items</h2>
+          <h2 id="items-title">Sản phẩm đã mua</h2>
           {(order.items || []).map((item) => (
             <article className="summary-item" key={item.id}>
               <span>
-                {item.productName} / size {item.size} / {item.color} x {item.quantity}
+                {item.productName} / size {item.size} / {colorLabel(item.color)} x {item.quantity}
               </span>
               <strong>{formatMoney(item.lineTotal)}</strong>
             </article>
           ))}
           <div className="summary-row">
-            <span>Total</span>
+            <span>Tổng cộng</span>
             <strong>{formatMoney(order.grandTotal)}</strong>
           </div>
         </section>

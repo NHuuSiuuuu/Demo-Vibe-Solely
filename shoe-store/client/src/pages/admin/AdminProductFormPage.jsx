@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
+import { genderLabel, productStatusLabel } from '../../utils/formatters.js';
 
 const emptyProduct = {
   slug: '',
@@ -67,7 +68,7 @@ export default function AdminProductFormPage() {
         }
         const matchedProduct = data.product;
         if (!matchedProduct) {
-          throw new Error('Product not found');
+          throw new Error('Không tìm thấy sản phẩm');
         }
         setProduct(matchedProduct);
         setForm(toProductForm(matchedProduct));
@@ -86,7 +87,7 @@ export default function AdminProductFormPage() {
     };
   }, [id, isNew, token]);
 
-  const pageTitle = isNew ? 'Create product' : 'Edit product';
+  const pageTitle = isNew ? 'Tạo sản phẩm' : 'Sửa sản phẩm';
   const savedProductId = product?.id || id;
   const canManageVariants = Boolean(savedProductId);
 
@@ -132,7 +133,7 @@ export default function AdminProductFormPage() {
         : await apiClient.patch(`/api/admin/products/${id}`, productPayload, { token });
       setProduct(data.product);
       setForm(toProductForm(data.product));
-      setMessage('Product saved.');
+      setMessage('Đã lưu sản phẩm.');
       if (isNew) {
         navigate(`/admin/products/${data.product.id}/edit`, { replace: true });
       }
@@ -157,7 +158,7 @@ export default function AdminProductFormPage() {
       const data = await apiClient.post(`/api/admin/products/${savedProductId}/variants`, payload, { token });
       setVariants((current) => [...current, data.variant]);
       setVariantForm(emptyVariant);
-      setMessage('Variant saved.');
+      setMessage('Đã lưu phiên bản.');
     } catch (err) {
       setError(err.message);
     }
@@ -177,14 +178,14 @@ export default function AdminProductFormPage() {
       };
       const data = await apiClient.patch(`/api/admin/variants/${variant.id}`, payload, { token });
       setVariants((current) => current.map((candidate) => (candidate.id === variant.id ? data.variant : candidate)));
-      setMessage('Variant saved.');
+      setMessage('Đã lưu phiên bản.');
     } catch (err) {
       setError(err.message);
     }
   }
 
   if (status === 'loading') {
-    return <p className="muted">Loading product...</p>;
+    return <p className="muted">Đang tải sản phẩm...</p>;
   }
 
   return (
@@ -192,10 +193,10 @@ export default function AdminProductFormPage() {
       <div className="section-heading">
         <div>
           <h1 id="admin-product-form-title">{pageTitle}</h1>
-          <p>Use required catalog fields from the admin API.</p>
+          <p>Điền đầy đủ thông tin danh mục và tồn kho để bán trên cửa hàng.</p>
         </div>
         <Link className="button-secondary" to="/admin/products">
-          Back to products
+          Quay lại sản phẩm
         </Link>
       </div>
       {status === 'error' ? <p className="form-error">{error}</p> : null}
@@ -208,52 +209,52 @@ export default function AdminProductFormPage() {
           <input name="slug" required value={form.slug} onChange={updateField} />
         </label>
         <label>
-          Name
+          Tên sản phẩm
           <input name="name" required value={form.name} onChange={updateField} />
         </label>
         <label className="admin-form__wide">
-          Description
+          Mô tả
           <textarea name="description" required value={form.description} onChange={updateField} />
         </label>
         <label>
-          Brand
+          Thương hiệu
           <input name="brand" required value={form.brand} onChange={updateField} />
         </label>
         <label>
-          Category
+          Danh mục
           <input name="category" required value={form.category} onChange={updateField} />
         </label>
         <label>
-          Gender
+          Giới tính
           <select name="gender" value={form.gender} onChange={updateField}>
-            <option value="men">men</option>
-            <option value="women">women</option>
-            <option value="unisex">unisex</option>
+            <option value="men">{genderLabel('men')}</option>
+            <option value="women">{genderLabel('women')}</option>
+            <option value="unisex">{genderLabel('unisex')}</option>
           </select>
         </label>
         <label>
-          Price
+          Giá
           <input name="price" type="number" min="0" step="0.01" required value={form.price} onChange={updateField} />
         </label>
         <label>
-          Status
+          Trạng thái
           <select name="status" value={form.status} onChange={updateField}>
-            <option value="active">active</option>
-            <option value="hidden">hidden</option>
+            <option value="active">{productStatusLabel('active')}</option>
+            <option value="hidden">{productStatusLabel('hidden')}</option>
           </select>
         </label>
         <label className="admin-check">
           <input name="featured" type="checkbox" checked={form.featured} onChange={updateField} />
-          Featured
+          Nổi bật
         </label>
         <div className="admin-form__actions">
-          <button type="submit">Save product</button>
+          <button type="submit">Lưu sản phẩm</button>
         </div>
       </form>
 
       <section className="admin-subsection" aria-labelledby="variant-section-title">
         <div className="section-heading">
-          <h2 id="variant-section-title">Variant section</h2>
+          <h2 id="variant-section-title">Phiên bản sản phẩm</h2>
         </div>
         {canManageVariants ? (
           <>
@@ -267,11 +268,11 @@ export default function AdminProductFormPage() {
                 <input name="size" required value={variantForm.size} onChange={updateVariantField} />
               </label>
               <label>
-                Color
+                Màu
                 <input name="color" required value={variantForm.color} onChange={updateVariantField} />
               </label>
               <label>
-                Stock
+                Tồn kho
                 <input
                   name="stockQuantity"
                   type="number"
@@ -283,23 +284,23 @@ export default function AdminProductFormPage() {
                 />
               </label>
               <label>
-                Price delta
+                Chênh lệch giá
                 <input name="priceDelta" type="number" min="0" step="0.01" value={variantForm.priceDelta} onChange={updateVariantField} />
               </label>
               <div className="admin-form__actions">
-                <button type="submit">Add variant</button>
+                <button type="submit">Thêm phiên bản</button>
               </div>
             </form>
             <div className="admin-table-wrap">
-              <table aria-label="Product variants" className="admin-table">
+              <table aria-label="Phiên bản sản phẩm" className="admin-table">
                 <thead>
                   <tr>
                     <th>SKU</th>
                     <th>Size</th>
-                    <th>Color</th>
-                    <th>Stock</th>
-                    <th>Price delta</th>
-                    <th>Actions</th>
+                    <th>Màu</th>
+                    <th>Tồn kho</th>
+                    <th>Chênh lệch giá</th>
+                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,28 +308,28 @@ export default function AdminProductFormPage() {
                     <tr key={variant.id}>
                       <td>
                         <input
-                          aria-label={`SKU for ${variant.sku}`}
+                          aria-label={`SKU cho ${variant.sku}`}
                           value={variant.sku}
                           onChange={(event) => updateExistingVariantField(variant.id, 'sku', event.target.value)}
                         />
                       </td>
                       <td>
                         <input
-                          aria-label={`Size for ${variant.sku}`}
+                          aria-label={`Size cho ${variant.sku}`}
                           value={variant.size}
                           onChange={(event) => updateExistingVariantField(variant.id, 'size', event.target.value)}
                         />
                       </td>
                       <td>
                         <input
-                          aria-label={`Color for ${variant.sku}`}
+                          aria-label={`Màu cho ${variant.sku}`}
                           value={variant.color}
                           onChange={(event) => updateExistingVariantField(variant.id, 'color', event.target.value)}
                         />
                       </td>
                       <td>
                         <input
-                          aria-label={`Stock for ${variant.sku}`}
+                          aria-label={`Tồn kho cho ${variant.sku}`}
                           type="number"
                           min="0"
                           step="1"
@@ -338,7 +339,7 @@ export default function AdminProductFormPage() {
                       </td>
                       <td>
                         <input
-                          aria-label={`Price delta for ${variant.sku}`}
+                          aria-label={`Chênh lệch giá cho ${variant.sku}`}
                           type="number"
                           min="0"
                           step="0.01"
@@ -348,7 +349,7 @@ export default function AdminProductFormPage() {
                       </td>
                       <td>
                         <button type="button" onClick={() => handleVariantUpdate(variant)}>
-                          Save {variant.sku}
+                          Lưu {variant.sku}
                         </button>
                       </td>
                     </tr>
@@ -358,7 +359,7 @@ export default function AdminProductFormPage() {
             </div>
           </>
         ) : (
-          <p className="muted">Save product before adding variants.</p>
+          <p className="muted">Lưu sản phẩm trước khi thêm phiên bản.</p>
         )}
       </section>
     </section>

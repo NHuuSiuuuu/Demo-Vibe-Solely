@@ -228,47 +228,47 @@ describe('admin flow', () => {
   it('redirects non-admin users away from admin pages', async () => {
     renderWithToken('/admin', 'customer');
 
-    await screen.findByRole('heading', { name: 'Shoe Store' });
-    expect(screen.queryByRole('heading', { name: 'Admin dashboard' })).toBeNull();
+    await screen.findByRole('heading', { name: 'Di chuyển thật đẹp.' });
+    expect(screen.queryByRole('heading', { name: 'Tổng quan quản trị' })).toBeNull();
     expect(window.location.pathname).toBe('/');
   });
 
   it('renders dashboard totals', async () => {
     renderWithToken('/admin');
 
-    expect(await screen.findByRole('heading', { name: 'Admin dashboard' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Tổng quan quản trị' })).toBeTruthy();
     expect(await screen.findByText('12')).toBeTruthy();
     expect(screen.getByText('3')).toBeTruthy();
     expect(screen.getByText('1')).toBeTruthy();
-    expect(screen.getByText('$1299.50')).toBeTruthy();
+    expect(screen.getByText(/1\.299,50\s*US\$/)).toBeTruthy();
   });
 
   it('renders product admin table', async () => {
     renderWithToken('/admin/products');
 
-    const table = await screen.findByRole('table', { name: 'Admin products' });
+    const table = await screen.findByRole('table', { name: 'Sản phẩm quản trị' });
     expect(await within(table).findByText('Road Runner 1')).toBeTruthy();
-    expect(within(table).getByText('active')).toBeTruthy();
-    expect(within(table).getByText('$89.99')).toBeTruthy();
-    expect(within(table).getByText('8 units')).toBeTruthy();
+    expect(within(table).getByText('Đang bán')).toBeTruthy();
+    expect(within(table).getByText(/89,99\s*US\$/)).toBeTruthy();
+    expect(within(table).getByText('8 đôi')).toBeTruthy();
   });
 
   it('submits product create form', async () => {
     const fetchMock = renderWithToken('/admin/products/new');
 
-    await screen.findByRole('heading', { name: 'Create product' });
+    await screen.findByRole('heading', { name: 'Tạo sản phẩm' });
     fireEvent.change(screen.getByLabelText('Slug'), { target: { value: 'court-classic-low' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Court Classic Low' } });
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Low profile court shoe' } });
-    fireEvent.change(screen.getByLabelText('Brand'), { target: { value: 'Stride' } });
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Lifestyle' } });
-    fireEvent.change(screen.getByLabelText('Gender'), { target: { value: 'unisex' } });
-    fireEvent.change(screen.getByLabelText('Price'), { target: { value: '74.99' } });
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'active' } });
-    fireEvent.click(screen.getByLabelText('Featured'));
-    fireEvent.click(screen.getByRole('button', { name: 'Save product' }));
+    fireEvent.change(screen.getByLabelText('Tên sản phẩm'), { target: { value: 'Court Classic Low' } });
+    fireEvent.change(screen.getByLabelText('Mô tả'), { target: { value: 'Low profile court shoe' } });
+    fireEvent.change(screen.getByLabelText('Thương hiệu'), { target: { value: 'Stride' } });
+    fireEvent.change(screen.getByLabelText('Danh mục'), { target: { value: 'Lifestyle' } });
+    fireEvent.change(screen.getByLabelText('Giới tính'), { target: { value: 'unisex' } });
+    fireEvent.change(screen.getByLabelText('Giá'), { target: { value: '74.99' } });
+    fireEvent.change(screen.getByLabelText('Trạng thái'), { target: { value: 'active' } });
+    fireEvent.click(screen.getByLabelText('Nổi bật'));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu sản phẩm' }));
 
-    await screen.findByText('Product saved.');
+    await screen.findByText('Đã lưu sản phẩm.');
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/admin/products'),
       expect.objectContaining({
@@ -291,12 +291,12 @@ describe('admin flow', () => {
   it('renders and updates existing variants on the product edit form', async () => {
     const fetchMock = renderWithToken('/admin/products/10/edit');
 
-    const variantsTable = await screen.findByRole('table', { name: 'Product variants' });
+    const variantsTable = await screen.findByRole('table', { name: 'Phiên bản sản phẩm' });
     const variantRow = within(variantsTable).getByDisplayValue('RR1-9-BLK').closest('tr');
-    fireEvent.change(within(variantRow).getByLabelText('Stock for RR1-9-BLK'), { target: { value: '9' } });
-    fireEvent.click(within(variantRow).getByRole('button', { name: 'Save RR1-9-BLK' }));
+    fireEvent.change(within(variantRow).getByLabelText('Tồn kho cho RR1-9-BLK'), { target: { value: '9' } });
+    fireEvent.click(within(variantRow).getByRole('button', { name: 'Lưu RR1-9-BLK' }));
 
-    await screen.findByText('Variant saved.');
+    await screen.findByText('Đã lưu phiên bản.');
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/admin/variants/101'),
       expect.objectContaining({
@@ -315,22 +315,22 @@ describe('admin flow', () => {
   it('renders admin order list', async () => {
     renderWithToken('/admin/orders');
 
-    const table = await screen.findByRole('table', { name: 'Admin orders' });
+    const table = await screen.findByRole('table', { name: 'Đơn hàng quản trị' });
     const orderRow = within(table).getByText('ORD-20260905-ABC123').closest('tr');
     expect(within(orderRow).getByText('customer@shoestore.local')).toBeTruthy();
-    expect(within(orderRow).getByText('$89.99')).toBeTruthy();
-    expect(within(orderRow).getByText('shipping')).toBeTruthy();
-    expect(within(orderRow).getByText('unpaid')).toBeTruthy();
+    expect(within(orderRow).getByText(/89,99\s*US\$/)).toBeTruthy();
+    expect(within(orderRow).getByText('Đang giao')).toBeTruthy();
+    expect(within(orderRow).getByText('Chưa thanh toán')).toBeTruthy();
   });
 
   it('updates order status to completed', async () => {
     renderWithToken('/admin/orders/900');
 
-    await screen.findByRole('heading', { name: 'Order ORD-20260905-ABC123' });
-    fireEvent.click(screen.getByRole('button', { name: 'Mark completed' }));
+    await screen.findByRole('heading', { name: 'Đơn hàng ORD-20260905-ABC123' });
+    fireEvent.click(screen.getByRole('button', { name: 'Chuyển sang Hoàn thành' }));
 
-    await screen.findByText('Order status updated.');
-    expect(screen.getByText('completed')).toBeTruthy();
-    expect(screen.getByText('paid')).toBeTruthy();
+    await screen.findByText('Đã cập nhật trạng thái đơn hàng.');
+    expect(screen.getByText('Hoàn thành')).toBeTruthy();
+    expect(screen.getByText('Đã thanh toán')).toBeTruthy();
   });
 });

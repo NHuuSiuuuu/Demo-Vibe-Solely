@@ -17,7 +17,9 @@ const productCards = [
     imageUrl: '/images/road-runner-1-main.jpg',
     availableSizes: ['9', '10'],
     availableColors: ['black', 'white'],
-    totalStock: '8'
+    totalStock: '8',
+    defaultVariantId: '101',
+    defaultVariantStock: '5'
   },
   {
     id: '2',
@@ -30,7 +32,9 @@ const productCards = [
     imageUrl: '/images/court-classic-main.jpg',
     availableSizes: ['7', '8'],
     availableColors: ['white', 'red'],
-    totalStock: '6'
+    totalStock: '6',
+    defaultVariantId: '201',
+    defaultVariantStock: '4'
   }
 ];
 
@@ -65,7 +69,9 @@ function normalizeCard(row) {
     imageUrl: row.imageUrl,
     availableSizes: row.availableSizes,
     availableColors: row.availableColors,
-    totalStock: Number(row.totalStock)
+    totalStock: Number(row.totalStock),
+    defaultVariantId: Number(row.defaultVariantId),
+    defaultVariantStock: Number(row.defaultVariantStock)
   };
 }
 

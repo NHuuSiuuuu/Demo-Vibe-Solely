@@ -56,27 +56,27 @@ export default function AdminDashboardPage() {
     <section className="admin-page" aria-labelledby="admin-dashboard-title">
       <div className="section-heading">
         <div>
-          <h1 id="admin-dashboard-title">Admin dashboard</h1>
-          <p>Daily operating totals from the admin API.</p>
+          <h1 id="admin-dashboard-title">Tổng quan quản trị</h1>
+          <p>Theo dõi nhanh số liệu sản phẩm, đơn hàng và doanh thu.</p>
         </div>
       </div>
-      {status === 'loading' ? <p className="muted">Loading dashboard...</p> : null}
+      {status === 'loading' ? <p className="muted">Đang tải tổng quan...</p> : null}
       {status === 'error' ? <p className="form-error">{error}</p> : null}
       <div className="admin-metrics">
         <article>
-          <span>Product count</span>
+          <span>Số sản phẩm</span>
           <strong>{dashboard.productsCount}</strong>
         </article>
         <article>
-          <span>Pending order count</span>
+          <span>Đơn chờ xử lý</span>
           <strong>{pendingOrdersCount}</strong>
         </article>
         <article>
-          <span>Completed order count</span>
+          <span>Đơn hoàn thành</span>
           <strong>{completedOrdersCount}</strong>
         </article>
         <article>
-          <span>Revenue from paid orders</span>
+          <span>Doanh thu đã thanh toán</span>
           <strong>{formatMoney(hasOrderData ? paidRevenue : dashboard.completedRevenue)}</strong>
         </article>
       </div>

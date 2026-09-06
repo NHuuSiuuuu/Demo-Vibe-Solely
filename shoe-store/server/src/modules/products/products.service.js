@@ -57,7 +57,9 @@ function mapProductCard(row) {
     imageUrl: row.imageUrl,
     availableSizes: row.availableSizes || [],
     availableColors: row.availableColors || [],
-    totalStock: Number(row.totalStock || 0)
+    totalStock: Number(row.totalStock || 0),
+    defaultVariantId: row.defaultVariantId ? Number(row.defaultVariantId) : null,
+    defaultVariantStock: Number(row.defaultVariantStock || 0)
   };
 }
 
@@ -159,7 +161,9 @@ function buildProductListQuery(filters) {
         primary_image.image_url AS "imageUrl",
         COALESCE(variant_summary.available_sizes, ARRAY[]::TEXT[]) AS "availableSizes",
         COALESCE(variant_summary.available_colors, ARRAY[]::TEXT[]) AS "availableColors",
-        COALESCE(variant_summary.total_stock, 0) AS "totalStock"
+        COALESCE(variant_summary.total_stock, 0) AS "totalStock",
+        default_variant.id AS "defaultVariantId",
+        COALESCE(default_variant.stock_quantity, 0) AS "defaultVariantStock"
       FROM products p
       LEFT JOIN LATERAL (
         SELECT pi.image_url
@@ -176,6 +180,14 @@ function buildProductListQuery(filters) {
         FROM product_variants pv
         WHERE pv.product_id = p.id
       ) variant_summary ON true
+      LEFT JOIN LATERAL (
+        SELECT pv.id, pv.stock_quantity
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+          AND pv.stock_quantity > 0
+        ORDER BY pv.id ASC
+        LIMIT 1
+      ) default_variant ON true
       WHERE ${where.join('\n        AND ')}
       ORDER BY ${sort}, p.id ASC
     `,

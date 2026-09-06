@@ -14,7 +14,7 @@ const initialForm = {
   city: '',
   state: '',
   postalCode: '',
-  country: 'US',
+  country: 'Việt Nam',
   note: ''
 };
 
@@ -61,59 +61,59 @@ export default function CheckoutPage() {
   }
 
   if (!token) {
-    return <AuthPrompt message="Login or register to place a COD order." />;
+    return <AuthPrompt message="Đăng nhập hoặc đăng ký để đặt hàng thanh toán khi nhận hàng." />;
   }
 
   return (
     <section className="checkout-layout" aria-labelledby="checkout-title">
       <form className="checkout-form" onSubmit={handleSubmit}>
-        <h1 id="checkout-title">Checkout</h1>
+        <h1 id="checkout-title">Thanh toán</h1>
         <label>
-          Receiver name
+          Người nhận
           <input name="receiverName" value={form.receiverName} onChange={updateField} required />
         </label>
         <label>
-          Phone
+          Số điện thoại
           <input name="phone" value={form.phone} onChange={updateField} required />
         </label>
         <label>
-          Shipping address
+          Địa chỉ giao hàng
           <input name="line1" value={form.line1} onChange={updateField} required />
         </label>
         <label>
-          Address line 2
+          Địa chỉ bổ sung
           <input name="line2" value={form.line2} onChange={updateField} />
         </label>
         <div className="form-grid">
           <label>
-            City
+            Tỉnh / thành phố
             <input name="city" value={form.city} onChange={updateField} required />
           </label>
           <label>
-            State
+            Quận / huyện
             <input name="state" value={form.state} onChange={updateField} required />
           </label>
           <label>
-            Postal code
+            Mã bưu chính
             <input name="postalCode" value={form.postalCode} onChange={updateField} required />
           </label>
           <label>
-            Country
+            Quốc gia
             <input name="country" value={form.country} onChange={updateField} required />
           </label>
         </div>
         <label>
-          Note
+          Ghi chú
           <textarea name="note" value={form.note} onChange={updateField} rows="3" />
         </label>
         {error ? <p className="form-error">{error}</p> : null}
         <button type="submit" disabled={isSubmitting || (cart.items || []).length === 0}>
-          {isSubmitting ? 'Placing order...' : 'Place COD order'}
+          {isSubmitting ? 'Đang đặt hàng...' : 'Đặt hàng COD'}
         </button>
       </form>
 
       <aside className="order-summary">
-        <h2>COD summary</h2>
+        <h2>Tóm tắt đơn COD</h2>
         {(cart.items || []).map((item) => (
           <div className="summary-item" key={item.id}>
             <span>
@@ -124,12 +124,12 @@ export default function CheckoutPage() {
           </div>
         ))}
         <div className="summary-row">
-          <span>Subtotal</span>
+          <span>Tạm tính</span>
           <strong>{formatMoney(cart.subtotal)}</strong>
         </div>
         <div className="summary-row">
-          <span>Payment</span>
-          <strong>Cash on delivery</strong>
+          <span>Thanh toán</span>
+          <strong>Thanh toán khi nhận hàng</strong>
         </div>
       </aside>
     </section>

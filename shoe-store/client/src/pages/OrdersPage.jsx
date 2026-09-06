@@ -5,9 +5,10 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import { orderStatusLabel, paymentStatusLabel } from '../utils/formatters.js';
 
 function formatDate(value) {
-  return value ? new Date(value).toLocaleDateString() : '';
+  return value ? new Date(value).toLocaleDateString('vi-VN') : '';
 }
 
 function formatOrderCode(order) {
@@ -44,12 +45,12 @@ export default function OrdersPage() {
   }, [token]);
 
   if (!token) {
-    return <AuthPrompt message="Login or register to review your order history." />;
+    return <AuthPrompt message="Đăng nhập hoặc đăng ký để xem lịch sử đơn hàng." />;
   }
 
   return (
     <section className="shop-page" aria-labelledby="orders-title">
-      <h1 id="orders-title">Orders</h1>
+      <h1 id="orders-title">Đơn hàng</h1>
       {error ? <p className="form-error">{error}</p> : null}
       <div className="order-list">
         {orders.map((order) => (
@@ -57,8 +58,8 @@ export default function OrdersPage() {
             <span>{formatOrderCode(order)}</span>
             <span>{formatDate(order.createdAt)}</span>
             <strong>{formatMoney(order.grandTotal)}</strong>
-            <StatusBadge tone="info">{order.orderStatus}</StatusBadge>
-            <StatusBadge>{order.paymentStatus}</StatusBadge>
+            <StatusBadge tone="info">{orderStatusLabel(order.orderStatus)}</StatusBadge>
+            <StatusBadge>{paymentStatusLabel(order.paymentStatus)}</StatusBadge>
           </Link>
         ))}
       </div>

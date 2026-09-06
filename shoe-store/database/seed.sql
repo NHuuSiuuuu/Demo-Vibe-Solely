@@ -1,42 +1,42 @@
 INSERT INTO users (email, password_hash, role, first_name, last_name)
 VALUES
-  ('admin@shoestore.local', '$2b$12$/VpCnQLi8HuQbZit6FN0FOTxrCuA8CmGNhO6iQU27CV0mKRFMTYKy', 'admin', 'Store', 'Admin'),
-  ('customer@shoestore.local', '$2b$12$oJt7X6EmgbWD56HkMxLbKuA4DkvmpD5RiXZj8CqUuM1AOQPfD4/OW', 'customer', 'Sample', 'Customer');
+  ('admin@shoestore.local', '$2b$12$/VpCnQLi8HuQbZit6FN0FOTxrCuA8CmGNhO6iQU27CV0mKRFMTYKy', 'admin', 'Quản trị', 'Solely'),
+  ('customer@shoestore.local', '$2b$12$oJt7X6EmgbWD56HkMxLbKuA4DkvmpD5RiXZj8CqUuM1AOQPfD4/OW', 'customer', 'Khách hàng', 'Demo');
 
 INSERT INTO products (slug, name, description, brand, category, gender, base_price, status, featured)
 VALUES
-  ('urban-runner-knit', 'Urban Runner Knit', 'Lightweight everyday running shoe with breathable knit support.', 'StrideCo', 'running', 'unisex', 89.00, 'active', true),
-  ('court-classic-low', 'Court Classic Low', 'Clean low-top sneaker with cushioned insole and durable cupsole.', 'Northline', 'sneakers', 'unisex', 74.00, 'active', true),
-  ('trail-guard-pro', 'Trail Guard Pro', 'Stable trail shoe with lugged outsole and reinforced toe guard.', 'SummitLab', 'trail', 'men', 118.00, 'active', false),
-  ('studio-flex-slip-on', 'Studio Flex Slip-On', 'Flexible slip-on trainer built for studio workouts and quick errands.', 'AeroForm', 'training', 'women', 68.00, 'active', false),
-  ('heritage-leather-boot', 'Heritage Leather Boot', 'Full-grain leather boot with padded collar and grippy rubber sole.', 'Oak & Anvil', 'boots', 'men', 145.00, 'active', true),
-  ('cloud-step-walker', 'Cloud Step Walker', 'Supportive walking shoe with soft foam midsole and wide-fit comfort.', 'StrideCo', 'walking', 'women', 82.00, 'active', false),
-  ('metro-suede-high', 'Metro Suede High', 'High-top suede sneaker with contrast stitching and ankle support.', 'Northline', 'sneakers', 'men', 96.00, 'active', false),
-  ('rain-ready-chelsea', 'Rain Ready Chelsea', 'Water-resistant Chelsea boot with easy pull tabs and textured sole.', 'AeroForm', 'boots', 'women', 132.00, 'active', true);
+  ('urban-runner-knit', 'Solely Air Knit', 'Giày chạy bộ hằng ngày nhẹ, thoáng khí và ôm chân êm ái.', 'Solely', 'running', 'unisex', 89.00, 'active', true),
+  ('court-classic-low', 'Solely Court Low', 'Sneaker cổ thấp tinh gọn với lót êm và đế bền cho cả ngày.', 'Solely', 'sneakers', 'unisex', 74.00, 'active', true),
+  ('trail-guard-pro', 'Solely Trail Guard', 'Giày địa hình vững chắc với đế bám tốt và mũi giày gia cố.', 'Solely', 'trail', 'men', 118.00, 'active', false),
+  ('studio-flex-slip-on', 'Solely Studio Slip-On', 'Giày slip-on linh hoạt cho buổi tập nhẹ và những việc nhanh trong ngày.', 'Solely', 'training', 'women', 68.00, 'active', false),
+  ('heritage-leather-boot', 'Solely Leather Boot', 'Boot da cao cấp với cổ đệm êm và đế cao su bám chắc.', 'Solely', 'boots', 'men', 145.00, 'active', true),
+  ('cloud-step-walker', 'Solely Cloud Walker', 'Giày đi bộ hỗ trợ tốt với đệm foam mềm và phom rộng thoải mái.', 'Solely', 'walking', 'women', 82.00, 'active', false),
+  ('metro-suede-high', 'Solely Suede High', 'Sneaker cổ cao bằng suede, đường chỉ tương phản và nâng đỡ cổ chân.', 'Solely', 'sneakers', 'men', 96.00, 'active', false),
+  ('rain-ready-chelsea', 'Solely Chelsea Rain', 'Chelsea boot chống nước nhẹ với quai kéo tiện lợi và đế vân bám.', 'Solely', 'boots', 'women', 132.00, 'active', true);
 
 INSERT INTO product_images (product_id, image_url, alt_text, sort_order)
-SELECT id, 'https://placehold.co/900x700/png?text=Urban+Runner+Knit', 'Urban Runner Knit in slate and white', 1
+SELECT id, 'https://placehold.co/900x700/png?text=Solely+Air+Knit', 'Giày Solely Air Knit màu xám đá và trắng', 1
 FROM products WHERE slug = 'urban-runner-knit'
 UNION ALL
-SELECT id, 'https://placehold.co/900x700/png?text=Court+Classic+Low', 'Court Classic Low white sneaker', 1
+SELECT id, 'https://placehold.co/900x700/png?text=Solely+Court+Low', 'Sneaker Solely Court Low màu trắng', 1
 FROM products WHERE slug = 'court-classic-low'
 UNION ALL
-SELECT id, 'https://placehold.co/900x700/png?text=Trail+Guard+Pro', 'Trail Guard Pro olive trail shoe', 1
+SELECT id, 'https://placehold.co/900x700/png?text=Solely+Trail+Guard', 'Giày địa hình Solely Trail Guard màu olive', 1
 FROM products WHERE slug = 'trail-guard-pro'
 UNION ALL
-SELECT id, 'https://placehold.co/900x700/png?text=Studio+Flex+Slip-On', 'Studio Flex Slip-On black trainer', 1
+SELECT id, 'https://placehold.co/900x700/png?text=Solely+Studio+Slip-On', 'Giày tập Solely Studio Slip-On màu đen', 1
 FROM products WHERE slug = 'studio-flex-slip-on'
 UNION ALL
-SELECT id, 'https://placehold.co/900x700/png?text=Heritage+Leather+Boot', 'Heritage Leather Boot brown leather boot', 1
+SELECT id, 'https://placehold.co/900x700/png?text=Solely+Leather+Boot', 'Boot da Solely Leather Boot màu nâu', 1
 FROM products WHERE slug = 'heritage-leather-boot'
 UNION ALL
-SELECT id, 'https://placehold.co/900x700/png?text=Cloud+Step+Walker', 'Cloud Step Walker gray walking shoe', 1
+SELECT id, 'https://placehold.co/900x700/png?text=Solely+Cloud+Walker', 'Giày đi bộ Solely Cloud Walker màu xám', 1
 FROM products WHERE slug = 'cloud-step-walker'
 UNION ALL
-SELECT id, 'https://placehold.co/900x700/png?text=Metro+Suede+High', 'Metro Suede High navy high-top sneaker', 1
+SELECT id, 'https://placehold.co/900x700/png?text=Solely+Suede+High', 'Sneaker cổ cao Solely Suede High màu xanh navy', 1
 FROM products WHERE slug = 'metro-suede-high'
 UNION ALL
-SELECT id, 'https://placehold.co/900x700/png?text=Rain+Ready+Chelsea', 'Rain Ready Chelsea black boot', 1
+SELECT id, 'https://placehold.co/900x700/png?text=Solely+Chelsea+Rain', 'Chelsea boot Solely Chelsea Rain màu đen', 1
 FROM products WHERE slug = 'rain-ready-chelsea';
 
 INSERT INTO product_variants (product_id, sku, size, color, stock_quantity, price_delta)

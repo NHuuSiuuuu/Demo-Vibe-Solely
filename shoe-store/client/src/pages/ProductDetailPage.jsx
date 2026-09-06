@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
 import { useCart } from '../cart/CartContext.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
+import { colorLabel } from '../utils/formatters.js';
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
@@ -59,14 +60,14 @@ export default function ProductDetailPage() {
 
     try {
       await addItem(selectedVariant.id, Number(quantity));
-      setMessage('Added to cart.');
+      setMessage('Đã thêm vào túi hàng.');
     } catch (err) {
       setError(err.message);
     }
   }
 
   if (status === 'loading') {
-    return <p className="muted">Loading product...</p>;
+    return <p className="muted">Đang tải sản phẩm...</p>;
   }
 
   if (status === 'error') {
@@ -77,7 +78,7 @@ export default function ProductDetailPage() {
     <section className="product-detail" aria-labelledby="product-title">
       <div className="gallery">
         <div className="gallery__main">
-          {selectedImage ? <img src={selectedImage} alt={product.name} /> : <div className="product-card__image-fallback">Shoe</div>}
+          {selectedImage ? <img src={selectedImage} alt={product.name} /> : <div className="product-card__image-fallback">Giày</div>}
         </div>
         <div className="gallery__thumbs">
           {(product.images || []).map((image) => (
@@ -96,7 +97,7 @@ export default function ProductDetailPage() {
 
       <div className="detail-panel">
         <Link className="text-link" to="/products">
-          Back to products
+          Quay lại sản phẩm
         </Link>
         <p className="eyebrow">{product.brand}</p>
         <h1 id="product-title">{product.name}</h1>
@@ -105,7 +106,7 @@ export default function ProductDetailPage() {
 
         <form className="purchase-form" onSubmit={handleSubmit}>
           <fieldset>
-            <legend>Variant</legend>
+            <legend>Chọn phiên bản</legend>
             <div className="variant-grid">
               {(product.variants || []).map((variant) => (
                 <label key={variant.id} className="variant-option">
@@ -116,18 +117,18 @@ export default function ProductDetailPage() {
                     checked={selectedVariantId === String(variant.id)}
                     onChange={(event) => setSelectedVariantId(event.target.value)}
                     disabled={variant.stockQuantity <= 0}
-                    aria-label={`Size ${variant.size}, color ${variant.color}, ${formatMoney(Number(product.price) + Number(variant.priceDelta || 0))}`}
+                    aria-label={`Size ${variant.size}, màu ${colorLabel(variant.color)}, ${formatMoney(Number(product.price) + Number(variant.priceDelta || 0))}`}
                   />
                   <span>{variant.size}</span>
-                  <span>{variant.color}</span>
+                  <span>{colorLabel(variant.color)}</span>
                   <span>{formatMoney(Number(product.price) + Number(variant.priceDelta || 0))}</span>
-                  <small>{variant.stockQuantity} left</small>
+                  <small>Còn {variant.stockQuantity}</small>
                 </label>
               ))}
             </div>
           </fieldset>
           <label>
-            Quantity
+            Số lượng
             <input
               type="number"
               min="1"
@@ -136,10 +137,14 @@ export default function ProductDetailPage() {
               onChange={(event) => setQuantity(event.target.value)}
             />
           </label>
-          {message ? <p className="success-message">{message}</p> : null}
+          {message ? (
+            <p className="success-message" role="status" aria-label="Thông báo giỏ hàng">
+              {message}
+            </p>
+          ) : null}
           {error ? <p className="form-error">{error}</p> : null}
           <button type="submit" disabled={!selectedVariant}>
-            Add to cart
+            Thêm vào túi hàng
           </button>
         </form>
       </div>

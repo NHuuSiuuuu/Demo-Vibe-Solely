@@ -4,18 +4,19 @@ import { apiClient } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatMoney } from '../../components/ProductCard.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import { productStatusLabel } from '../../utils/formatters.js';
 
 function stockSummary(product) {
   if (product.totalStock !== undefined && product.totalStock !== null) {
-    return `${product.totalStock} units`;
+    return `${product.totalStock} đôi`;
   }
 
   if (Array.isArray(product.variants)) {
     const total = product.variants.reduce((sum, variant) => sum + Number(variant.stockQuantity || 0), 0);
-    return `${total} units`;
+    return `${total} đôi`;
   }
 
-  return 'Not reported';
+  return 'Chưa có dữ liệu';
 }
 
 export default function AdminProductsPage() {
@@ -53,25 +54,25 @@ export default function AdminProductsPage() {
     <section className="admin-page" aria-labelledby="admin-products-title">
       <div className="section-heading">
         <div>
-          <h1 id="admin-products-title">Product management</h1>
-          <p>Maintain catalog records and variant inventory.</p>
+          <h1 id="admin-products-title">Quản lý sản phẩm</h1>
+          <p>Cập nhật danh mục, giá bán và tồn kho theo từng phiên bản.</p>
         </div>
         <Link className="button-link" to="/admin/products/new">
-          New product
+          Thêm sản phẩm
         </Link>
       </div>
-      {status === 'loading' ? <p className="muted">Loading products...</p> : null}
+      {status === 'loading' ? <p className="muted">Đang tải sản phẩm...</p> : null}
       {status === 'error' ? <p className="form-error">{error}</p> : null}
       <div className="admin-table-wrap">
-        <table aria-label="Admin products" className="admin-table">
+        <table aria-label="Sản phẩm quản trị" className="admin-table">
           <thead>
             <tr>
-              <th>Product</th>
-              <th>Brand</th>
-              <th>Status</th>
-              <th>Price</th>
-              <th>Stock summary</th>
-              <th>Actions</th>
+              <th>Sản phẩm</th>
+              <th>Thương hiệu</th>
+              <th>Trạng thái</th>
+              <th>Giá</th>
+              <th>Tồn kho</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -83,13 +84,15 @@ export default function AdminProductsPage() {
                 </td>
                 <td>{product.brand}</td>
                 <td>
-                  <StatusBadge tone={product.status === 'active' ? 'info' : 'neutral'}>{product.status}</StatusBadge>
+                  <StatusBadge tone={product.status === 'active' ? 'info' : 'neutral'}>
+                    {productStatusLabel(product.status)}
+                  </StatusBadge>
                 </td>
                 <td>{formatMoney(product.price)}</td>
                 <td>{stockSummary(product)}</td>
                 <td>
                   <Link className="text-link" to={`/admin/products/${product.id}/edit`}>
-                    Edit
+                    Sửa
                   </Link>
                 </td>
               </tr>
@@ -97,7 +100,7 @@ export default function AdminProductsPage() {
           </tbody>
         </table>
       </div>
-      {status === 'ready' && products.length === 0 ? <p className="muted">No products found.</p> : null}
+      {status === 'ready' && products.length === 0 ? <p className="muted">Chưa có sản phẩm.</p> : null}
     </section>
   );
 }
