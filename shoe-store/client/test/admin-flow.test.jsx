@@ -254,6 +254,20 @@ describe('admin flow', () => {
     expect(screen.queryByRole('contentinfo')).toBeNull();
   });
 
+  it('shows RAG knowledge page in admin navigation', async () => {
+    renderWithToken('/admin');
+
+    expect(await screen.findByText('Kho tri thức AI')).toBeTruthy();
+  });
+
+  it('renders RAG overview, policy documents, and test query UI', async () => {
+    renderWithToken('/admin/rag');
+
+    expect(await screen.findByText('Tổng quan tri thức')).toBeTruthy();
+    expect(screen.getByText('Chính sách')).toBeTruthy();
+    expect(screen.getByText('Kiểm thử truy vấn')).toBeTruthy();
+  });
+
   it('renders product admin table', async () => {
     renderWithToken('/admin/products');
 

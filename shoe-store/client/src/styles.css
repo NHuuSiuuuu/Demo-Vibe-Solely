@@ -1470,6 +1470,167 @@ button:disabled {
   gap: 0.5rem;
 }
 
+.admin-rag-page .section-heading {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.admin-rag-page .button-link,
+.admin-rag-page .button-secondary {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.admin-rag-page .form-success {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #166534;
+  margin: 0;
+  padding: 0.75rem;
+}
+
+.rag-admin-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rag-status-card {
+  align-items: center;
+  background: var(--admin-soft);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  display: flex;
+  gap: 0.75rem;
+  min-height: 6rem;
+  padding: 0.85rem;
+}
+
+.rag-status-card > span {
+  border-radius: 8px;
+  display: grid;
+  flex: 0 0 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  width: 2.25rem;
+}
+
+.rag-status-card--blue > span {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.rag-status-card--green > span {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.rag-status-card--orange > span {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.rag-status-card p,
+.rag-status-card strong {
+  margin: 0;
+}
+
+.rag-status-card p {
+  color: var(--admin-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.rag-status-card strong {
+  color: var(--admin-text);
+  display: block;
+  font-size: 1.05rem;
+  margin-top: 0.2rem;
+}
+
+.rag-admin-layout {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.85fr);
+}
+
+.rag-document-form,
+.rag-test-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rag-document-list,
+.rag-source-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.rag-document-card,
+.rag-source-list article,
+.rag-answer-panel {
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 0.85rem;
+}
+
+.rag-document-card {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.rag-document-card strong,
+.rag-answer-panel h3,
+.rag-source-list strong {
+  color: var(--admin-text);
+}
+
+.rag-document-card span,
+.rag-document-card small,
+.rag-source-list span {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 0.82rem;
+  margin-top: 0.2rem;
+}
+
+.rag-document-card p,
+.rag-answer-panel p,
+.rag-source-list p {
+  margin: 0.5rem 0 0;
+}
+
+.rag-document-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.rag-test-panel {
+  position: sticky;
+  top: 1rem;
+}
+
+.rag-answer-panel {
+  background: var(--admin-soft);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.rag-answer-panel h3 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
 @media (max-width: 780px) {
   .site-header {
     align-items: stretch;
@@ -1497,9 +1658,24 @@ button:disabled {
   .form-grid,
   .admin-shell,
   .admin-metrics,
+  .rag-admin-grid,
+  .rag-admin-layout,
   .admin-form,
-  .admin-form--compact {
+  .admin-form--compact,
+  .rag-document-form,
+  .rag-test-form,
+  .rag-document-card {
     grid-template-columns: 1fr;
+  }
+
+  .admin-rag-page .section-heading,
+  .rag-document-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rag-test-panel {
+    position: static;
   }
 
   .ai-assistant {

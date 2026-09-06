@@ -1,4 +1,4 @@
-import { BarChart3, Bell, ChevronsRight, Moon, Package, ShoppingCart, Sun, User } from 'lucide-react';
+import { BarChart3, Bell, BrainCircuit, ChevronsRight, Moon, Package, ShoppingCart, Sun, User } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext.jsx';
@@ -6,7 +6,8 @@ import { useAuth } from '../../auth/AuthContext.jsx';
 const navItems = [
   { to: '/admin', label: 'Tổng quan', icon: BarChart3, end: true },
   { to: '/admin/products', label: 'Sản phẩm', icon: Package },
-  { to: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart }
+  { to: '/admin/orders', label: 'Đơn hàng', icon: ShoppingCart },
+  { to: '/admin/rag', label: 'Kho tri thức AI', icon: BrainCircuit }
 ];
 
 export default function AdminLayout() {

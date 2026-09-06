@@ -9,6 +9,7 @@ import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage.jsx';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage.jsx';
 import AdminProductFormPage from './pages/admin/AdminProductFormPage.jsx';
 import AdminProductsPage from './pages/admin/AdminProductsPage.jsx';
+import AdminRagPage from './pages/admin/AdminRagPage.jsx';
 import CartPage from './pages/CartPage.jsx';
 import CheckoutPage from './pages/CheckoutPage.jsx';
 import HomePage from './pages/HomePage.jsx';
@@ -97,6 +98,10 @@ function createAppRouter() {
             {
               path: 'orders/:id',
               element: <AdminOrderDetailPage />
+            },
+            {
+              path: 'rag',
+              element: <AdminRagPage />
             }
           ]
         }

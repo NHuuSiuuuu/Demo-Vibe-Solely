@@ -35,6 +35,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm Gemini client phía backend cho embedding và trả lời dựa trên ngữ cảnh RAG, cùng helper tạo nội dung/chia đoạn tri thức sản phẩm.
 - Thêm service backend cho RAG indexing/retrieval bằng Gemini, gồm reindex sản phẩm, reindex tài liệu, reindex toàn bộ, truy xuất context và trả lời dựa trên nguồn tri thức.
 - Thêm API admin cho RAG tại `/api/admin/rag` để xem overview, quản lý tài liệu tri thức, reindex và kiểm thử truy vấn bằng quyền admin.
+- Thêm trang admin `/admin/rag` "Kho tri thức AI" để xem trạng thái RAG, quản lý tài liệu chính sách, reindex và kiểm thử truy vấn qua backend.
 
 ### Đã thay đổi
 
@@ -111,6 +112,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test backend bắt buộc admin xem được RAG overview và customer bị chặn khỏi endpoint admin RAG.
 - Bổ sung test backend bắt buộc admin RAG test query trả về chunk tri thức khi retrieval tìm thấy ngữ cảnh.
 - Bổ sung test backend bắt buộc `/api/ai/chat` dùng RAG, không lưu tin nhắn chat và trả `sources` cùng sản phẩm/tri thức liên quan.
+- Bổ sung test frontend bắt buộc admin navigation hiển thị "Kho tri thức AI" và route `/admin/rag` render tổng quan tri thức, chính sách và kiểm thử truy vấn.
 
 ## 2026-09-05
 
