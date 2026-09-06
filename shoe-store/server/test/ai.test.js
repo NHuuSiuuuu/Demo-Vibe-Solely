@@ -5,6 +5,9 @@ const jwt = require('jsonwebtoken');
 const request = require('supertest');
 
 const originalLoad = Module._load;
+const originalFetch = global.fetch;
+const originalOpenAiKey = process.env.OPENAI_API_KEY;
+const originalOpenAiModel = process.env.OPENAI_MODEL;
 
 process.env.JWT_SECRET = 'test-jwt-secret';
 
@@ -140,10 +143,24 @@ Module._load = function patchedLoad(requestPath, parent, isMain) {
 
 test.after(() => {
   Module._load = originalLoad;
+  global.fetch = originalFetch;
+  if (originalOpenAiKey === undefined) {
+    delete process.env.OPENAI_API_KEY;
+  } else {
+    process.env.OPENAI_API_KEY = originalOpenAiKey;
+  }
+  if (originalOpenAiModel === undefined) {
+    delete process.env.OPENAI_MODEL;
+  } else {
+    process.env.OPENAI_MODEL = originalOpenAiModel;
+  }
 });
 
 test.beforeEach(() => {
   resetStore();
+  global.fetch = originalFetch;
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_MODEL;
 });
 
 test('requires auth to use ai chat', async () => {
@@ -186,6 +203,53 @@ test('filters hiking advice to trail and outdoor products', async () => {
   assert.equal(lastProductQuery.params.includes('%trail%'), true);
   assert.equal(lastProductQuery.params.includes('%trekking%'), true);
   assert.equal(lastProductQuery.params.includes('%outdoor%'), true);
+});
+
+test('uses singular fallback advice when only one product matches', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .post('/api/ai/chat')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send({ message: 'giày leo núi' })
+    .expect(200);
+
+  assert.equal(response.body.products.length, 1);
+  assert.match(response.body.answer, /Solely Trail Guard/);
+  assert.match(response.body.answer, /phù hợp nhất/i);
+  assert.doesNotMatch(response.body.answer, /Các mẫu này/i);
+});
+
+test('uses OpenAI ranking when an API key is configured', async () => {
+  const { createApp } = require('../src/app');
+  const requests = [];
+  process.env.OPENAI_API_KEY = 'test-openai-key';
+  process.env.OPENAI_MODEL = 'gpt-test-model';
+  global.fetch = async (url, options = {}) => {
+    requests.push({ url, options });
+    return {
+      ok: true,
+      async json() {
+        return {
+          output_text:
+            'Mình xếp Solely Trail Guard đầu tiên vì đây là mẫu trail phù hợp nhất cho trekking cuối tuần.'
+        };
+      }
+    };
+  };
+
+  const response = await request(createApp())
+    .post('/api/ai/chat')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send({ message: 'giày leo núi' })
+    .expect(200);
+
+  assert.equal(response.body.answer, 'Mình xếp Solely Trail Guard đầu tiên vì đây là mẫu trail phù hợp nhất cho trekking cuối tuần.');
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, 'https://api.openai.com/v1/responses');
+  assert.equal(requests[0].options.headers.Authorization, 'Bearer test-openai-key');
+  assert.match(requests[0].options.body, /gpt-test-model/);
+  assert.match(requests[0].options.body, /Solely Trail Guard/);
 });
 
 test('returns a helpful fallback when no product matches', async () => {

@@ -8,10 +8,13 @@ Local shoe store MVP scaffold with a React + Vite client and Node.js/Express API
 - npm
 - PostgreSQL client tools
 - A PostgreSQL database URL in `server/.env` or exported as `DATABASE_URL`
+- Optional: `OPENAI_API_KEY` in `server/.env` for AI-ranked product advice
 
 If `DATABASE_URL` is not set, the API starts with an in-memory demo
 database loaded from `database/schema.sql` and `database/seed.sql`. This
 is useful for quick local review, but data resets when the server restarts.
+If `OPENAI_API_KEY` is not set, product advice still works with the
+backend's local filtered fallback response.
 
 ## Local URLs
 

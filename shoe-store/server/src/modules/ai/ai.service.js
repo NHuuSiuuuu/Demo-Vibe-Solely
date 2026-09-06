@@ -2,6 +2,7 @@ const { query } = require('../../db/pool');
 const { HttpError } = require('../../utils/httpError');
 
 const COMMON_BRANDS = ['nike', 'adidas', 'puma', 'converse', 'vans', 'new balance', 'asics', 'reebok'];
+const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const PRODUCT_INTENTS = [
   {
     pattern: /\b(chay bo|running|runner)\b/,
@@ -211,13 +212,101 @@ async function findMatchingProducts(filters) {
   return result.rows.map(mapProductCard);
 }
 
-function buildAnswer(products) {
+function buildFallbackAnswer(products) {
   if (products.length === 0) {
     return 'Hiện không có sản phẩm phù hợp chính xác. Bạn có thể mở rộng bộ lọc về ngân sách, size, thương hiệu hoặc mục đích sử dụng để xem thêm lựa chọn.';
   }
 
+  if (products.length === 1) {
+    const [product] = products;
+    return `Mình gợi ý ${product.name} vì đây là mẫu phù hợp nhất với tiêu chí hiện tại trong catalog. Mẫu này còn hàng, thuộc nhóm ${product.category} và có giá ${product.price.toLocaleString('vi-VN')} ₫.`;
+  }
+
   const names = products.map((product) => product.name).join(', ');
   return `Gợi ý phù hợp cho bạn: ${names}. Các mẫu này còn hàng, đúng tiêu chí chính và có mức giá dễ so sánh.`;
+}
+
+function formatProductForRanking(product) {
+  return {
+    id: product.id,
+    name: product.name,
+    brand: product.brand,
+    category: product.category,
+    gender: product.gender,
+    price: product.price,
+    availableSizes: product.availableSizes,
+    availableColors: product.availableColors,
+    totalStock: product.totalStock
+  };
+}
+
+function extractOpenAiText(payload) {
+  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) {
+    return payload.output_text.trim();
+  }
+
+  const content = Array.isArray(payload?.output)
+    ? payload.output.flatMap((item) => (Array.isArray(item.content) ? item.content : []))
+    : [];
+  const text = content
+    .map((item) => {
+      if (typeof item.text === 'string') {
+        return item.text;
+      }
+      if (typeof item.output_text === 'string') {
+        return item.output_text;
+      }
+      return '';
+    })
+    .join('\n')
+    .trim();
+
+  return text || null;
+}
+
+async function rankProductsWithOpenAi({ message, filters, products }) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || products.length === 0 || typeof fetch !== 'function') {
+    return null;
+  }
+
+  const response = await fetch(OPENAI_RESPONSES_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
+      max_output_tokens: 220,
+      instructions:
+        'Bạn là trợ lý bán giày của Solely. Chỉ tư vấn dựa trên danh sách sản phẩm đã được backend lọc. Không bịa sản phẩm, giá, tồn kho hoặc khuyến mãi. Trả lời tiếng Việt, ngắn gọn, ưu tiên sản phẩm phù hợp nhất trước.',
+      input: JSON.stringify({
+        customerQuestion: message,
+        filters,
+        products: products.map(formatProductForRanking)
+      })
+    })
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return extractOpenAiText(await response.json());
+}
+
+async function buildAnswer({ message, filters, products }) {
+  try {
+    const rankedAnswer = await rankProductsWithOpenAi({ message, filters, products });
+    if (rankedAnswer) {
+      return rankedAnswer;
+    }
+  } catch (_error) {
+    return buildFallbackAnswer(products);
+  }
+
+  return buildFallbackAnswer(products);
 }
 
 async function storeMessage({ userId, sessionId = null, role, content }) {
@@ -245,7 +334,7 @@ async function adviseProducts({ user, message }) {
   };
 
   const products = await findMatchingProducts(filters);
-  const answer = buildAnswer(products);
+  const answer = await buildAnswer({ message: cleanedMessage, filters, products });
 
   await storeMessage({ userId: user.id, role: 'user', content: cleanedMessage });
   await storeMessage({ userId: user.id, role: 'assistant', content: answer });

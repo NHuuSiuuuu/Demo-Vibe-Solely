@@ -26,6 +26,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm `DEVELOPMENT_PROMPT.md` ở root project để người dùng dán prompt phát triển và agent đọc trước khi lập kế hoạch hoặc code.
 - Thêm giao diện chat bubble cho trợ lý mua sắm, gồm message log, bubble user/assistant, typing indicator và composer cố định trong panel.
 - Thêm nút mở trợ lý mua sắm dạng tròn, chỉ dùng icon và có animation pulse.
+- Thêm cấu hình mẫu `server/.env.example` cho `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` và `OPENAI_MODEL`.
 
 ### Đã thay đổi
 
@@ -59,6 +60,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật nút đóng trợ lý mua sắm để dùng màu theo theme light/dark, hover rõ hơn và không còn bị lệch màu trên nền sáng.
 - Cập nhật `product-badge` để dùng màu nền, viền và chữ theo theme light/dark.
 - Cập nhật retrieval trợ lý mua sắm để nhận diện nhu cầu leo núi/trekking/outdoor và chỉ lọc sản phẩm trail phù hợp trước khi tư vấn.
+- Cập nhật trợ lý mua sắm để dùng OpenAI ranking sau khi backend lọc catalog, kèm fallback nội bộ tự nhiên hơn khi thiếu API key hoặc chỉ có một sản phẩm phù hợp.
 
 ### Đã kiểm chứng
 
@@ -87,6 +89,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test frontend bắt buộc nút đóng trợ lý mua sắm dùng class theme-aware.
 - Bổ sung test frontend bắt buộc `product-badge` dùng class theme-aware.
 - Bổ sung test backend bắt buộc câu hỏi giày leo núi/trekking trả về sản phẩm trail/outdoor thay vì catalog không liên quan.
+- Bổ sung test backend bắt buộc trợ lý mua sắm dùng OpenAI ranking khi có `OPENAI_API_KEY` và không dùng câu fallback số nhiều khi chỉ có một sản phẩm phù hợp.
 
 ## 2026-09-05
 
