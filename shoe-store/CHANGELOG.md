@@ -1,37 +1,37 @@
 # Changelog
 
-All notable project changes are tracked here so product, code, database, and deployment decisions are easy to review later.
+File này ghi lại các thay đổi quan trọng của dự án để dễ theo dõi phần sản phẩm, code, database và triển khai sau này.
 
-## Unreleased
+## Chưa phát hành
 
-### Added
+### Đã thêm
 
-- Created the shoe store MVP with React, Vite, Node.js, Express, and PostgreSQL support.
-- Added customer authentication with email/password, JWT sessions, and customer/admin roles.
-- Added product catalog, product detail pages, filters, search, product images, sizes, colors, and stock-backed variants.
-- Added cart management, COD checkout, order creation, customer order history, and order detail views.
-- Added admin dashboard flows for managing products, variants, inventory, and order status.
-- Added AI product advisor backed by catalog data, with a fallback response when no OpenAI API key is configured.
-- Added database schema and seed data for users, products, images, variants, carts, orders, order items, and AI chat messages.
-- Added local setup documentation and demo accounts.
-- Added PostgreSQL local database setup on the remote development server.
+- Tạo MVP cửa hàng giày bằng React, Vite, Node.js, Express và hỗ trợ PostgreSQL.
+- Thêm đăng ký/đăng nhập bằng email và mật khẩu, JWT session, phân quyền `customer` và `admin`.
+- Thêm danh sách sản phẩm, trang chi tiết sản phẩm, tìm kiếm, bộ lọc, ảnh sản phẩm, size, màu và biến thể có tồn kho.
+- Thêm giỏ hàng, checkout COD, tạo đơn hàng, lịch sử đơn hàng của khách và trang chi tiết đơn.
+- Thêm dashboard admin để quản lý sản phẩm, biến thể, tồn kho và trạng thái đơn hàng.
+- Thêm AI tư vấn sản phẩm dựa trên dữ liệu catalog, có fallback khi chưa cấu hình OpenAI API key.
+- Thêm schema và seed database cho users, products, product images, variants, carts, orders, order items và AI chat messages.
+- Thêm tài liệu setup local và tài khoản demo.
+- Cài và cấu hình PostgreSQL local trên remote development server.
 
-### Changed
+### Đã thay đổi
 
-- Added an in-memory demo database fallback for local review when `DATABASE_URL` is not configured.
-- Updated backend database access so the app can run against either PostgreSQL or the demo fallback.
-- Improved admin variant inventory editing after implementation review.
+- Thêm fallback database in-memory để review local khi chưa cấu hình `DATABASE_URL`.
+- Cập nhật lớp truy cập database để backend chạy được với PostgreSQL thật hoặc demo fallback.
+- Cải thiện phần admin chỉnh tồn kho biến thể sau vòng review implementation.
 
-### Verified
+### Đã kiểm chứng
 
-- Backend test suite passed during MVP implementation.
-- Frontend test suite passed during MVP implementation.
-- Frontend production build passed during MVP implementation.
-- Local PostgreSQL connection was verified by creating a customer through the API and reading it from the `users` table.
+- Backend test suite đã pass trong quá trình triển khai MVP.
+- Frontend test suite đã pass trong quá trình triển khai MVP.
+- Frontend production build đã pass trong quá trình triển khai MVP.
+- Kết nối PostgreSQL local đã được kiểm chứng bằng cách tạo customer qua API và đọc lại từ bảng `users`.
 
 ## 2026-09-05
 
-### Added
+### Đã thêm
 
-- Wrote MVP design spec for authenticated shoe store flows.
-- Wrote implementation plan covering scaffold, database, auth, product API, cart/orders, admin flows, AI advisor, frontend flows, verification, and docs.
+- Viết spec thiết kế MVP cho flow cửa hàng giày có auth.
+- Viết plan triển khai gồm scaffold, database, auth, product API, cart/orders, admin flow, AI advisor, frontend flow, verification và docs.

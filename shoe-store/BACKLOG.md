@@ -1,37 +1,37 @@
 # Backlog
 
-This file tracks future work that is useful but not required for the current MVP.
+File này ghi lại các việc nên làm tiếp sau MVP. Đây là danh sách ưu tiên, không phải phần bắt buộc để chạy bản hiện tại.
 
-## High Priority
+## Ưu Tiên Cao
 
-- Add safe database migrations so future schema changes do not require rerunning `npm run db:setup`.
-- Add image upload for product photos instead of placeholder image URLs.
-- Add admin customer management for viewing customers and their order history.
-- Add order cancellation rules for customers and admins.
-- Add email notifications for account registration and order status changes.
-- Add production deployment configuration for frontend, backend, and managed PostgreSQL.
+- Thêm migration database an toàn để thay đổi schema mà không cần chạy lại `npm run db:setup`.
+- Thêm upload ảnh sản phẩm thay cho ảnh placeholder.
+- Thêm quản lý khách hàng trong admin, gồm xem thông tin khách và lịch sử đơn hàng.
+- Thêm quy tắc hủy đơn cho khách hàng và admin.
+- Thêm email thông báo khi đăng ký tài khoản và khi đơn hàng đổi trạng thái.
+- Thêm cấu hình deploy production cho frontend, backend và managed PostgreSQL.
 
-## Medium Priority
+## Ưu Tiên Trung Bình
 
-- Add product reviews after completed orders.
-- Add discount codes and promotions.
-- Add product sorting by price, newest, featured, and stock availability.
-- Add richer admin analytics for revenue, top products, low stock, and order status counts.
-- Add audit-friendly order status history.
-- Add pagination for product, order, and admin lists.
+- Thêm đánh giá sản phẩm sau khi đơn hàng hoàn thành.
+- Thêm mã giảm giá và chương trình khuyến mãi.
+- Thêm sắp xếp sản phẩm theo giá, mới nhất, nổi bật và tình trạng tồn kho.
+- Thêm thống kê admin cho doanh thu, sản phẩm bán chạy, sản phẩm sắp hết hàng và số lượng đơn theo trạng thái.
+- Thêm lịch sử thay đổi trạng thái đơn hàng để dễ truy vết.
+- Thêm phân trang cho danh sách sản phẩm, đơn hàng và các trang admin.
 
-## Later
+## Làm Sau
 
-- Add online payment in addition to COD.
-- Add wishlist or favorites.
-- Add product recommendations from browsing and order history.
-- Add inventory import/export via CSV.
-- Add customer support messaging.
-- Add deployment monitoring, error tracking, and database backup documentation.
+- Thêm thanh toán online bên cạnh COD.
+- Thêm wishlist hoặc sản phẩm yêu thích.
+- Thêm gợi ý sản phẩm dựa trên lịch sử xem và lịch sử mua hàng.
+- Thêm import/export tồn kho bằng CSV.
+- Thêm nhắn tin hỗ trợ khách hàng.
+- Thêm monitoring, error tracking và tài liệu backup database.
 
-## Technical Debt
+## Nợ Kỹ Thuật
 
-- Replace the destructive setup script with separate migration and seed commands.
-- Add a dedicated test database setup path for PostgreSQL-backed integration tests.
-- Move local development secrets out of documentation and into environment-specific setup notes.
-- Add API rate limiting and stronger auth configuration before public production release.
+- Thay script setup có drop bảng bằng các lệnh migration và seed riêng.
+- Thêm luồng setup test database riêng cho integration test chạy với PostgreSQL.
+- Tách secret local development khỏi tài liệu chung và đưa vào hướng dẫn cấu hình theo môi trường.
+- Thêm rate limiting API và cấu hình auth chặt hơn trước khi public production.
