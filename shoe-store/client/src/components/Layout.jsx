@@ -1,8 +1,9 @@
-import { Heart, Menu, Moon, Search, ShoppingBag, Sun, User, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Camera, Heart, Menu, Moon, Search, ShoppingBag, Sun, User, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
+import { getImageSearchError } from '../utils/imageSearch.js';
 import AiAssistant from './AiAssistant.jsx';
 
 const THEME_STORAGE_KEY = 'shoe_store_theme';
@@ -11,8 +12,12 @@ export default function Layout() {
   const { user, logout, isAdmin } = useAuth();
   const { cart } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchError, setSearchError] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || 'light');
+  const headerFileInputRef = useRef(null);
   const itemCount = cart.items?.reduce((total, item) => total + Number(item.quantity || 0), 0) || 0;
   const isCustomerPage = !['/login', '/register', '/admin'].some((path) => location.pathname.startsWith(path));
   const isDarkTheme = theme === 'dark';
@@ -20,6 +25,42 @@ export default function Layout() {
   useEffect(() => {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    const query = location.pathname === '/products' ? new URLSearchParams(location.search).get('q') || '' : '';
+    setSearchQuery(query);
+    setSearchError('');
+  }, [location.pathname, location.search]);
+
+  function submitSearch(event) {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    const params = new URLSearchParams();
+    if (query) {
+      params.set('q', query);
+    }
+    setIsMenuOpen(false);
+    setSearchError('');
+    navigate(params.size ? `/products?${params.toString()}` : '/products');
+  }
+
+  function selectHeaderImage(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+
+    const validationError = getImageSearchError(file);
+    if (validationError) {
+      setSearchError(validationError);
+      return;
+    }
+
+    setSearchError('');
+    setIsMenuOpen(false);
+    navigate('/products', { state: { imageSearchFile: file } });
+  }
 
   return (
     <div className={`app-shell app-shell--${theme}`}>
@@ -58,6 +99,48 @@ export default function Layout() {
             </NavLink>
           ) : null}
         </nav>
+        <form className="header-search" role="search" aria-label="Tìm kiếm sản phẩm toàn cửa hàng" onSubmit={submitSearch}>
+          <label className="header-search__label" htmlFor="header-product-query">
+            Tìm kiếm sản phẩm
+          </label>
+          <div className="header-search__control">
+            <input
+              id="header-product-query"
+              type="search"
+              value={searchQuery}
+              placeholder="Tìm sản phẩm"
+              aria-describedby={searchError ? 'header-search-error' : undefined}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+            <button type="submit" className="header-search__button" aria-label="Tìm kiếm">
+              <Search size={18} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="header-search__button"
+              aria-label="Tìm sản phẩm bằng hình ảnh từ thanh đầu trang"
+              onClick={() => headerFileInputRef.current?.click()}
+            >
+              <Camera size={18} aria-hidden="true" />
+            </button>
+          </div>
+          <input
+            ref={headerFileInputRef}
+            className="header-search__file-input"
+            type="file"
+            hidden
+            tabIndex={-1}
+            accept="image/jpeg,image/png"
+            capture="environment"
+            aria-label="Chọn ảnh để tìm từ thanh đầu trang"
+            onChange={selectHeaderImage}
+          />
+          {searchError ? (
+            <p id="header-search-error" className="header-search__error" role="alert">
+              {searchError}
+            </p>
+          ) : null}
+        </form>
         <div className="header-actions">
           <button
             type="button"
@@ -67,9 +150,6 @@ export default function Layout() {
             onClick={() => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'))}
           >
             {isDarkTheme ? <Sun size={19} aria-hidden="true" /> : <Moon size={19} aria-hidden="true" />}
-          </button>
-          <button type="button" className="icon-button" aria-label="Tìm kiếm sản phẩm">
-            <Search size={19} aria-hidden="true" />
           </button>
           {user ? (
             <>

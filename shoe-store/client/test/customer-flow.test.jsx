@@ -260,6 +260,38 @@ describe('customer shopping flow', () => {
     expect(screen.getByText('Size: 9, 10')).toBeTruthy();
   });
 
+  it('searches from another customer page and reads the query on the catalog', async () => {
+    const fetchMock = renderAsCustomer('/orders');
+    await screen.findByRole('heading', { name: 'Đơn hàng' });
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm kiếm sản phẩm' }), {
+      target: { value: '  Court Classic  ' }
+    });
+    fireEvent.submit(screen.getByRole('search', { name: 'Tìm kiếm sản phẩm toàn cửa hàng' }));
+
+    expect(await screen.findByRole('heading', { name: 'Court Classic' })).toBeTruthy();
+    expect(window.location.pathname).toBe('/products');
+    expect(new URLSearchParams(window.location.search).get('q')).toBe('Court Classic');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/products?q=Court+Classic'),
+      expect.any(Object)
+    );
+  });
+
+  it('closes the mobile menu when header text search is submitted', async () => {
+    renderCustomerHome();
+    fireEvent.click(screen.getByRole('button', { name: 'Mở menu' }));
+    expect(screen.getByRole('button', { name: 'Đóng menu' })).toBeTruthy();
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm kiếm sản phẩm' }), {
+      target: { value: 'Road Runner' }
+    });
+    fireEvent.submit(screen.getByRole('search', { name: 'Tìm kiếm sản phẩm toàn cửa hàng' }));
+
+    expect(await screen.findByRole('button', { name: 'Mở menu' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Road Runner 1' })).toBeTruthy();
+  });
+
   it('filters products by search keyword', async () => {
     const fetchMock = renderAsCustomer('/products');
     await screen.findByRole('heading', { name: 'Road Runner 1' });

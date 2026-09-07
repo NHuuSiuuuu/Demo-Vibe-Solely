@@ -30,9 +30,9 @@ function response(payload, ok = true) {
   };
 }
 
-function renderCatalog(searchByImage = async () => response({ products: [imageProduct] })) {
+function renderCatalog(searchByImage = async () => response({ products: [imageProduct] }), path = '/products') {
   localStorage.setItem('shoe_store_token', 'customer-token');
-  window.history.pushState({}, '', '/products');
+  window.history.pushState({}, '', path);
   const fetchMock = vi.fn(async (url, options = {}) => {
     const path = new URL(String(url)).pathname;
     if (path === '/api/auth/me') {
@@ -110,6 +110,48 @@ describe('customer image search', () => {
     expect(openFilePicker).toHaveBeenCalledTimes(1);
     expect(fileInput.hidden).toBe(true);
     expect(fileInput.tabIndex).toBe(-1);
+  });
+
+  it('carries a valid header image from home into the existing image-search flow', async () => {
+    let finishSearch;
+    const imageResponse = new Promise((resolve) => {
+      finishSearch = resolve;
+    });
+    const fetchMock = renderCatalog(() => imageResponse, '/');
+    const fileInput = screen.getByLabelText('Chọn ảnh để tìm từ thanh đầu trang');
+    const file = new File(['shoe'], 'header-shoe.png', { type: 'image/png' });
+
+    expect(fileInput.hidden).toBe(true);
+    expect(fileInput.tabIndex).toBe(-1);
+    expect(fileInput.getAttribute('accept')).toBe('image/jpeg,image/png');
+    expect(fileInput.getAttribute('capture')).toBe('environment');
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(
+      (await screen.findByRole('status', { name: 'Trạng thái tìm kiếm bằng ảnh' })).textContent
+    ).toContain('Đang tìm sản phẩm tương tự');
+    expect(window.location.pathname).toBe('/products');
+    expect(screen.getByRole('img', { name: 'Ảnh dùng để tìm sản phẩm' }).getAttribute('src')).toBe('blob:preview');
+    const imageCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/api/products/search-by-image'));
+    expect(imageCall[1].body.get('image')).toBe(file);
+
+    finishSearch(response({ products: [imageProduct] }));
+    expect(await screen.findByRole('heading', { name: imageProduct.name })).toBeTruthy();
+  });
+
+  it.each([
+    [new File(['text'], 'header.gif', { type: 'image/gif' }), 'Chỉ chấp nhận ảnh JPEG hoặc PNG.'],
+    [new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'header-large.jpg', { type: 'image/jpeg' }), 'Ảnh không được vượt quá 8 MB.']
+  ])('rejects invalid header images before leaving the current page', async (file, message) => {
+    const fetchMock = renderCatalog(undefined, '/');
+
+    fireEvent.change(screen.getByLabelText('Chọn ảnh để tìm từ thanh đầu trang'), {
+      target: { files: [file] }
+    });
+
+    expect((await screen.findByRole('alert')).textContent).toContain(message);
+    expect(window.location.pathname).toBe('/');
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/products/search-by-image'))).toBe(false);
   });
 
   it('opens an accessible camera input, preserves filters, and renders loading and results', async () => {

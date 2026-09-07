@@ -69,7 +69,10 @@ describe('App', () => {
     expect(screen.getByRole('link', { name: 'Sneaker' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Chạy bộ' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Phong cách sống' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Tìm kiếm sản phẩm' })).toBeTruthy();
+    expect(screen.getByRole('search', { name: 'Tìm kiếm sản phẩm toàn cửa hàng' })).toBeTruthy();
+    expect(screen.getByRole('searchbox', { name: 'Tìm kiếm sản phẩm' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tìm kiếm' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tìm sản phẩm bằng hình ảnh từ thanh đầu trang' })).toBeTruthy();
     expect(screen.getAllByRole('link', { name: 'Tài khoản' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Danh sách yêu thích' })).toBeTruthy();
     expect(screen.getAllByRole('link', { name: /Túi hàng/ }).length).toBeGreaterThan(0);

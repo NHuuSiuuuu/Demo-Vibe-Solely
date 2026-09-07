@@ -1,12 +1,11 @@
 import { Camera, RefreshCw, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import ProductCard from '../components/ProductCard.jsx';
+import { getImageSearchError } from '../utils/imageSearch.js';
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png']);
 const IMAGE_FILTER_FIELDS = ['brand', 'gender', 'size', 'color', 'minPrice', 'maxPrice'];
 
 const initialImageSearch = {
@@ -15,6 +14,24 @@ const initialImageSearch = {
   status: 'idle',
   error: ''
 };
+
+function createImageSearchState(file) {
+  if (!file) {
+    return initialImageSearch;
+  }
+
+  const error = getImageSearchError(file);
+  if (error) {
+    return { ...initialImageSearch, status: 'error', error };
+  }
+
+  return {
+    file,
+    previewUrl: URL.createObjectURL(file),
+    status: 'loading',
+    error: ''
+  };
+}
 
 const initialFilters = {
   q: '',
@@ -47,18 +64,36 @@ function buildProductQuery(filters) {
 
 export default function ProductListPage() {
   const { token } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const routedImageFile = location.state?.imageSearchFile;
   const [filters, setFilters] = useState(() => ({
     ...initialFilters,
+    q: searchParams.get('q') || '',
     category: searchParams.get('category') || '',
     sort: searchParams.get('sort') || initialFilters.sort
   }));
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
-  const [imageSearch, setImageSearch] = useState(initialImageSearch);
+  const [imageSearch, setImageSearch] = useState(() => createImageSearchState(routedImageFile));
   const [imageSearchRetry, setImageSearchRetry] = useState(0);
   const fileInputRef = useRef(null);
+  const consumedRoutedImageRef = useRef(routedImageFile || null);
+
+  useEffect(() => {
+    if (!routedImageFile) {
+      return;
+    }
+
+    if (consumedRoutedImageRef.current !== routedImageFile) {
+      consumedRoutedImageRef.current = routedImageFile;
+      setImageSearch(createImageSearchState(routedImageFile));
+    }
+
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [location.pathname, location.search, navigate, routedImageFile]);
 
   useEffect(() => {
     if (imageSearch.file) {
@@ -164,18 +199,7 @@ export default function ProductListPage() {
       return;
     }
 
-    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
-      setImageSearch((current) => ({ ...current, status: 'error', error: 'Chỉ chấp nhận ảnh JPEG hoặc PNG.' }));
-      return;
-    }
-
-    if (file.size > MAX_IMAGE_BYTES) {
-      setImageSearch((current) => ({ ...current, status: 'error', error: 'Ảnh không được vượt quá 8 MB.' }));
-      return;
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-    setImageSearch({ file, previewUrl, status: 'loading', error: '' });
+    setImageSearch(createImageSearchState(file));
   }
 
   function clearImageSearch() {
@@ -202,6 +226,7 @@ export default function ProductListPage() {
   useEffect(() => {
     setFilters((current) => ({
       ...current,
+      q: searchParams.get('q') || '',
       category: searchParams.get('category') || '',
       sort: searchParams.get('sort') || initialFilters.sort
     }));
