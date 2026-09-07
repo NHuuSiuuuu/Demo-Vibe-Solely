@@ -40,6 +40,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm khu vực index sản phẩm trong admin RAG để xem số sản phẩm đã index/cần reindex và reindex một sản phẩm bằng ID.
 
 ### Đã thay đổi
+- Cải thiện giao diện chatbot: render xuống dòng, danh sách đánh số/gạch đầu dòng và chữ đậm đúng định dạng Markdown từ Gemini.
 - Tăng ngân sách đầu ra của Gemini để các câu trả lời chính sách và hướng dẫn không bị cắt giữa chừng, đồng thời giới hạn độ dài bằng chỉ dẫn trợ lý.
 
 - Cải thiện prompt trợ lý ảo Solely để trả lời tiếng Việt tự nhiên, đủ ý, không lộ nhãn kỹ thuật và tăng giới hạn output để tránh câu trả lời bị cắt giữa chừng.

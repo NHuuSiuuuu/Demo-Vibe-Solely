@@ -11,6 +11,55 @@ const welcomeMessage = {
   content: 'Chào anh, em có thể gợi ý giày theo ngân sách, size và mục đích sử dụng.'
 };
 
+function renderInlineMarkdown(text, keyPrefix) {
+  return String(text).split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={`${keyPrefix}-bold-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`${keyPrefix}-text-${index}`}>{part}</span>;
+  });
+}
+
+function renderAssistantMessage(content) {
+  const normalizedContent = String(content || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\s+(?=(?:\d+[.)]|[-*])\s+)/g, '\n');
+
+  return normalizedContent.split('\n').map((line, index) => {
+    const trimmedLine = line.trim();
+    if (!trimmedLine) {
+      return <div className="ai-message-break" key={`break-${index}`} aria-hidden="true" />;
+    }
+
+    const orderedMatch = trimmedLine.match(/^(\d+)[.)]\s+(.+)$/);
+    if (orderedMatch) {
+      return (
+        <div className="ai-message-list-item ai-message-list-item--ordered" key={`ordered-${index}`}>
+          <span className="ai-message-list-marker">{orderedMatch[1]}.</span>
+          <span>{renderInlineMarkdown(orderedMatch[2], `ordered-${index}`)}</span>
+        </div>
+      );
+    }
+
+    const unorderedMatch = trimmedLine.match(/^[-*]\s+(.+)$/);
+    if (unorderedMatch) {
+      return (
+        <div className="ai-message-list-item" key={`unordered-${index}`}>
+          <span className="ai-message-list-marker" aria-hidden="true">•</span>
+          <span>{renderInlineMarkdown(unorderedMatch[1], `unordered-${index}`)}</span>
+        </div>
+      );
+    }
+
+    const headingMatch = trimmedLine.match(/^#{1,3}\s+(.+)$/);
+    if (headingMatch) {
+      return <strong className="ai-message-heading" key={`heading-${index}`}>{renderInlineMarkdown(headingMatch[1], `heading-${index}`)}</strong>;
+    }
+
+    return <span className="ai-message-paragraph" key={`paragraph-${index}`}>{renderInlineMarkdown(trimmedLine, `paragraph-${index}`)}</span>;
+  });
+}
+
 export default function AiAssistant() {
   const { token, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -136,7 +185,9 @@ export default function AiAssistant() {
                         <Sparkles size={14} />
                       </span>
                     ) : null}
-                    <p className="ai-message-bubble">{chatMessage.content}</p>
+                    <div className="ai-message-bubble">
+                      {chatMessage.sender === 'assistant' ? renderAssistantMessage(chatMessage.content) : chatMessage.content}
+                    </div>
                   </div>
                 ))}
                 {isSending ? (

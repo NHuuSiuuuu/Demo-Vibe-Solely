@@ -437,6 +437,22 @@ describe('customer shopping flow', () => {
     expect(screen.queryByText('Sản phẩm gợi ý')).toBeNull();
   });
 
+  it('formats assistant markdown lists and bold text as readable chat blocks', async () => {
+    mockApi('/api/ai/chat', {
+      answer: 'Bạn có thể đặt hàng theo các bước sau:\n\n1. **Chọn sản phẩm**\n2. Chọn size và màu\n\n* Nhập thông tin giao hàng\n* Chọn phương thức thanh toán',
+      products: [],
+      sources: []
+    });
+
+    renderCustomerHome();
+    await askAssistant('Cách đặt hàng như nào?');
+
+    expect(await screen.findByText('Chọn sản phẩm')).toBeTruthy();
+    expect(screen.getByText('Chọn sản phẩm').tagName).toBe('STRONG');
+    expect(screen.getByText('Nhập thông tin giao hàng')).toBeTruthy();
+    expect(document.querySelectorAll('.ai-message-list-item')).toHaveLength(4);
+  });
+
   it('shows login/register guidance on logged-out checkout without calling protected APIs', () => {
     const fetchMock = renderLoggedOut('/checkout');
     const authPrompt = screen.getByRole('region', { name: 'Đăng nhập để tiếp tục' });
