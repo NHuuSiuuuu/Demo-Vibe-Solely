@@ -8,6 +8,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 - Bổ sung endpoint public multipart `POST /api/products/search-by-image` với bộ lọc catalog được allowlist và giới hạn ảnh 8 MB.
 - Bổ sung overview/reindex ảnh cho admin và hook index ảnh best-effort sau khi lưu ảnh sản phẩm.
+- Chuẩn hóa toàn bộ lỗi input Multer thành HTTP 400, bổ sung kiểm thử giới hạn dung lượng/quyền admin và ghi warning đã khử thông tin khi index ảnh nền thất bại.
 
 ### Kế hoạch triển khai tìm kiếm sản phẩm bằng hình ảnh
 
