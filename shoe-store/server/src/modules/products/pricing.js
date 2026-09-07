@@ -26,17 +26,17 @@ function toCents(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100);
 }
 
-function calculateVariantPrice(basePrice, discountPercent, legacyPriceDelta = null) {
+function calculateVariantPrice(basePrice, discountPercent, legacyPriceDelta = null, legacyPricingActive = false) {
   const basePriceCents = toCents(basePrice);
   const normalizedDiscount = normalizeDiscountPercent(discountPercent);
   const discountBasisPoints = Math.round(Number(normalizedDiscount) * 100);
 
-  if (legacyPriceDelta !== null && discountBasisPoints === 0) {
-    return Math.max(0, basePriceCents + toCents(legacyPriceDelta)) / 100;
+  if (legacyPricingActive && legacyPriceDelta !== null && discountBasisPoints === 0) {
+    return Math.max(0, Math.round((basePriceCents + toCents(legacyPriceDelta)) / 100));
   }
 
-  const discountedCents = Math.round(basePriceCents * (10000 - discountBasisPoints) / 10000);
-  return Math.max(0, discountedCents) / 100;
+  const discountedDong = Math.round(basePriceCents * (10000 - discountBasisPoints) / 1000000);
+  return Math.max(0, discountedDong);
 }
 
 module.exports = {

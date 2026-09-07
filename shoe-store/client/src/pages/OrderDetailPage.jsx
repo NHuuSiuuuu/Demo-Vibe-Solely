@@ -15,6 +15,29 @@ export default function OrderDetailPage() {
   const { token } = useAuth();
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
+  const [retryError, setRetryError] = useState('');
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  async function resumePayment() {
+    setRetryError('');
+    setIsRetrying(true);
+    try {
+      const data = await apiClient.post(`/api/orders/${order.id}/payment-url`, {}, { token });
+      const paymentUrl = typeof data.paymentUrl === 'string' ? data.paymentUrl.trim() : '';
+      if (!paymentUrl) throw new Error('Không nhận được đường dẫn thanh toán VNPay. Vui lòng thử lại.');
+      const link = document.createElement('a');
+      link.href = paymentUrl;
+      link.rel = 'noreferrer';
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setRetryError(err.message);
+    } finally {
+      setIsRetrying(false);
+    }
+  }
 
   useEffect(() => {
     if (!token) {
@@ -61,6 +84,13 @@ export default function OrderDetailPage() {
           <h1 id="order-title">Đơn hàng {formatOrderCode(order)}</h1>
           <p>Phương thức: {paymentMethodLabel(order.paymentMethod)}</p>
           <p>Thanh toán: {paymentStatusLabel(order.paymentStatus)}</p>
+          {order.paymentMethod === 'vnpay' && order.paymentStatus === 'pending'
+            && ['pending', 'confirmed'].includes(order.orderStatus) ? (
+              <button type="button" onClick={resumePayment} disabled={isRetrying}>
+                {isRetrying ? 'Đang tạo đường dẫn...' : 'Tiếp tục thanh toán VNPay'}
+              </button>
+            ) : null}
+          {retryError ? <p className="form-error" role="alert">{retryError}</p> : null}
           {order.note ? <p>Ghi chú: {order.note}</p> : null}
         </div>
         <StatusBadge tone="info">{orderStatusLabel(order.orderStatus)}</StatusBadge>

@@ -77,7 +77,9 @@ CREATE TABLE product_variants (
   size TEXT NOT NULL,
   color TEXT NOT NULL,
   stock_quantity INTEGER NOT NULL DEFAULT 0,
-  discount_percent NUMERIC(5, 2) NOT NULL DEFAULT 0
+  discount_percent NUMERIC(5, 2) NOT NULL DEFAULT 0,
+  legacy_price_delta NUMERIC(10, 2),
+  legacy_pricing_active BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE carts (
@@ -135,6 +137,8 @@ CREATE TABLE order_items (
   size TEXT NOT NULL,
   color TEXT NOT NULL,
   unit_price NUMERIC(10, 2) NOT NULL,
+  base_price NUMERIC(10, 2),
+  discount_percent NUMERIC(5, 2),
   quantity INTEGER NOT NULL,
   line_total NUMERIC(10, 2) NOT NULL
 );

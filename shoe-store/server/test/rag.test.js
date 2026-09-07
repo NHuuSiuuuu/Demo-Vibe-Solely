@@ -251,11 +251,12 @@ test('product index query executes with aggregated variants on PostgreSQL', asyn
       size TEXT NOT NULL,
       color TEXT NOT NULL,
       stock_quantity INTEGER NOT NULL,
-      discount_percent NUMERIC(5, 2) NOT NULL
+      discount_percent NUMERIC(5, 2) NOT NULL,
+      legacy_pricing_active BOOLEAN NOT NULL DEFAULT FALSE
     );
     INSERT INTO products VALUES (12, 'Trail Guard', 'trail-guard', 'Giày trail', 'Solely', 'trail', 'men', 2490000, 'active');
     INSERT INTO product_images VALUES (1, 12, '/trail.jpg', 0);
-    INSERT INTO product_variants VALUES (121, 12, 'STG-42', '42', 'olive', 6, 10);
+    INSERT INTO product_variants VALUES (121, 12, 'STG-42', '42', 'olive', 6, 10, FALSE);
   `);
   process.env.GEMINI_API_KEY = 'test-key';
   global.fetch = async () => ({
@@ -272,6 +273,33 @@ test('product index query executes with aggregated variants on PostgreSQL', asyn
   assert.equal(result.rows.length, 1);
   assert.equal(result.rows[0].variants.length, 1);
   assert.equal(Number(result.rows[0].variants[0].discountPercent), 10);
+});
+
+test('RAG index and retrieved cards honor legacy retirement and whole-dong pricing', async () => {
+  const savedProduct = structuredClone(productRows[0]);
+  process.env.GEMINI_API_KEY = 'test-key';
+  global.fetch = async () => ({ ok: true, async json() {
+    return { embedding: { values: Array.from({ length: 768 }, () => 0.1) } };
+  } });
+  retrievalRows = [{ id: '201', source_type: 'product', source_id: '12', title: 'Trail Guard',
+    content: 'Giày trail nam', metadata: { productId: 12 }, score: '0.94' }];
+  const { reindexProduct } = require('../src/modules/rag/ragIndex.service');
+  const { retrieveContext } = require('../src/modules/rag/ragRetrieval.service');
+  try {
+    productRows[0].basePrice = '101.00';
+    productRows[0].variants = [{ ...savedProduct.variants[0], discountPercent: 0,
+      legacyPriceDelta: '25.00', legacyPricingActive: true }];
+    for (const [active, discount, expected] of [[true, 0, 126], [false, 0, 101], [false, 50, 51]]) {
+      Object.assign(productRows[0].variants[0], { legacyPricingActive: active, discountPercent: discount });
+      insertedChunks = [];
+      await reindexProduct(12);
+      assert.ok(insertedChunks.some((chunk) => chunk.params[4].includes(`Giá sau giảm: ${expected} ₫`)));
+      const result = await retrieveContext({ message: 'Tìm giày trail', filters: {}, limit: 6 });
+      assert.equal(result.products[0].price, expected);
+    }
+  } finally {
+    productRows[0] = savedProduct;
+  }
 });
 
 test('reindexProduct leaves a product reindex marker when Gemini embedding fails after stale chunks are deleted', async () => {

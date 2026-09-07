@@ -33,6 +33,8 @@ export default function PaymentResultPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setOrder(null);
+    setError('');
     if (!token || !orderId) {
       return undefined;
     }

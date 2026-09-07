@@ -68,6 +68,8 @@ function mapOrderItem(row) {
     size: row.size,
     color: row.color,
     unitPrice: toNumber(row.unit_price),
+    basePrice: toNumber(row.base_price) ?? null,
+    discountPercent: toNumber(row.discount_percent) ?? null,
     quantity: Number(row.quantity),
     lineTotal: toNumber(row.line_total)
   };
@@ -141,6 +143,7 @@ async function getCartSnapshot(userId, client) {
         pv.stock_quantity,
         p.base_price,
         pv.discount_percent,
+        pv.legacy_pricing_active,
         to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
       FROM carts c
       JOIN cart_items ci ON ci.cart_id = c.id
@@ -154,11 +157,11 @@ async function getCartSnapshot(userId, client) {
   );
 
   return result.rows.map((row) => {
-    const unitPrice = calculateVariantPrice(row.base_price, row.discount_percent, row.legacy_price_delta);
+    const unitPrice = calculateVariantPrice(row.base_price, row.discount_percent, row.legacy_price_delta, row.legacy_pricing_active);
     return {
       ...row,
       unit_price: unitPrice,
-      line_total: Math.round(unitPrice * 100) * Number(row.quantity) / 100
+      line_total: unitPrice * Number(row.quantity)
     };
   });
 }
@@ -189,6 +192,8 @@ async function getOrderItems(orderId, client = { query }) {
         size,
         color,
         unit_price,
+        base_price,
+        discount_percent,
         quantity,
         line_total
       FROM order_items
@@ -232,7 +237,7 @@ async function createOrder(userId, payload = {}, ipAddress = '') {
       }
     }
 
-    const subtotal = Number(cartRows.reduce((sum, row) => sum + Number(row.line_total), 0).toFixed(2));
+    const subtotal = cartRows.reduce((sum, row) => sum + Number(row.line_total), 0);
     const orderResult = await client.query(
       `
         INSERT INTO orders (
@@ -267,8 +272,8 @@ async function createOrder(userId, payload = {}, ipAddress = '') {
         address.state,
         address.postalCode,
         address.country,
-        subtotal.toFixed(2),
-        subtotal.toFixed(2),
+        subtotal,
+        subtotal,
         orderNote,
         paymentMethod,
         paymentMethod === 'vnpay' ? 'pending' : 'unpaid'
@@ -298,9 +303,11 @@ async function createOrder(userId, payload = {}, ipAddress = '') {
             color,
             unit_price,
             quantity,
-            line_total
+            line_total,
+            base_price,
+            discount_percent
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           RETURNING *
         `,
         [
@@ -311,9 +318,11 @@ async function createOrder(userId, payload = {}, ipAddress = '') {
           item.sku,
           item.size,
           item.color,
-          Number(item.unit_price).toFixed(2),
+          Number(item.unit_price),
           Number(item.quantity),
-          Number(item.line_total).toFixed(2)
+          Number(item.line_total),
+          item.base_price,
+          item.discount_percent
         ]
       );
       insertedItems.push(itemResult.rows[0]);
@@ -352,6 +361,27 @@ async function createOrder(userId, payload = {}, ipAddress = '') {
 async function createCodOrder(userId, payload = {}) {
   const result = await createOrder(userId, { ...payload, paymentMethod: 'cod' });
   return result.order;
+}
+
+async function resumeVnpayPayment(userId, orderId, ipAddress) {
+  const id = Number(orderId);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw new HttpError(400, 'Invalid order id');
+  }
+  return withTransaction(async (client) => {
+    const result = await client.query(
+      'SELECT * FROM orders WHERE id = $1 AND user_id = $2 FOR UPDATE', [id, userId]
+    );
+    const order = result.rows[0];
+    if (!order) throw new HttpError(404, 'Order not found');
+    if (order.payment_method !== 'vnpay' || order.payment_status !== 'pending'
+      || !['pending', 'confirmed'].includes(order.order_status)) {
+      throw new HttpError(409, 'Only pending VNPay payments can be resumed');
+    }
+    return { paymentUrl: createPaymentUrl({
+      orderId: order.id, orderCode: order.order_code, amount: order.grand_total, ipAddress
+    }) };
+  });
 }
 
 function amountInMinorUnits(value) {
@@ -477,6 +507,7 @@ async function getCustomerOrder(userId, orderId) {
 
 module.exports = {
   createOrder,
+  resumeVnpayPayment,
   createCodOrder,
   reconcileVnpayPayment,
   listCustomerOrders,

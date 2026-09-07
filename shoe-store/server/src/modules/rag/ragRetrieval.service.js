@@ -53,7 +53,7 @@ function mapProductCard(row, filters = {}) {
       return {
         ...variant,
         discountPercent,
-        unitPrice: calculateVariantPrice(basePrice, discountPercent, variant.legacyPriceDelta)
+        unitPrice: calculateVariantPrice(basePrice, discountPercent, variant.legacyPriceDelta, variant.legacyPricingActive)
       };
     })
     .find((variant) => matchesVariantFilter(variant, filters));
@@ -112,7 +112,8 @@ async function loadProductsByIds(productIds, filters) {
               'id', pv.id,
               'size', pv.size,
               'discountPercent', pv.discount_percent,
-              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta'
+              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta',
+              'legacyPricingActive', pv.legacy_pricing_active
             ) ORDER BY pv.id
           ) FILTER (WHERE pv.stock_quantity > 0) AS variants
         FROM product_variants pv

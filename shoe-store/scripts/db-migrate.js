@@ -10,8 +10,12 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-const migration = path.join(rootDir, 'database/migrations/20260907-product-catalog-admin.sql');
-const result = spawnSync('psql', [process.env.DATABASE_URL, '-v', 'ON_ERROR_STOP=1', '-f', migration], {
+const migrations = [
+  '20260907-product-catalog-admin.sql',
+  '20260907-vnpay-discount.sql'
+];
+const result = spawnSync('psql', [process.env.DATABASE_URL, '-v', 'ON_ERROR_STOP=1',
+  ...migrations.flatMap((name) => ['-f', path.join(rootDir, 'database/migrations', name)])], {
   stdio: 'inherit'
 });
 
@@ -20,4 +24,4 @@ if (result.error) {
   process.exit(1);
 }
 
-process.exit(result.status || 0);
+process.exit(result.status ?? 1);

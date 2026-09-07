@@ -4,6 +4,17 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Gia cố thanh toán và giá bán
+
+- Sửa `db:migrate` để chạy migration catalog rồi VNPay/giảm giá với `ON_ERROR_STOP=1`; kiểm thử trực tiếp runner, lỗi tiến trình và migration chạy lặp trên PostgreSQL nhúng.
+- Bổ sung hạn thanh toán 15 phút theo GMT+7 vào cùng payload ký VNPay, kiểm thử chuyển ngày/năm và chữ ký không mã hóa lặp.
+- Chặn giao/hoàn tất đơn VNPay chưa thanh toán; chặn hủy khi thanh toán đang chờ hoặc đã thành công để bảo toàn tồn kho khi IPN đến muộn. Đơn thanh toán thất bại vẫn được hủy và hoàn tồn đúng một lần; COD giữ luồng cũ.
+- Thêm API có xác thực `POST /api/orders/:id/payment-url` và nút tiếp tục thanh toán trong chi tiết đơn, dùng số tiền/mã tham chiếu đã lưu mà không tạo thêm đơn, trừ kho hoặc xóa giỏ.
+- Thêm cờ phân biệt giá legacy với giảm giá do admin nhập; nhập `discountPercent` kể cả `0` sẽ ngừng fallback vĩnh viễn, giữ cột delta để kiểm toán và không bật lại khi chạy migration.
+- Đồng bộ helper, bộ lọc/sắp xếp catalog, giỏ hàng, đơn hàng và RAG sang giá bán làm tròn nguyên đồng trước khi nhân số lượng; giữ nguyên số tiền lịch sử và độ chính xác dữ liệu giá gốc.
+- Bổ sung ngữ cảnh `basePrice`/`discountPercent` cho giỏ và snapshot dòng đơn hàng; dữ liệu lịch sử không xác định trả `null`, không suy đoán theo catalog hiện tại.
+- Xóa trạng thái đơn/lỗi cũ trên trang kết quả VNPay trước khi tải mã đơn mới; bổ sung kiểm thử điều hướng và lỗi/nút thử lại.
+
 ### Đã thêm
 
 - Tạo MVP cửa hàng giày bằng React, Vite, Node.js, Express và hỗ trợ PostgreSQL.
@@ -40,7 +51,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm khu vực index sản phẩm trong admin RAG để xem số sản phẩm đã index/cần reindex và reindex một sản phẩm bằng ID.
 - Thêm schema giá giảm theo phần trăm và hợp đồng thanh toán VNPay, gồm trạng thái thanh toán, cột đối soát giao dịch và migration bảo toàn giá biến thể legacy.
 - Đồng bộ seed và script Việt hóa biến thể sang discount_percent để bootstrap schema mới không còn tham chiếu price_delta.
-- Thêm helper backend dùng chung để chuẩn hóa phần trăm giảm giá và tính giá biến thể chính xác đến hai chữ số thập phân, kèm fallback tạm thời cho dữ liệu giá cũ đã migrate.
+- Thêm helper backend dùng chung để chuẩn hóa phần trăm giảm giá đến hai chữ số thập phân và tính giá bán biến thể theo nguyên đồng, kèm fallback có cờ cho dữ liệu giá cũ đã migrate.
 - Thêm service backend tạo URL thanh toán VNPay Sandbox bằng chữ ký HMAC-SHA512, xác minh callback và dựng response IPN mà không cập nhật database.
 - Thêm tạo đơn VNPay trạng thái chờ thanh toán, return redirect đã xác minh chữ ký và IPN đối soát dưới transaction lock theo cơ chế idempotent, không lặp thao tác trừ tồn kho hoặc xóa giỏ hàng.
 - Thêm lựa chọn thanh toán COD/VNPay tại checkout, trang kết quả xác minh trạng thái từ đơn hàng và nhãn phương thức/trạng thái thanh toán trên lịch sử đơn hàng.

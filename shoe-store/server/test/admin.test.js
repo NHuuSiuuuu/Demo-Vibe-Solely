@@ -1029,39 +1029,39 @@ test('sets payment_status paid when order is completed', async () => {
   assert.equal(response.body.order.paymentStatus, 'paid');
 });
 
-test('does not mark a pending VNPay order paid when admin completes fulfillment', async () => {
+test('rejects fulfillment of a pending VNPay order without changing payment', async () => {
   const { createApp } = require('../src/app');
   const token = tokenFor(2);
   orders[0].payment_method = 'vnpay';
   orders[0].payment_status = 'pending';
 
-  for (const status of ['confirmed', 'shipping', 'completed']) {
+  for (const status of ['confirmed', 'shipping']) {
     await request(createApp())
       .patch('/api/admin/orders/900/status')
       .set('Authorization', `Bearer ${token}`)
       .send({ status })
-      .expect(200);
+      .expect(status === 'confirmed' ? 200 : 409);
   }
 
-  assert.equal(orders[0].order_status, 'completed');
+  assert.equal(orders[0].order_status, 'confirmed');
   assert.equal(orders[0].payment_status, 'pending');
 });
 
-test('does not mark a failed VNPay order paid when admin completes fulfillment', async () => {
+test('rejects fulfillment of a failed VNPay order without changing payment', async () => {
   const { createApp } = require('../src/app');
   const token = tokenFor(2);
   orders[0].payment_method = 'vnpay';
   orders[0].payment_status = 'failed';
 
-  for (const status of ['confirmed', 'shipping', 'completed']) {
+  for (const status of ['confirmed', 'shipping']) {
     await request(createApp())
       .patch('/api/admin/orders/900/status')
       .set('Authorization', `Bearer ${token}`)
       .send({ status })
-      .expect(200);
+      .expect(status === 'confirmed' ? 200 : 409);
   }
 
-  assert.equal(orders[0].order_status, 'completed');
+  assert.equal(orders[0].order_status, 'confirmed');
   assert.equal(orders[0].payment_status, 'failed');
 });
 
@@ -1109,7 +1109,7 @@ test('restores variant stock when admin cancels an order', async () => {
   assert.deepEqual(restoredStockUpdates, [{ variantId: 101, quantity: 1 }]);
 });
 
-test('cancelling a pending VNPay order fails payment and restores stock once', async () => {
+test('rejects cancelling a pending VNPay order without restoring stock', async () => {
   const { createApp } = require('../src/app');
   orders[0].payment_method = 'vnpay';
   orders[0].payment_status = 'pending';
@@ -1118,12 +1118,13 @@ test('cancelling a pending VNPay order fails payment and restores stock once', a
     .patch('/api/admin/orders/900/status')
     .set('Authorization', `Bearer ${tokenFor(2)}`)
     .send({ status: 'cancelled' })
-    .expect(200);
+    .expect(409);
 
-  assert.equal(response.body.order.orderStatus, 'cancelled');
-  assert.equal(response.body.order.paymentStatus, 'failed');
-  assert.equal(variants[0].stock_quantity, 6);
-  assert.deepEqual(restoredStockUpdates, [{ variantId: 101, quantity: 1 }]);
+  assert.match(response.body.message, /reconciled before cancellation/);
+  assert.equal(orders[0].order_status, 'pending');
+  assert.equal(orders[0].payment_status, 'pending');
+  assert.equal(variants[0].stock_quantity, 5);
+  assert.deepEqual(restoredStockUpdates, []);
 });
 
 test('rejects cancelling a paid VNPay order before restoring stock', async () => {

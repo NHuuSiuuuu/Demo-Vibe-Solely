@@ -22,13 +22,20 @@ test('applies decimal discount percentages', () => {
   assert.equal(calculateVariantPrice('80.00', 12.5), 70);
 });
 
-test('rounds the calculated price to cents', () => {
-  assert.equal(calculateVariantPrice('19.99', 33.33), 13.33);
+test('rounds discounted unit prices to whole dong before multiplying quantities', () => {
+  assert.equal(calculateVariantPrice('19.99', 33.33), 13);
+  assert.equal(calculateVariantPrice('101.00', 50), 51);
+  assert.equal(calculateVariantPrice('100.49', 0), 100);
 });
 
 test('uses the migrated price delta when discount remains zero', () => {
-  assert.equal(calculateVariantPrice('89.99', 0, '5.00'), 94.99);
-  assert.equal(calculateVariantPrice('2.00', 0, '-5.00'), 0);
+  assert.equal(calculateVariantPrice('89.99', 0, '5.00', true), 95);
+  assert.equal(calculateVariantPrice('2.00', 0, '-5.00', true), 0);
+});
+
+test('an explicitly retired legacy delta cannot override a zero discount', () => {
+  assert.equal(calculateVariantPrice('100.00', 0, '25.00', false), 100);
+  assert.equal(calculateVariantPrice('100.00', 0, '25.00'), 100);
 });
 
 test('a configured discount takes precedence over a migrated price delta', () => {

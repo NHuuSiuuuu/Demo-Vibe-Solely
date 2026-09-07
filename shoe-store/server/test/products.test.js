@@ -188,7 +188,7 @@ test('sorts products by price ascending', async () => {
   const response = await request(createApp()).get('/api/products?sort=price_asc').expect(200);
 
   assert.deepEqual(response.body.products, [normalizeCard(productCards[0]), normalizeCard(productCards[1])]);
-  assert.match(lastProductListQuery, /ORDER BY COALESCE\(default_variant\.displayed_price, p\.base_price\) ASC/);
+  assert.match(lastProductListQuery, /ORDER BY COALESCE\(default_variant\.displayed_price, ROUND\(p\.base_price\)\) ASC/);
   assert.doesNotMatch(lastProductListQuery, /ORDER BY p\.base_price ASC/);
 });
 
@@ -237,14 +237,14 @@ test('returns one product by slug', async () => {
     brand: 'Stride',
     category: 'running',
     gender: 'men',
-    price: 89.99,
+    price: 90,
     images: [
       { id: 11, imageUrl: '/images/road-runner-1-main.jpg', altText: 'Road Runner 1 side view', sortOrder: 0 },
       { id: 12, imageUrl: '/images/road-runner-1-sole.jpg', altText: 'Road Runner 1 sole', sortOrder: 1 }
     ],
     variants: [
-      { id: 101, sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 5, discountPercent: 0, unitPrice: 89.99 },
-      { id: 102, sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 3, discountPercent: 10, unitPrice: 80.99 }
+      { id: 101, sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 5, discountPercent: 0, unitPrice: 90 },
+      { id: 102, sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 3, discountPercent: 10, unitPrice: 81 }
     ]
   });
 });

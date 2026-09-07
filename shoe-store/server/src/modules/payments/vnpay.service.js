@@ -54,11 +54,13 @@ function toMinorUnits(amount) {
 
 function createPaymentUrl({ orderId, orderCode, amount, ipAddress }) {
   requirePaymentConfig();
+  const createdAt = new Date();
 
   const params = {
     vnp_Amount: toMinorUnits(amount),
     vnp_Command: 'pay',
-    vnp_CreateDate: formatVnpayDate(),
+    vnp_CreateDate: formatVnpayDate(createdAt),
+    vnp_ExpireDate: formatVnpayDate(new Date(createdAt.getTime() + 15 * 60 * 1000)),
     vnp_CurrCode: 'VND',
     vnp_IpAddr: String(ipAddress || ''),
     vnp_IpnUrl: env.VNPAY_IPN_URL,

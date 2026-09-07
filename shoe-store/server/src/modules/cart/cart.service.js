@@ -13,7 +13,7 @@ function parsePositiveInteger(value, fieldName = 'Quantity') {
 function mapCart(rows) {
   const items = rows.map((row) => {
     const quantity = Number(row.quantity);
-    const unitPrice = calculateVariantPrice(row.base_price, row.discount_percent, row.legacy_price_delta);
+    const unitPrice = calculateVariantPrice(row.base_price, row.discount_percent, row.legacy_price_delta, row.legacy_pricing_active);
     return {
       id: Number(row.item_id),
       variantId: Number(row.product_variant_id),
@@ -25,14 +25,16 @@ function mapCart(rows) {
       quantity,
       stockQuantity: Number(row.stock_quantity),
       unitPrice,
-      lineTotal: Math.round(unitPrice * 100) * quantity / 100
+      basePrice: Number(row.base_price),
+      discountPercent: Number(row.discount_percent),
+      lineTotal: unitPrice * quantity
     };
   });
 
   return {
     id: rows[0] ? Number(rows[0].cart_id) : null,
     items,
-    subtotal: Number(items.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2))
+    subtotal: items.reduce((sum, item) => sum + item.lineTotal, 0)
   };
 }
 
@@ -75,6 +77,7 @@ async function getVariant(variantId) {
         pv.stock_quantity,
         p.base_price,
         pv.discount_percent,
+        pv.legacy_pricing_active,
         to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
       FROM product_variants pv
       JOIN products p ON p.id = pv.product_id
@@ -103,6 +106,7 @@ async function getCartRows(userId) {
         pv.stock_quantity,
         p.base_price,
         pv.discount_percent,
+        pv.legacy_pricing_active,
         to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
       FROM carts c
       LEFT JOIN cart_items ci ON ci.cart_id = c.id

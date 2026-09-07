@@ -51,7 +51,7 @@
 - Modify: `server/test/cart-orders.test.js`
 
 **Interfaces:**
-- `calculateVariantPrice(basePrice, discountPercent, legacyPriceDelta = null)` returns a non-negative number rounded to cents.
+- `calculateVariantPrice(basePrice, discountPercent, legacyPriceDelta = null, legacyPricingActive = false)` returns a non-negative whole-dong number (half up), matching the spec. Legacy fallback requires the migration marker; an explicit admin discount, including zero, retires it permanently.
 - `normalizeDiscountPercent(value)` accepts `0..100` and rejects invalid values with HTTP 400.
 
 - [ ] **Step 1: Add failing unit tests** for `0%`, `10%`, `100%`, decimal percentages, rounding and legacy fallback.

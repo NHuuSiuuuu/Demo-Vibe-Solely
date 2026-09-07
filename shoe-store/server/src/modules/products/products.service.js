@@ -2,7 +2,7 @@ const { query } = require('../../db/pool');
 const { HttpError } = require('../../utils/httpError');
 const { calculateVariantPrice } = require('./pricing');
 
-const DISPLAYED_PRICE_SORT = 'COALESCE(default_variant.displayed_price, p.base_price)';
+const DISPLAYED_PRICE_SORT = 'COALESCE(default_variant.displayed_price, ROUND(p.base_price))';
 const SORTS = {
   price_asc: `${DISPLAYED_PRICE_SORT} ASC`,
   price_desc: `${DISPLAYED_PRICE_SORT} DESC`,
@@ -12,18 +12,19 @@ const SORTS = {
 
 const VARIANT_DISPLAYED_PRICE = `CASE
   WHEN COALESCE(source_variant.discount_percent, 0) = 0
+    AND source_variant.legacy_pricing_active
     AND to_jsonb(source_variant) ->> 'legacy_price_delta' IS NOT NULL
     THEN GREATEST(
       0,
-      p.base_price + (to_jsonb(source_variant) ->> 'legacy_price_delta')::NUMERIC
+      ROUND(p.base_price + (to_jsonb(source_variant) ->> 'legacy_price_delta')::NUMERIC)
     )
   ELSE GREATEST(
     0,
     ROUND(
-      (p.base_price * 100)
+      p.base_price
       * (10000 - ROUND(COALESCE(source_variant.discount_percent, 0) * 100))
       / 10000
-    ) / 100
+    )
   )
 END`;
 
@@ -73,7 +74,7 @@ function mapProductCard(row) {
     brand: row.brand,
     category: row.category,
     gender: row.gender,
-    price: calculateVariantPrice(row.basePrice, discountPercent, row.legacyPriceDelta),
+    price: calculateVariantPrice(row.basePrice, discountPercent, row.legacyPriceDelta, row.legacyPricingActive),
     discountPercent,
     imageUrl: row.imageUrl,
     availableSizes: row.availableSizes || [],
@@ -97,7 +98,7 @@ function mapProductDetail(row) {
     brand: row.brand,
     category: row.category,
     gender: row.gender,
-    price: toNumber(row.price),
+    price: Math.round(toNumber(row.price)),
     images: (row.images || []).map((image) => ({
       id: Number(image.id),
       imageUrl: image.imageUrl,
@@ -113,7 +114,7 @@ function mapProductDetail(row) {
         color: variant.color,
         stockQuantity: Number(variant.stockQuantity),
         discountPercent,
-        unitPrice: calculateVariantPrice(row.price, discountPercent, variant.legacyPriceDelta)
+        unitPrice: calculateVariantPrice(row.price, discountPercent, variant.legacyPriceDelta, variant.legacyPricingActive)
       };
     })
   };
@@ -185,6 +186,7 @@ function buildProductListQuery(filters) {
         default_variant.id AS "defaultVariantId",
         COALESCE(default_variant.discount_percent, 0) AS "discountPercent",
         default_variant.legacy_price_delta AS "legacyPriceDelta",
+        default_variant.legacy_pricing_active AS "legacyPricingActive",
         COALESCE(default_variant.stock_quantity, 0) AS "defaultVariantStock"
       FROM products p
       LEFT JOIN LATERAL (
@@ -208,6 +210,7 @@ function buildProductListQuery(filters) {
           pv.stock_quantity,
           pv.discount_percent,
           pv.legacy_price_delta,
+          pv.legacy_pricing_active,
           pv.displayed_price
         FROM (
           SELECT
@@ -216,6 +219,7 @@ function buildProductListQuery(filters) {
             source_variant.color,
             source_variant.stock_quantity,
             source_variant.discount_percent,
+            source_variant.legacy_pricing_active,
             to_jsonb(source_variant) ->> 'legacy_price_delta' AS legacy_price_delta,
             ${VARIANT_DISPLAYED_PRICE} AS displayed_price
           FROM product_variants source_variant
@@ -271,7 +275,8 @@ async function getProductBySlug(slug) {
               'color', pv.color,
               'stockQuantity', pv.stock_quantity,
               'discountPercent', pv.discount_percent,
-              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta'
+              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta',
+              'legacyPricingActive', pv.legacy_pricing_active
             )
           ) FILTER (WHERE pv.id IS NOT NULL),
           '[]'

@@ -1,11 +1,16 @@
 const express = require('express');
 const { requireAuth, requireCustomer } = require('../../middleware/auth');
 const { asyncHandler } = require('../../utils/asyncHandler');
-const { createOrder, listCustomerOrders, getCustomerOrder } = require('./orders.service');
+const { createOrder, listCustomerOrders, getCustomerOrder, resumeVnpayPayment } = require('./orders.service');
 
 const router = express.Router();
 
 router.use(requireAuth, requireCustomer);
+
+router.post('/:id/payment-url', asyncHandler(async (req, res) => {
+  const result = await resumeVnpayPayment(req.user.id, req.params.id, req.ip);
+  res.json(result);
+}));
 
 router.post(
   '/',

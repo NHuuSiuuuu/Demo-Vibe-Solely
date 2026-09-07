@@ -458,7 +458,10 @@ async function updateVariant(id, input) {
   if (Object.prototype.hasOwnProperty.call(variant, 'size')) pushUpdate(updates, params, 'size', variant.size);
   if (Object.prototype.hasOwnProperty.call(variant, 'color')) pushUpdate(updates, params, 'color', variant.color);
   if (Object.prototype.hasOwnProperty.call(variant, 'stockQuantity')) pushUpdate(updates, params, 'stock_quantity', variant.stockQuantity);
-  if (Object.prototype.hasOwnProperty.call(variant, 'discountPercent')) pushUpdate(updates, params, 'discount_percent', variant.discountPercent);
+  if (Object.prototype.hasOwnProperty.call(variant, 'discountPercent')) {
+    pushUpdate(updates, params, 'discount_percent', variant.discountPercent);
+    updates.push('legacy_pricing_active = FALSE');
+  }
 
   if (updates.length === 0) {
     throw new HttpError(400, 'No variant updates provided');
@@ -506,6 +509,8 @@ async function getOrderItems(orderId, client = { query }, { lock = false } = {})
         size,
         color,
         unit_price,
+        base_price,
+        discount_percent,
         quantity,
         line_total
       FROM order_items
@@ -568,6 +573,15 @@ async function updateOrderStatus(id, status) {
 
     assertOrderTransition(currentOrder.order_status, status);
 
+    if (currentOrder.payment_method === 'vnpay') {
+      if (['shipping', 'completed'].includes(status) && currentOrder.payment_status !== 'paid') {
+        throw new HttpError(409, 'VNPay orders must be paid before fulfillment');
+      }
+      if (status === 'cancelled' && currentOrder.payment_status === 'pending') {
+        throw new HttpError(409, 'Pending VNPay payment must be reconciled before cancellation');
+      }
+    }
+
     if (
       status === 'cancelled' &&
       currentOrder.payment_method === 'vnpay' &&
@@ -605,9 +619,6 @@ async function updateOrderStatus(id, status) {
         UPDATE orders
         SET order_status = $1,
             payment_status = CASE WHEN $3::order_status = 'completed' AND payment_method = 'cod' THEN 'paid'
-              WHEN $3::order_status = 'cancelled'
-                AND payment_method = 'vnpay'
-                AND payment_status = 'pending' THEN 'failed'
               ELSE payment_status
             END,
             updated_at = NOW()

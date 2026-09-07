@@ -120,8 +120,9 @@ running app, and the HTTPS tunnel above.
 
 - [ ] **Discount pricing:** confirm the product detail, cart, checkout, and
   persisted order item all use the same discounted unit price:
-  `basePrice * (1 - discountPercent / 100)`, rounded to two decimal places by
-  the backend.
+  `basePrice * (1 - discountPercent / 100)`, rounded to the nearest whole VND
+  đồng by the backend (half đồng rounds up). Multiply this rounded unit price
+  by quantity; do not round the unrounded line total instead.
 - [ ] **COD:** create a fresh cart, choose COD, and confirm checkout creates one
   order without a gateway redirect; the order shows payment method `cod`,
   payment status `unpaid`, and the discounted totals.
@@ -150,12 +151,62 @@ npm run db:setup
 npm run dev
 ```
 
-For an existing database, apply the additive admin catalog migration before
-starting the server:
+For an existing database, apply both additive migrations before starting the
+updated server. The runner invokes the catalog migration first, then the
+VNPay/discount migration, with `psql -v ON_ERROR_STOP=1`. It exits unsuccessfully
+on SQL or process failures. Both migrations may be rerun:
 
 ```bash
 npm run db:migrate
 ```
+
+### Payment lifecycle and resume policy
+
+Payment URLs include signed `vnp_CreateDate` and `vnp_ExpireDate` in GMT+7,
+with a 15-minute payment window, as required by the
+[official VNPay request contract](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html).
+The expiry is part of the same sorted, once-encoded HMAC-SHA512 payload.
+URL expiry does not prove payment failure: a delayed valid IPN is still
+reconciled against the stored order and amount.
+
+VNPay orders must be `paid` before an admin may move them to `shipping` or
+`completed`. Cancellation is blocked for both `pending` and `paid` VNPay
+payments. Pending orders keep their stock reservation until an authoritative
+IPN resolves payment; a failed payment may then be cancelled to restore stock
+once. Paid cancellation requires refund support, which this app does not
+implement. A missing IPN therefore leaves an order pending and its stock
+reserved; URL expiry alone never releases stock. COD transitions are unchanged.
+
+An authenticated customer can `POST /api/orders/:id/payment-url` for their
+existing VNPay order when payment is `pending` and the order is `pending` or
+`confirmed`. The response is `{ "paymentUrl": "https://..." }`. The order
+detail page exposes **Tiếp tục thanh toán VNPay** for these orders. The endpoint
+locks the order, signs a fresh 15-minute URL using its persisted amount and
+the same `vnp_TxnRef`, and makes no changes to orders, stock, items or cart.
+This resumes the existing merchant payment reference; it does not create a
+second payment attempt. Repeated calls in the same second may return the same
+URL. Already paid/failed payments, COD, cancelled and fulfilled orders cannot
+resume. Return URL status remains informational; only IPN changes payment state.
+
+### Pricing migration and historical context
+
+New variants use percentage pricing. Migration retains `legacy_price_delta`
+for audit and explicitly marks unconverted rows with `legacy_pricing_active`.
+Fallback applies only to those marked rows with a zero discount. Any explicit
+admin `discountPercent` write, including `0`, permanently clears the marker;
+stock-only edits keep it intact, and rerunning migration cannot reactivate it.
+Preexisting zero discounts cannot retrospectively be distinguished from an
+untouched migrated row; re-save an intended explicit zero after upgrading.
+
+Catalog filters/sorts, variant sale prices, cart unit prices, new order unit
+prices and line/order totals use whole đồng. Raw base-price audit context and
+percentage precision are retained. Existing historical order amounts are
+preserved, including any fractions saved before this fix. Cart items expose
+`basePrice` and `discountPercent`; new order items snapshot both alongside
+`unitPrice` and `lineTotal`, and customer/admin reads use these snapshots.
+Migrated historical items return `null` for unknown context instead of using
+the current catalog price. Refresh the RAG index after migration to update
+previously stored pricing text.
 
 For quick UI review without PostgreSQL, skip `server/.env` and
 `npm run db:setup`, then run:

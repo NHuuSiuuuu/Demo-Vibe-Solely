@@ -91,6 +91,17 @@ test('converts the VND payment amount to VNPay minor units', () => {
   assert.equal(paymentUrl.searchParams.get('vnp_Amount'), '125050000');
 });
 
+test('signs a single GMT+7 creation and 15-minute expiry across the year boundary', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-12-31T16:55:00Z') });
+  const url = new URL(createPaymentUrl({ orderId: 42, orderCode: 'ORD-42', amount: 100, ipAddress: '203.0.113.9' }));
+  assert.deepEqual(url.searchParams.getAll('vnp_CreateDate'), ['20261231235500']);
+  assert.deepEqual(url.searchParams.getAll('vnp_ExpireDate'), ['20270101001000']);
+  assert.equal(url.searchParams.getAll('vnp_SecureHash').length, 1);
+  const signature = url.searchParams.get('vnp_SecureHash');
+  url.searchParams.delete('vnp_SecureHash');
+  assert.equal(signature, crypto.createHmac('sha512', 'test-secret-for-vnpay').update(url.search.slice(1)).digest('hex'));
+});
+
 test('verifies a signed callback and returns reconciliation fields without mutating input', () => {
   const params = validCallbackParams();
   const originalParams = { ...params };

@@ -25,7 +25,7 @@ function mapProduct(row) {
       color: variant.color,
       stockQuantity: Number(variant.stockQuantity || 0),
       discountPercent,
-      unitPrice: calculateVariantPrice(basePrice, discountPercent, variant.legacyPriceDelta)
+      unitPrice: calculateVariantPrice(basePrice, discountPercent, variant.legacyPriceDelta, variant.legacyPricingActive)
     };
   });
 
@@ -92,7 +92,8 @@ async function loadProduct(productId) {
               'color', pv.color,
               'stockQuantity', pv.stock_quantity,
               'discountPercent', pv.discount_percent,
-              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta'
+              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta',
+              'legacyPricingActive', pv.legacy_pricing_active
             ) ORDER BY pv.id
           ) FILTER (WHERE pv.stock_quantity > 0) AS variants
         FROM product_variants pv
