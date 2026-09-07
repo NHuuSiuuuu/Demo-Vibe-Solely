@@ -5,6 +5,7 @@ const authRoutes = require('./modules/auth/auth.routes');
 const productRoutes = require('./modules/products/products.routes');
 const cartRoutes = require('./modules/cart/cart.routes');
 const orderRoutes = require('./modules/orders/orders.routes');
+const paymentRoutes = require('./modules/payments/payments.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
 const ragRoutes = require('./modules/rag/rag.routes');
@@ -22,6 +23,7 @@ function createApp() {
   app.use('/api/products', productRoutes);
   app.use('/api/cart', cartRoutes);
   app.use('/api/orders', orderRoutes);
+  app.use('/api/payments', paymentRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin/rag', ragRoutes);
   app.use('/api/ai', aiRoutes);

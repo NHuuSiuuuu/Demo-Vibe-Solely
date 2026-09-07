@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireAuth, requireCustomer } = require('../../middleware/auth');
 const { asyncHandler } = require('../../utils/asyncHandler');
-const { createCodOrder, listCustomerOrders, getCustomerOrder } = require('./orders.service');
+const { createOrder, listCustomerOrders, getCustomerOrder } = require('./orders.service');
 
 const router = express.Router();
 
@@ -10,8 +10,8 @@ router.use(requireAuth, requireCustomer);
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const order = await createCodOrder(req.user.id, req.body || {});
-    res.status(201).json({ order });
+    const result = await createOrder(req.user.id, req.body || {}, req.ip);
+    res.status(201).json(result);
   })
 );
 

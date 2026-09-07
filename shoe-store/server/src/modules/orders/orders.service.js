@@ -2,7 +2,10 @@ const { query } = require('../../db/pool');
 const { withTransaction } = require('../../db/transactions');
 const { HttpError } = require('../../utils/httpError');
 const { calculateVariantPrice } = require('../products/pricing');
+const { createPaymentUrl } = require('../payments/vnpay.service');
 const crypto = require('node:crypto');
+
+const PAYMENT_METHODS = new Set(['cod', 'vnpay']);
 
 function toNumber(value) {
   return value === null || value === undefined ? value : Number(value);
@@ -19,6 +22,14 @@ function requireText(value, message) {
 function cleanOptionalText(value) {
   const text = String(value || '').trim();
   return text || null;
+}
+
+function normalizePaymentMethod(value) {
+  const paymentMethod = String(value || 'cod').trim().toLowerCase();
+  if (!PAYMENT_METHODS.has(paymentMethod)) {
+    throw new HttpError(400, 'Unsupported payment method');
+  }
+  return paymentMethod;
 }
 
 function generateOrderCode() {
@@ -190,7 +201,9 @@ async function getOrderItems(orderId, client = { query }) {
   return result.rows;
 }
 
-async function createCodOrder(userId, { receiverName, phone, shippingAddress, note } = {}) {
+async function createOrder(userId, payload = {}, ipAddress = '') {
+  const paymentMethod = normalizePaymentMethod(payload.paymentMethod);
+  const { receiverName, phone, shippingAddress, note } = payload;
   const customerName = requireText(receiverName, 'Receiver name is required');
   requireText(phone, 'Phone is required');
   const address = validateAddress(shippingAddress);
@@ -240,7 +253,7 @@ async function createCodOrder(userId, { receiverName, phone, shippingAddress, no
           payment_status,
           order_status
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'cod', 'unpaid', 'pending')
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'pending')
         RETURNING *
       `,
       [
@@ -256,11 +269,21 @@ async function createCodOrder(userId, { receiverName, phone, shippingAddress, no
         address.country,
         subtotal.toFixed(2),
         subtotal.toFixed(2),
-        orderNote
+        orderNote,
+        paymentMethod,
+        paymentMethod === 'vnpay' ? 'pending' : 'unpaid'
       ]
     );
 
     const order = orderResult.rows[0];
+    const paymentUrl = paymentMethod === 'vnpay'
+      ? createPaymentUrl({
+          orderId: order.id,
+          orderCode: order.order_code,
+          amount: order.grand_total,
+          ipAddress
+        })
+      : null;
     const insertedItems = [];
     for (const item of cartRows) {
       const itemResult = await client.query(
@@ -318,7 +341,96 @@ async function createCodOrder(userId, { receiverName, phone, shippingAddress, no
       [cartRows[0].cart_id]
     );
 
-    return mapOrder(order, insertedItems);
+    const result = { order: mapOrder(order, insertedItems) };
+    if (paymentUrl) {
+      result.paymentUrl = paymentUrl;
+    }
+    return result;
+  });
+}
+
+async function createCodOrder(userId, payload = {}) {
+  const result = await createOrder(userId, { ...payload, paymentMethod: 'cod' });
+  return result.order;
+}
+
+function amountInMinorUnits(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.round((amount + Number.EPSILON) * 100) : null;
+}
+
+function paymentResult(code, message) {
+  return { code, message };
+}
+
+async function reconcileVnpayPayment({ orderId, amount, responseCode, transactionNo }) {
+  const parsedOrderId = Number(orderId);
+  if (!Number.isSafeInteger(parsedOrderId) || parsedOrderId <= 0) {
+    return paymentResult('01', 'Order not found');
+  }
+
+  return withTransaction(async (client) => {
+    const orderResult = await client.query(
+      `
+        SELECT
+          id,
+          grand_total,
+          payment_status,
+          vnpay_transaction_no,
+          vnpay_amount
+        FROM orders
+        WHERE id = $1
+          AND payment_method = 'vnpay'
+        FOR UPDATE
+      `,
+      [parsedOrderId]
+    );
+    const order = orderResult.rows[0];
+
+    if (!order) {
+      return paymentResult('01', 'Order not found');
+    }
+
+    if (amountInMinorUnits(order.grand_total) !== amountInMinorUnits(amount)) {
+      return paymentResult('04', 'Invalid Amount');
+    }
+
+    const normalizedTransactionNo = transactionNo === null || transactionNo === undefined
+      ? null
+      : String(transactionNo).trim() || null;
+    const hasSameReconciliation = order.vnpay_transaction_no === normalizedTransactionNo
+      && amountInMinorUnits(order.vnpay_amount) === amountInMinorUnits(amount);
+
+    if (order.payment_status === 'paid' || order.payment_status === 'failed') {
+      return hasSameReconciliation
+        ? paymentResult('00', 'Confirm Success')
+        : paymentResult('02', 'Order already confirmed');
+    }
+
+    if (order.payment_status !== 'pending') {
+      return paymentResult('02', 'Order already confirmed');
+    }
+
+    if (responseCode === '00' && !normalizedTransactionNo) {
+      return paymentResult('99', 'Invalid transaction');
+    }
+
+    await client.query(
+      `
+        UPDATE orders
+        SET
+          payment_status = $1,
+          vnpay_transaction_no = $2,
+          vnpay_amount = $3,
+          vnpay_updated_at = NOW(),
+          updated_at = NOW()
+        WHERE id = $4
+        RETURNING id
+      `,
+      [responseCode === '00' ? 'paid' : 'failed', normalizedTransactionNo, Number(amount).toFixed(2), parsedOrderId]
+    );
+
+    return paymentResult('00', 'Confirm Success');
   });
 }
 
@@ -357,7 +469,9 @@ async function getCustomerOrder(userId, orderId) {
 }
 
 module.exports = {
+  createOrder,
   createCodOrder,
+  reconcileVnpayPayment,
   listCustomerOrders,
   getCustomerOrder,
   mapOrder

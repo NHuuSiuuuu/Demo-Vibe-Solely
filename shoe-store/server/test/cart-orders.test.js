@@ -7,6 +7,11 @@ const request = require('supertest');
 const originalLoad = Module._load;
 
 process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.VNPAY_HOST = 'https://sandbox.vnpayment.vn';
+process.env.VNPAY_TMN_CODE = 'SOLELY01';
+process.env.VNPAY_SECURE_SECRET = 'test-secret-for-vnpay';
+process.env.VNPAY_RETURN_URL = 'http://localhost:5000/api/payments/vnpay/return';
+process.env.VNPAY_IPN_URL = 'https://payments.example.test/api/payments/vnpay/ipn';
 
 let users;
 let products;
@@ -20,6 +25,8 @@ let nextCartItemId;
 let nextOrderId;
 let nextOrderItemId;
 let lockedVariants;
+let stockUpdateCount;
+let cartClearCount;
 
 function resetStore() {
   users = [
@@ -93,6 +100,8 @@ function resetStore() {
   nextOrderId = 1000;
   nextOrderItemId = 1;
   lockedVariants = [];
+  stockUpdateCount = 0;
+  cartClearCount = 0;
 }
 
 function tokenFor(userId) {
@@ -272,7 +281,9 @@ async function mockQuery(text, params = []) {
       country,
       subtotal,
       grandTotal,
-      note
+      note,
+      paymentMethod = 'cod',
+      paymentStatus = 'unpaid'
     ] = params;
     const order = {
       id: nextOrderId++,
@@ -292,8 +303,8 @@ async function mockQuery(text, params = []) {
       note,
       order_code: orderCode,
       order_status: 'pending',
-      payment_method: 'cod',
-      payment_status: 'unpaid',
+      payment_method: paymentMethod,
+      payment_status: paymentStatus,
       created_at: '2026-09-05T00:00:00.000Z'
     };
     orders.push(order);
@@ -321,11 +332,13 @@ async function mockQuery(text, params = []) {
 
   if (text.includes('UPDATE product_variants') && text.includes('stock_quantity = stock_quantity - $1')) {
     const variant = requireVariant(params[1]);
+    stockUpdateCount += 1;
     variant.stock_quantity -= Number(params[0]);
     return { rows: [{ id: variant.id, stock_quantity: variant.stock_quantity }], rowCount: 1 };
   }
 
   if (text.includes('DELETE FROM cart_items') && text.includes('WHERE cart_id = $1')) {
+    cartClearCount += 1;
     const before = cartItems.length;
     cartItems = cartItems.filter((item) => item.cart_id !== Number(params[0]));
     return { rows: [], rowCount: before - cartItems.length };
@@ -523,6 +536,60 @@ test('creates a COD order from cart and clears cart', async () => {
   assert.equal(response.body.order.items[0].lineTotal, 161.98);
   assert.equal(response.body.order.items[0].sku, 'RR1-9-BLK');
   assert.deepEqual(fullCartRows(1), []);
+});
+
+test('creates one pending VNPay order with an authoritative signed payment URL', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(1);
+  await request(createApp())
+    .post('/api/cart/items')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ variantId: 101, quantity: 2 })
+    .expect(201);
+
+  const response = await request(createApp())
+    .post('/api/orders')
+    .set('Authorization', `Bearer ${token}`)
+    .set('X-Forwarded-For', '203.0.113.9')
+    .send({
+      paymentMethod: 'vnpay',
+      receiverName: 'Jordan Miles',
+      phone: '555-0100',
+      shippingAddress: {
+        line1: '1 Main St',
+        city: 'Austin',
+        state: 'TX',
+        postalCode: '78701',
+        country: 'US'
+      }
+    })
+    .expect(201);
+
+  const paymentUrl = new URL(response.body.paymentUrl);
+  assert.equal(response.body.order.paymentMethod, 'vnpay');
+  assert.equal(response.body.order.paymentStatus, 'pending');
+  assert.equal(response.body.order.grandTotal, 161.98);
+  assert.equal(paymentUrl.origin, 'https://sandbox.vnpayment.vn');
+  assert.equal(paymentUrl.searchParams.get('vnp_TxnRef'), String(response.body.order.id));
+  assert.equal(paymentUrl.searchParams.get('vnp_Amount'), '16198');
+  assert.match(paymentUrl.searchParams.get('vnp_SecureHash'), /^[a-f0-9]{128}$/);
+  assert.equal(orders.filter((order) => order.user_id === 1).length, 1);
+  assert.equal(stockUpdateCount, 1);
+  assert.equal(cartClearCount, 1);
+  assert.equal(requireVariant(101).stock_quantity, 3);
+  assert.deepEqual(fullCartRows(1), []);
+});
+
+test('rejects unsupported order payment methods', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .post('/api/orders')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send({ paymentMethod: 'cash' })
+    .expect(400);
+
+  assert.deepEqual(response.body, { message: 'Unsupported payment method', details: null });
 });
 
 test('returns 400 JSON when checkout body is empty', async () => {

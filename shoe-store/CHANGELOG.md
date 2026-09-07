@@ -42,6 +42,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Đồng bộ seed và script Việt hóa biến thể sang discount_percent để bootstrap schema mới không còn tham chiếu price_delta.
 - Thêm helper backend dùng chung để chuẩn hóa phần trăm giảm giá và tính giá biến thể chính xác đến hai chữ số thập phân, kèm fallback tạm thời cho dữ liệu giá cũ đã migrate.
 - Thêm service backend tạo URL thanh toán VNPay Sandbox bằng chữ ký HMAC-SHA512, xác minh callback và dựng response IPN mà không cập nhật database.
+- Thêm tạo đơn VNPay trạng thái chờ thanh toán, return redirect đã xác minh chữ ký và IPN đối soát dưới transaction lock theo cơ chế idempotent, không lặp thao tác trừ tồn kho hoặc xóa giỏ hàng.
 
 ### Đã thay đổi
 - Thêm migration tương thích cho database cũ để tạo bảng danh mục và cột Cloudinary của ảnh sản phẩm mà không xóa dữ liệu.
