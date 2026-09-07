@@ -39,7 +39,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
   return data;
 }
 
-async function requestForm(path, { method = 'POST', body, token } = {}) {
+async function requestForm(path, { method = 'POST', body, token, signal } = {}) {
   const headers = {};
 
   if (token) {
@@ -49,7 +49,8 @@ async function requestForm(path, { method = 'POST', body, token } = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers,
-    body
+    body,
+    signal
   });
   const data = await parseJson(response);
 

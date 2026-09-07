@@ -85,6 +85,33 @@ describe('customer image search', () => {
     );
   });
 
+  it('postForm forwards an abort signal to fetch', async () => {
+    const controller = new AbortController();
+    const formData = new FormData();
+    formData.append('image', new File(['shoe'], 'shoe.jpg', { type: 'image/jpeg' }));
+    global.fetch = vi.fn(async () => response({ products: [] }));
+
+    await apiClient.postForm('/api/products/search-by-image', formData, { signal: controller.signal });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/products/search-by-image'),
+      expect.objectContaining({ signal: controller.signal })
+    );
+  });
+
+  it('keeps the hidden file input out of keyboard focus while the camera button opens it', async () => {
+    renderCatalog();
+    expect(await screen.findByRole('heading', { name: catalogProduct.name })).toBeTruthy();
+
+    const fileInput = screen.getByLabelText('Chọn ảnh để tìm sản phẩm');
+    const openFilePicker = vi.spyOn(fileInput, 'click');
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm sản phẩm bằng hình ảnh' }));
+
+    expect(openFilePicker).toHaveBeenCalledTimes(1);
+    expect(fileInput.hidden).toBe(true);
+    expect(fileInput.tabIndex).toBe(-1);
+  });
+
   it('opens an accessible camera input, preserves filters, and renders loading and results', async () => {
     let finishSearch;
     const imageResponse = new Promise((resolve) => {
@@ -143,6 +170,57 @@ describe('customer image search', () => {
       expect(catalogCalls.at(-1)[0]).toContain('sort=newest');
     });
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+  });
+
+  it('reruns image search with changed supported filters and ignores the stale response', async () => {
+    const requests = [];
+    renderCatalog((_url, options) => new Promise((resolve) => {
+      requests.push({ options, resolve });
+    }));
+    expect(await screen.findByRole('heading', { name: catalogProduct.name })).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Chọn ảnh để tìm sản phẩm'), {
+      target: { files: [new File(['shoe'], 'shoe.jpg', { type: 'image/jpeg' })] }
+    });
+    await waitFor(() => expect(requests).toHaveLength(1));
+
+    fireEvent.change(screen.getByLabelText('Thương hiệu'), { target: { value: 'Nike' } });
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[1].options.body.get('brand')).toBe('Nike');
+    expect(requests[0].options.signal.aborted).toBe(true);
+
+    const filteredProduct = {
+      ...imageProduct,
+      id: 3,
+      slug: 'filtered-image-shoe',
+      name: 'Giày Nike từ ảnh'
+    };
+    requests[1].resolve(response({ products: [filteredProduct] }));
+    expect(await screen.findByRole('heading', { name: filteredProduct.name })).toBeTruthy();
+
+    requests[0].resolve(response({ products: [imageProduct] }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: filteredProduct.name })).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: imageProduct.name })).toBeNull();
+    });
+  });
+
+  it('aborts an in-flight image request when the page unmounts', async () => {
+    let requestSignal;
+    renderCatalog((_url, options) => {
+      requestSignal = options.signal;
+      return new Promise(() => {});
+    });
+    expect(await screen.findByRole('heading', { name: catalogProduct.name })).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Chọn ảnh để tìm sản phẩm'), {
+      target: { files: [new File(['shoe'], 'shoe.jpg', { type: 'image/jpeg' })] }
+    });
+    await waitFor(() => expect(requestSignal).toBeInstanceOf(AbortSignal));
+
+    cleanup();
+
+    expect(requestSignal.aborted).toBe(true);
   });
 
   it.each([

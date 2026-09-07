@@ -57,8 +57,8 @@ export default function ProductListPage() {
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
   const [imageSearch, setImageSearch] = useState(initialImageSearch);
+  const [imageSearchRetry, setImageSearchRetry] = useState(0);
   const fileInputRef = useRef(null);
-  const imageRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (imageSearch.file) {
@@ -91,6 +91,56 @@ export default function ProductListPage() {
   }, [filters, imageSearch.file]);
 
   useEffect(() => {
+    const file = imageSearch.file;
+    if (!file) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    const formData = new FormData();
+    formData.append('image', file);
+    IMAGE_FILTER_FIELDS.forEach((field) => {
+      if (filters[field]) {
+        formData.append(field, filters[field]);
+      }
+    });
+
+    setImageSearch((current) => ({ ...current, status: 'loading', error: '' }));
+    apiClient
+      .postForm('/api/products/search-by-image', formData, {
+        ...(token ? { token } : {}),
+        signal: controller.signal
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setProducts(data?.products || []);
+          setImageSearch((current) => ({ ...current, status: 'ready', error: '' }));
+        }
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setImageSearch((current) => ({ ...current, status: 'error', error: requestError.message }));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [
+    imageSearch.file,
+    imageSearchRetry,
+    filters.brand,
+    filters.gender,
+    filters.size,
+    filters.color,
+    filters.minPrice,
+    filters.maxPrice,
+    token
+  ]);
+
+  useEffect(() => {
     const previewUrl = imageSearch.previewUrl;
     return () => {
       if (previewUrl) {
@@ -105,38 +155,6 @@ export default function ProductListPage() {
 
   function updateCategory(category) {
     setFilters((current) => ({ ...current, category }));
-  }
-
-  async function searchByImage(file) {
-    const requestId = imageRequestIdRef.current + 1;
-    imageRequestIdRef.current = requestId;
-    setImageSearch((current) => ({ ...current, file, status: 'loading', error: '' }));
-
-    const formData = new FormData();
-    formData.append('image', file);
-    IMAGE_FILTER_FIELDS.forEach((field) => {
-      if (filters[field]) {
-        formData.append(field, filters[field]);
-      }
-    });
-
-    try {
-      const data = await apiClient.postForm(
-        '/api/products/search-by-image',
-        formData,
-        token ? { token } : {}
-      );
-      if (imageRequestIdRef.current !== requestId) {
-        return;
-      }
-      setProducts(data?.products || []);
-      setImageSearch((current) => ({ ...current, status: 'ready', error: '' }));
-    } catch (requestError) {
-      if (imageRequestIdRef.current !== requestId) {
-        return;
-      }
-      setImageSearch((current) => ({ ...current, status: 'error', error: requestError.message }));
-    }
   }
 
   function selectImage(event) {
@@ -158,11 +176,9 @@ export default function ProductListPage() {
 
     const previewUrl = URL.createObjectURL(file);
     setImageSearch({ file, previewUrl, status: 'loading', error: '' });
-    searchByImage(file);
   }
 
   function clearImageSearch() {
-    imageRequestIdRef.current += 1;
     setProducts([]);
     setImageSearch(initialImageSearch);
     if (fileInputRef.current) {
@@ -233,6 +249,8 @@ export default function ProductListPage() {
             ref={fileInputRef}
             className="image-search-field__input"
             type="file"
+            hidden
+            tabIndex={-1}
             accept="image/jpeg,image/png"
             capture="environment"
             aria-label="Chọn ảnh để tìm sản phẩm"
@@ -301,7 +319,7 @@ export default function ProductListPage() {
                   type="button"
                   className="button-secondary"
                   aria-label="Thử lại tìm kiếm bằng ảnh"
-                  onClick={() => searchByImage(imageSearch.file)}
+                  onClick={() => setImageSearchRetry((current) => current + 1)}
                 >
                   <RefreshCw size={17} aria-hidden="true" />
                   Thử lại

@@ -4,6 +4,11 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Hoàn thiện tương tác tìm kiếm sản phẩm bằng hình ảnh
+
+- Tự động chạy lại tìm kiếm ảnh với các bộ lọc backend hỗ trợ, hủy request cũ khi filter đổi hoặc trang unmount và chặn response cũ ghi đè kết quả mới.
+- Loại input file ẩn khỏi thứ tự focus bàn phím nhưng vẫn mở trình chọn ảnh qua nút camera; bổ sung kiểm thử hồi quy cho filter, stale response và vòng đời abort.
+
 ### Expose API tìm kiếm sản phẩm bằng hình ảnh
 
 - Bổ sung endpoint public multipart `POST /api/products/search-by-image` với bộ lọc catalog được allowlist và giới hạn ảnh 8 MB.
