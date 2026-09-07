@@ -76,6 +76,13 @@ npm run db:setup
 npm run dev
 ```
 
+For an existing database, apply the additive admin catalog migration before
+starting the server:
+
+```bash
+npm run db:migrate
+```
+
 For quick UI review without PostgreSQL, skip `server/.env` and
 `npm run db:setup`, then run:
 
