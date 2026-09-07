@@ -69,6 +69,80 @@ Cloudinary variables above in `server/.env`. The backend signs uploads, while
 the browser sends image files directly to Cloudinary and stores only the
 returned URL and public ID in PostgreSQL.
 
+## VNPay Sandbox
+
+Register a Sandbox merchant and obtain its `TmnCode` and hash secret from the
+[VNPay Sandbox integration guide](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html).
+Keep both values in the backend-only `server/.env`; never put them in a
+frontend `VITE_*` variable or commit them.
+
+VNPay sends its IPN from a remote server, so `localhost` is not a valid IPN
+target. Start the backend on port `5000`, then expose it through a public HTTPS
+tunnel. For example, after installing and authenticating either tunnel tool:
+
+```bash
+ngrok http 5000
+# Alternative:
+cloudflared tunnel --url http://localhost:5000
+```
+
+Copy the public HTTPS origin printed by the tunnel, such as
+`https://solely-sandbox.example-tunnel.app`, and configure `server/.env` with
+these exact variable names and placeholder values:
+
+```env
+VNPAY_HOST=https://sandbox.vnpayment.vn
+VNPAY_TMN_CODE=your_sandbox_tmn_code
+VNPAY_SECURE_SECRET=your_sandbox_hash_secret
+VNPAY_RETURN_URL=https://solely-sandbox.example-tunnel.app/api/payments/vnpay/return
+VNPAY_IPN_URL=https://solely-sandbox.example-tunnel.app/api/payments/vnpay/ipn
+VNPAY_TEST_MODE=true
+FRONTEND_URL=http://localhost:5173
+```
+
+`VNPAY_HOST` selects the Sandbox gateway; keep `VNPAY_TEST_MODE=true` as an
+explicit environment marker. `VNPAY_RETURN_URL` receives the customer's browser
+redirect, while `VNPAY_IPN_URL` receives the authoritative server-to-server
+payment notification and therefore must remain publicly reachable over HTTPS.
+`FRONTEND_URL` must be reachable by the browser because the backend return
+handler redirects from there to `/payment-result`.
+
+If the tunnel generates a new origin after restart, update both callback URLs,
+update the Sandbox merchant configuration when required, and restart the
+backend before creating another payment. Do not expose `server/.env`, the hash
+secret, or a real callback query in logs, screenshots, issues, or commits.
+
+### VNPay end-to-end checklist
+
+Prepare a customer account, a product variant with known base price and a
+non-zero `discountPercent`, enough stock for separate COD and VNPay orders, the
+running app, and the HTTPS tunnel above.
+
+- [ ] **Discount pricing:** confirm the product detail, cart, checkout, and
+  persisted order item all use the same discounted unit price:
+  `basePrice * (1 - discountPercent / 100)`, rounded to two decimal places by
+  the backend.
+- [ ] **COD:** create a fresh cart, choose COD, and confirm checkout creates one
+  order without a gateway redirect; the order shows payment method `cod`,
+  payment status `unpaid`, and the discounted totals.
+- [ ] **VNPay URL:** create another fresh cart, choose VNPay, and confirm the
+  order starts with payment method `vnpay` and payment status `pending`, then
+  redirects to the signed Sandbox path
+  `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`.
+- [ ] **Successful IPN:** complete one Sandbox payment successfully and confirm
+  the tunnel receives `GET /api/payments/vnpay/ipn`, the response contains
+  `RspCode: "00"`, and the matching order becomes `paid` with the reconciled
+  transaction number and amount stored on its database row. Confirm
+  `/payment-result` reads that status from the order API rather than trusting
+  Return URL query text.
+- [ ] **Failed IPN:** use a separate VNPay order and a signed failed Sandbox
+  callback; confirm the endpoint acknowledges it and the matching order becomes
+  `failed`, never `paid`.
+- [ ] **Repeated IPN:** replay the exact same signed IPN request from the tunnel
+  inspector. Confirm the repeat is acknowledged with `RspCode: "00"`, the order
+  remains in its terminal payment state, and stock/cart/order data receive no
+  additional mutation.
+
 Set up the database and start the app:
 
 ```bash

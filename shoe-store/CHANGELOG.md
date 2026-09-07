@@ -44,6 +44,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm service backend tạo URL thanh toán VNPay Sandbox bằng chữ ký HMAC-SHA512, xác minh callback và dựng response IPN mà không cập nhật database.
 - Thêm tạo đơn VNPay trạng thái chờ thanh toán, return redirect đã xác minh chữ ký và IPN đối soát dưới transaction lock theo cơ chế idempotent, không lặp thao tác trừ tồn kho hoặc xóa giỏ hàng.
 - Thêm lựa chọn thanh toán COD/VNPay tại checkout, trang kết quả xác minh trạng thái từ đơn hàng và nhãn phương thức/trạng thái thanh toán trên lịch sử đơn hàng.
+- Bổ sung README hướng dẫn cấu hình VNPay Sandbox bằng biến môi trường backend, mở HTTPS tunnel công khai cho IPN và checklist kiểm thử end-to-end cho giá giảm, COD cùng các nhánh callback VNPay.
 
 ### Đã thay đổi
 - Sửa checkout để VNPay chuyển hướng ngay theo URL hợp lệ mà không bị lỗi làm mới giỏ hàng chặn lại, đồng thời bỏ qua `paymentUrl` bất thường trong response đơn COD.
