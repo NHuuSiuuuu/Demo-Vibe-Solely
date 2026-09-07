@@ -4,6 +4,7 @@ const Module = require('node:module');
 const request = require('supertest');
 
 const originalLoad = Module._load;
+let lastProductListQuery = '';
 
 const productCards = [
   {
@@ -13,10 +14,10 @@ const productCards = [
     brand: 'Stride',
     category: 'running',
     gender: 'men',
-    basePrice: '89.99',
-    discountPercent: '10.00',
+    basePrice: '100.00',
+    discountPercent: '50.00',
     legacyPriceDelta: null,
-    expectedPrice: 80.99,
+    expectedPrice: 50,
     imageUrl: '/images/road-runner-1-main.jpg',
     availableSizes: ['9', '10'],
     availableColors: ['black', 'white'],
@@ -31,10 +32,10 @@ const productCards = [
     brand: 'Ace',
     category: 'lifestyle',
     gender: 'women',
-    basePrice: '74.50',
-    discountPercent: '20.00',
+    basePrice: '80.00',
+    discountPercent: '0.00',
     legacyPriceDelta: null,
-    expectedPrice: 59.6,
+    expectedPrice: 80,
     imageUrl: '/images/court-classic-main.jpg',
     availableSizes: ['7', '8'],
     availableColors: ['white', 'red'],
@@ -90,6 +91,7 @@ async function mockQuery(text, params = []) {
   }
 
   if (text.includes('FROM products p') && text.includes("p.status = 'active'")) {
+    lastProductListQuery = text;
     assert.match(text, /default_variant\.discount_percent/);
     assert.match(text, /"basePrice"/);
     if (params.includes('%runner%')) {
@@ -99,8 +101,38 @@ async function mockQuery(text, params = []) {
 
     if (params.includes('9') && params.includes('black')) {
       assert.deepEqual(params, ['9', 'black']);
-      assert.match(text, /FROM product_variants filtered_variant[\s\S]*filtered_variant\.size = \$1[\s\S]*LOWER\(filtered_variant\.color\) = LOWER\(\$2\)/);
-      assert.doesNotMatch(text, /size_variant|color_variant/);
+      assert.match(text, /FROM product_variants source_variant[\s\S]*pv\.size = \$1[\s\S]*LOWER\(pv\.color\) = LOWER\(\$2\)/);
+      assert.match(text, /default_variant\.id IS NOT NULL/);
+      return { rows: [productCards[0]], rowCount: 1 };
+    }
+
+    if (params.includes('10') && params.includes('95.00')) {
+      if (text.includes('p.base_price <= ')) {
+        return { rows: [], rowCount: 0 };
+      }
+
+      assert.match(text, /pv\.size = \$1/);
+      assert.match(text, /displayed_price[\s\S]*<= \$2/);
+      assert.match(text, /default_variant\.id IS NOT NULL/);
+      return {
+        rows: [{
+          ...productCards[0],
+          discountPercent: '10.00',
+          expectedPrice: 90,
+          defaultVariantId: '102',
+          defaultVariantStock: '3'
+        }],
+        rowCount: 1
+      };
+    }
+
+    if (params.includes('40.00') && params.includes('60.00')) {
+      if (text.includes('p.base_price <= ')) {
+        return { rows: [], rowCount: 0 };
+      }
+
+      assert.match(text, /pv\.displayed_price >= \$1/);
+      assert.match(text, /pv\.displayed_price <= \$2/);
       return { rows: [productCards[0]], rowCount: 1 };
     }
 
@@ -155,7 +187,31 @@ test('sorts products by price ascending', async () => {
 
   const response = await request(createApp()).get('/api/products?sort=price_asc').expect(200);
 
-  assert.deepEqual(response.body.products, [normalizeCard(productCards[1]), normalizeCard(productCards[0])]);
+  assert.deepEqual(response.body.products, [normalizeCard(productCards[0]), normalizeCard(productCards[1])]);
+  assert.match(lastProductListQuery, /ORDER BY COALESCE\(default_variant\.displayed_price, p\.base_price\) ASC/);
+  assert.doesNotMatch(lastProductListQuery, /ORDER BY p\.base_price ASC/);
+});
+
+test('filters products by the displayed discounted price range', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp()).get('/api/products?minPrice=40&maxPrice=60').expect(200);
+
+  assert.deepEqual(response.body.products, [normalizeCard(productCards[0])]);
+});
+
+test('uses the matching variant for size, displayed price, and card fields', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp()).get('/api/products?size=10&maxPrice=95').expect(200);
+
+  assert.deepEqual(response.body.products, [{
+    ...normalizeCard(productCards[0]),
+    price: 90,
+    discountPercent: 10,
+    defaultVariantId: 102,
+    defaultVariantStock: 3
+  }]);
 });
 
 test('returns 400 JSON for invalid numeric price filters', async () => {

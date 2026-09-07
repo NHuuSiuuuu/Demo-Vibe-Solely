@@ -107,6 +107,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Sửa query index sản phẩm RAG để không `GROUP BY` dữ liệu JSON, bảo đảm chạy được trên PostgreSQL thật.
 - Đồng bộ retrieval RAG để chọn cùng một biến thể thỏa size và khoảng giá, tránh hiển thị giá của biến thể khác với điều kiện tìm kiếm.
 - Cập nhật catalog sản phẩm trả `price` sau giảm và `discountPercent` của biến thể mặc định còn hàng bằng helper giá backend.
+- Đồng bộ lọc khoảng giá và sắp xếp catalog theo giá hiển thị sau giảm của chính biến thể được chọn; size, màu và giá giờ cùng áp dụng trên một variant candidate.
 
 ### Đã kiểm chứng
 
@@ -149,6 +150,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test frontend bắt buộc admin RAG hiển thị trạng thái index sản phẩm và gọi API reindex một sản phẩm.
 - Bổ sung test frontend và RAG bảo vệ payload `discountPercent`, ràng buộc nhập `0..100`, giá chi tiết sau giảm và card RAG không lộ `priceDelta`.
 - Bổ sung regression test chạy query index trên PostgreSQL-compatible PGlite, retrieval nhiều biến thể theo size/giá và catalog trả giá mặc định sau giảm.
+- Bổ sung regression test bảo đảm catalog lọc min/max, sắp xếp theo giá hiển thị sau giảm và trả đúng variant đã thỏa đồng thời size/giá.
 
 ## 2026-09-05
 

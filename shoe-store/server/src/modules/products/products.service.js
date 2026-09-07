@@ -2,12 +2,30 @@ const { query } = require('../../db/pool');
 const { HttpError } = require('../../utils/httpError');
 const { calculateVariantPrice } = require('./pricing');
 
+const DISPLAYED_PRICE_SORT = 'COALESCE(default_variant.displayed_price, p.base_price)';
 const SORTS = {
-  price_asc: 'p.base_price ASC',
-  price_desc: 'p.base_price DESC',
+  price_asc: `${DISPLAYED_PRICE_SORT} ASC`,
+  price_desc: `${DISPLAYED_PRICE_SORT} DESC`,
   newest: 'p.created_at DESC',
   name_asc: 'p.name ASC'
 };
+
+const VARIANT_DISPLAYED_PRICE = `CASE
+  WHEN COALESCE(source_variant.discount_percent, 0) = 0
+    AND to_jsonb(source_variant) ->> 'legacy_price_delta' IS NOT NULL
+    THEN GREATEST(
+      0,
+      p.base_price + (to_jsonb(source_variant) ->> 'legacy_price_delta')::NUMERIC
+    )
+  ELSE GREATEST(
+    0,
+    ROUND(
+      (p.base_price * 100)
+      * (10000 - ROUND(COALESCE(source_variant.discount_percent, 0) * 100))
+      / 10000
+    ) / 100
+  )
+END`;
 
 function toNumber(value) {
   return value === null || value === undefined ? value : Number(value);
@@ -125,32 +143,27 @@ function buildProductListQuery(filters) {
 
   const size = cleanText(filters.size);
   const color = cleanText(filters.color);
-  if (size || color) {
-    const variantConditions = ['filtered_variant.product_id = p.id', 'filtered_variant.stock_quantity > 0'];
+  const variantConditions = [];
+  if (size) {
+    variantConditions.push(`pv.size = ${addParam(params, size)}`);
+  }
 
-    if (size) {
-      variantConditions.push(`filtered_variant.size = ${addParam(params, size)}`);
-    }
-
-    if (color) {
-      variantConditions.push(`LOWER(filtered_variant.color) = LOWER(${addParam(params, color)})`);
-    }
-
-    where.push(`EXISTS (
-      SELECT 1
-      FROM product_variants filtered_variant
-      WHERE ${variantConditions.join('\n        AND ')}
-    )`);
+  if (color) {
+    variantConditions.push(`LOWER(pv.color) = LOWER(${addParam(params, color)})`);
   }
 
   const minPrice = normalizePriceFilter(filters, 'minPrice');
   if (minPrice) {
-    where.push(`p.base_price >= ${addParam(params, minPrice)}`);
+    variantConditions.push(`pv.displayed_price >= ${addParam(params, minPrice)}`);
   }
 
   const maxPrice = normalizePriceFilter(filters, 'maxPrice');
   if (maxPrice) {
-    where.push(`p.base_price <= ${addParam(params, maxPrice)}`);
+    variantConditions.push(`pv.displayed_price <= ${addParam(params, maxPrice)}`);
+  }
+
+  if (variantConditions.length > 0) {
+    where.push('default_variant.id IS NOT NULL');
   }
 
   const sort = SORTS[filters.sort] || SORTS.newest;
@@ -194,10 +207,22 @@ function buildProductListQuery(filters) {
           pv.id,
           pv.stock_quantity,
           pv.discount_percent,
-          to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
-        FROM product_variants pv
-        WHERE pv.product_id = p.id
-          AND pv.stock_quantity > 0
+          pv.legacy_price_delta,
+          pv.displayed_price
+        FROM (
+          SELECT
+            source_variant.id,
+            source_variant.size,
+            source_variant.color,
+            source_variant.stock_quantity,
+            source_variant.discount_percent,
+            to_jsonb(source_variant) ->> 'legacy_price_delta' AS legacy_price_delta,
+            ${VARIANT_DISPLAYED_PRICE} AS displayed_price
+          FROM product_variants source_variant
+          WHERE source_variant.product_id = p.id
+            AND source_variant.stock_quantity > 0
+        ) pv
+        ${variantConditions.length > 0 ? `WHERE ${variantConditions.join('\n          AND ')}` : ''}
         ORDER BY pv.id ASC
         LIMIT 1
       ) default_variant ON true
