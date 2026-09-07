@@ -49,7 +49,7 @@ product_image_embeddings
 - id BIGSERIAL PRIMARY KEY
 - product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE
 - product_image_id BIGINT NOT NULL REFERENCES product_images(id) ON DELETE CASCADE
-- embedding vector(768) NOT NULL
+- embedding vector(768)
 - embedding_model TEXT NOT NULL
 - status TEXT NOT NULL DEFAULT 'active'
 - error_message TEXT
@@ -61,6 +61,8 @@ Ràng buộc và index:
 
 - `UNIQUE (product_image_id, embedding_model)` để reindex không tạo bản ghi trùng.
 - Check `status` chỉ nhận `active`, `needs_reindex`, `error`.
+- `embedding` nullable để có thể lưu `status = 'error'` khi Gemini lỗi trước khi tạo được vector; check `status <> 'active' OR embedding IS NOT NULL` bắt buộc vector với bản ghi active.
+- `product_images` có unique key `(id, product_id)` và bảng embedding có composite foreign key `(product_image_id, product_id)` để không thể ghép ảnh của sản phẩm này với `product_id` của sản phẩm khác.
 - Index theo `product_id`, `product_image_id`, `status`.
 - Vector index cosine chỉ được tạo khi database có `pgvector`.
 
@@ -158,6 +160,7 @@ Nếu model ảnh chưa được cấu hình hoặc API trả lỗi, API search 
 ### Backend
 
 - Tạo bảng/migration chạy được trên database mới và database đã có dữ liệu.
+- Migration được chạy hai lần trên PostgreSQL/pgvector thật, giữ nguyên một sentinel row, và kiểm tra status invalid, duplicate key, cascade, vector dimension 768 cùng cosine opclass qua `pg_catalog`.
 - Embed ảnh thành công tạo đúng vector 768 chiều.
 - Reindex lặp không tạo bản ghi trùng.
 - Upload ảnh lỗi MIME/kích thước bị từ chối.

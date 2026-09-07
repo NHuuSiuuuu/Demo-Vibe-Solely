@@ -60,6 +60,7 @@
 - Modify: `shoe-store/database/schema.sql`
 - Modify: `shoe-store/scripts/db-migrate.js`
 - Test: `shoe-store/server/test/image-search-schema.test.js`
+- Update: `shoe-store/server/test/migration-runner.test.js`
 
 **Interfaces:**
 - Produces table `product_image_embeddings` with `product_id`, `product_image_id`, `embedding vector(768)`, `embedding_model`, `status`, `error_message`, timestamps.
@@ -68,7 +69,7 @@
 
 - [ ] **Step 1: Write failing schema tests**
 
-Assert that `schema.sql` contains the drop/create table, FK cascade, `vector(768)`, status check, unique constraint and vector index. Assert that `db-migrate.js` includes `20260907-product-image-search.sql` after the existing migrations.
+Assert that `schema.sql` contains the drop/create table, nullable `vector(768)`, active-embedding check, status check, unique constraint, composite ownership FK and vector index. Assert that `db-migrate.js` includes `20260907-product-image-search.sql` after the committed catalog migration without depending on unrelated dirty migrations. Update the existing migration-runner expectation to include the image migration while preserving its VNPay/refund entries.
 
 - [ ] **Step 2: Run the focused test and verify it fails**
 
@@ -84,12 +85,12 @@ Add the table after `product_images` is available, add `DROP TABLE IF EXISTS pro
 
 Run: `cd shoe-store/server && npm test -- --test-name-pattern="image embedding schema"`
 
-Expected: PASS. If a live PostgreSQL instance with pgvector is available, run `cd shoe-store && npm run db:migrate` and verify the command exits zero; otherwise record the missing pgvector limitation without weakening the schema test.
+Expected: PASS for all image schema tests, including the real PostgreSQL integration path when configured. The integration path runs the migration twice, preserves a sentinel row, rejects invalid status and duplicate key, verifies cascade plus vector dimension/opclass via `pg_catalog`, and skips with an exact reason when PostgreSQL/pgvector is unavailable. Also run `cd shoe-store/server && node --test --require ./test/setup.js test/migration-runner.test.js`.
 
 - [ ] **Step 5: Commit the database contract**
 
 ```bash
-git add shoe-store/database/schema.sql shoe-store/database/migrations/20260907-product-image-search.sql shoe-store/scripts/db-migrate.js shoe-store/server/test/image-search-schema.test.js
+git add shoe-store/database/schema.sql shoe-store/database/migrations/20260907-product-image-search.sql shoe-store/scripts/db-migrate.js shoe-store/server/test/image-search-schema.test.js shoe-store/server/test/migration-runner.test.js
 git commit -m "feat: add product image embedding schema"
 ```
 

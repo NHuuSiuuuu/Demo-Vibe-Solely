@@ -68,20 +68,23 @@ CREATE TABLE product_images (
   image_url TEXT NOT NULL,
   alt_text TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  cloudinary_public_id TEXT
+  cloudinary_public_id TEXT,
+  UNIQUE (id, product_id)
 );
 
 CREATE TABLE product_image_embeddings (
   id BIGSERIAL PRIMARY KEY,
   product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   product_image_id BIGINT NOT NULL REFERENCES product_images(id) ON DELETE CASCADE,
-  embedding vector(768) NOT NULL,
+  embedding vector(768),
   embedding_model TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'active',
   error_message TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT product_image_embeddings_status_check CHECK (status IN ('active', 'needs_reindex', 'error')),
+  CONSTRAINT product_image_embeddings_active_embedding_check CHECK (status <> 'active' OR embedding IS NOT NULL),
+  FOREIGN KEY (product_image_id, product_id) REFERENCES product_images(id, product_id) ON DELETE CASCADE,
   UNIQUE (product_image_id, embedding_model)
 );
 

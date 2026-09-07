@@ -34,7 +34,8 @@ test('actual migration runner invokes both migrations in dependency order with S
   assert.deepEqual(JSON.parse(JSON.stringify(calls)), [[
     'psql', ['postgres://test.invalid/migration', '-v', 'ON_ERROR_STOP=1',
       '-f', path.join(root, 'database/migrations/20260907-product-catalog-admin.sql'),
-      '-f', path.join(root, 'database/migrations/20260907-vnpay-discount.sql')],
+      '-f', path.join(root, 'database/migrations/20260907-vnpay-discount.sql'),
+      '-f', path.join(root, 'database/migrations/20260907-product-image-search.sql')],
     { stdio: 'inherit' }
   ]]);
 });
