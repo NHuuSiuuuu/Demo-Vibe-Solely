@@ -6,7 +6,7 @@ const { embedImage, getImageEmbeddingConfig } = require('../rag/gemini.client');
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const CATALOG_IMAGE_TIMEOUT_MS = 10_000;
 const IMAGE_SEARCH_THRESHOLD = 0.35;
-const MAX_SEARCH_RESULTS = 12;
+const MAX_SEARCH_RESULTS = 4;
 const SUPPORTED_MIME_TYPES = new Set(['image/jpeg', 'image/png']);
 const SAFE_INDEX_ERROR = 'Không thể tạo embedding cho ảnh sản phẩm';
 

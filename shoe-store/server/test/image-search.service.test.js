@@ -444,6 +444,7 @@ test('image search service collapses product images by best score and excludes h
     assert.match(text, /HAVING MAX\(1 - \(pie\.embedding <=> \$1::vector\)\) >= \$2/);
     assert.match(text, /ORDER BY rp\.similarity_score DESC/);
     assert.deepEqual(params.slice(1, 3), [0.35, 'gemini-embedding-2']);
+    assert.equal(params.at(-1), 4);
     return {
       rows: [{
         id: '12',
@@ -468,7 +469,7 @@ test('image search service collapses product images by best score and excludes h
     };
   };
 
-  const result = await service.searchProductsByImage({ data: queryImage, mimeType: 'image/png', filters: {}, limit: 12 });
+  const result = await service.searchProductsByImage({ data: queryImage, mimeType: 'image/png', filters: {} });
 
   assert.equal(embeddedInputs[0].data, queryImage);
   assert.equal(result.threshold, 0.35);
@@ -491,7 +492,7 @@ test('image search service collapses product images by best score and excludes h
   }]);
 });
 
-test('image search service parameterizes catalog filters and caps the result limit at twelve', async () => {
+test('image search service parameterizes catalog filters and caps the result limit at four', async () => {
   const untrustedBrand = "Solely' OR 1=1 --";
   queryHandler = async (text, params) => {
     assert.doesNotMatch(text, /OR 1=1/);
@@ -503,7 +504,7 @@ test('image search service parameterizes catalog filters and caps the result lim
     assert.match(text, /displayed_price >= \$8/);
     assert.match(text, /displayed_price <= \$9/);
     assert.match(text, /LIMIT \$10/);
-    assert.deepEqual(params.slice(1), [0.35, 'gemini-embedding-2', untrustedBrand, 'women', '38', 'white', '1000000.00', '2500000.00', 12]);
+    assert.deepEqual(params.slice(1), [0.35, 'gemini-embedding-2', untrustedBrand, 'women', '38', 'white', '1000000.00', '2500000.00', 4]);
     return { rows: [], rowCount: 0 };
   };
 

@@ -67,12 +67,12 @@ test.beforeEach(() => {
 
 test.after(() => { Module._load = originalLoad; });
 
-test('image search route returns products and passes only supported filters', async () => {
+test('image search route returns products and does not expose a public result limit', async () => {
   const image = Buffer.from('png-image');
   const response = await request(createApp())
     .post('/api/products/search-by-image')
     .field('brand', 'Solely').field('gender', 'women').field('size', '38').field('color', 'white')
-    .field('minPrice', '1000000').field('maxPrice', '2500000').field('category', 'ignored')
+    .field('minPrice', '1000000').field('maxPrice', '2500000').field('limit', '999').field('category', 'ignored')
     .attach('image', image, { filename: 'shoe.png', contentType: 'image/png' })
     .expect(200);
 
