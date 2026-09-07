@@ -1126,6 +1126,32 @@ test('cancelling a pending VNPay order fails payment and restores stock once', a
   assert.deepEqual(restoredStockUpdates, [{ variantId: 101, quantity: 1 }]);
 });
 
+test('rejects cancelling a paid VNPay order before restoring stock', async () => {
+  const { createApp } = require('../src/app');
+  orders[0].payment_method = 'vnpay';
+  orders[0].payment_status = 'paid';
+
+  const response = await request(createApp())
+    .patch('/api/admin/orders/900/status')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ status: 'cancelled' })
+    .expect(409);
+
+  assert.deepEqual(response.body, {
+    message: 'Paid VNPay orders require a refund before cancellation',
+    details: null
+  });
+  assert.equal(orders[0].order_status, 'pending');
+  assert.equal(orders[0].payment_status, 'paid');
+  assert.equal(variants[0].stock_quantity, 5);
+  assert.deepEqual(restoredStockUpdates, []);
+  assert.equal(queryLog.some((entry) => entry.text.includes('FROM order_items')), false);
+  assert.equal(
+    queryLog.some((entry) => entry.text.includes('stock_quantity = stock_quantity + $1')),
+    false
+  );
+});
+
 test('returns 400 JSON when admin status body is empty', async () => {
   const { createApp } = require('../src/app');
 

@@ -568,6 +568,14 @@ async function updateOrderStatus(id, status) {
 
     assertOrderTransition(currentOrder.order_status, status);
 
+    if (
+      status === 'cancelled' &&
+      currentOrder.payment_method === 'vnpay' &&
+      currentOrder.payment_status === 'paid'
+    ) {
+      throw new HttpError(409, 'Paid VNPay orders require a refund before cancellation');
+    }
+
     const items = await getOrderItems(id, client, { lock: status === 'cancelled' });
 
     if (status === 'cancelled') {
