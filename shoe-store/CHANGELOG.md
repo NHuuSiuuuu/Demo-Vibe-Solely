@@ -4,6 +4,10 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Kế hoạch triển khai tìm kiếm sản phẩm bằng hình ảnh
+
+- Thêm plan triển khai Gemini Embedding 2, vector ảnh sản phẩm riêng, API tìm kiếm multipart, nút camera cho catalog, quản trị reindex và các bước kiểm thử backend/frontend.
+
 ### Thiết kế tìm kiếm sản phẩm bằng hình ảnh
 
 - Thêm spec thiết kế tìm kiếm bằng Gemini Embedding 2: người dùng chọn/chụp ảnh từ biểu tượng camera cạnh ô tìm kiếm, backend truy vấn vector ảnh bằng pgvector và admin có thể reindex embedding ảnh sản phẩm.
