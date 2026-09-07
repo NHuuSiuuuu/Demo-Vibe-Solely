@@ -74,8 +74,8 @@ CREATE TABLE product_images (
 
 CREATE TABLE product_image_embeddings (
   id BIGSERIAL PRIMARY KEY,
-  product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  product_image_id BIGINT NOT NULL REFERENCES product_images(id) ON DELETE CASCADE,
+  product_id BIGINT NOT NULL,
+  product_image_id BIGINT NOT NULL,
   embedding vector(768),
   embedding_model TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'active',
@@ -84,7 +84,8 @@ CREATE TABLE product_image_embeddings (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT product_image_embeddings_status_check CHECK (status IN ('active', 'needs_reindex', 'error')),
   CONSTRAINT product_image_embeddings_active_embedding_check CHECK (status <> 'active' OR embedding IS NOT NULL),
-  FOREIGN KEY (product_image_id, product_id) REFERENCES product_images(id, product_id) ON DELETE CASCADE,
+  CONSTRAINT product_image_embeddings_product_image_product_fk
+    FOREIGN KEY (product_image_id, product_id) REFERENCES product_images(id, product_id) ON DELETE CASCADE,
   UNIQUE (product_image_id, embedding_model)
 );
 

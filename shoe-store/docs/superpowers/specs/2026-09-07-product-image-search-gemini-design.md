@@ -161,6 +161,7 @@ Nếu model ảnh chưa được cấu hình hoặc API trả lỗi, API search 
 
 - Tạo bảng/migration chạy được trên database mới và database đã có dữ liệu.
 - Migration được chạy hai lần trên PostgreSQL/pgvector thật, giữ nguyên một sentinel row, và kiểm tra status invalid, duplicate key, cascade, vector dimension 768 cùng cosine opclass qua `pg_catalog`.
+- Integration test chỉ chạy khi caller chủ động set `IMAGE_SEARCH_TEST_DATABASE_URL`; nếu biến này thiếu, test phải skip rõ lý do và tuyệt đối không đọc `DATABASE_URL` hay `server/.env` của ứng dụng.
 - Embed ảnh thành công tạo đúng vector 768 chiều.
 - Reindex lặp không tạo bản ghi trùng.
 - Upload ảnh lỗi MIME/kích thước bị từ chối.

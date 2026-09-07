@@ -85,7 +85,7 @@ Add the table after `product_images` is available, add `DROP TABLE IF EXISTS pro
 
 Run: `cd shoe-store/server && npm test -- --test-name-pattern="image embedding schema"`
 
-Expected: PASS for all image schema tests, including the real PostgreSQL integration path when configured. The integration path runs the migration twice, preserves a sentinel row, rejects invalid status and duplicate key, verifies cascade plus vector dimension/opclass via `pg_catalog`, and skips with an exact reason when PostgreSQL/pgvector is unavailable. Also run `cd shoe-store/server && node --test --require ./test/setup.js test/migration-runner.test.js`.
+Expected: PASS for all image schema tests. The opt-in integration path runs only when `IMAGE_SEARCH_TEST_DATABASE_URL` is explicitly set; it never reads application `DATABASE_URL` or `server/.env`, runs the migration twice, preserves a sentinel row, rejects invalid status/active-null/duplicate key/wrong ownership, verifies cascade plus vector dimension/opclass via `pg_catalog`, guarantees cleanup in `finally`, and skips with an exact reason when the variable or PostgreSQL/pgvector is unavailable. Also run `cd shoe-store/server && node --test --require ./test/setup.js test/migration-runner.test.js`.
 
 - [ ] **Step 5: Commit the database contract**
 
