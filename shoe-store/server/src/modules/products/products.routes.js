@@ -13,6 +13,7 @@ const IMAGE_FILTER_FIELDS = ['brand', 'gender', 'size', 'color', 'minPrice', 'ma
 function uploadImage(req, res, next) {
   imageUpload(req, res, (error) => {
     if (error?.code === 'LIMIT_FILE_SIZE') return next(new HttpError(400, 'Image must not exceed 8 MB'));
+    if (error instanceof multer.MulterError) return next(new HttpError(400, 'Invalid image upload'));
     return next(error);
   });
 }

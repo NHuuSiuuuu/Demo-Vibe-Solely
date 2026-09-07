@@ -699,7 +699,12 @@ async function createProductImage(productId, input) {
       productImageId: image.id,
       imageUrl: image.imageUrl
     }))
-    .catch(() => {});
+    .catch(() => {
+      console.warn('[image-search] product image indexing failed', {
+        productId: Number(productId),
+        productImageId: image.id
+      });
+    });
   return image;
 }
 

@@ -11,6 +11,14 @@ let overviewHandler;
 let reindexAllHandler;
 let reindexProductHandler;
 let searchCalls;
+let reindexProductCalls;
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const ADMIN_IMAGE_ENDPOINTS = [
+  { method: 'get', path: '/api/admin/rag/image-overview' },
+  { method: 'post', path: '/api/admin/rag/images/reindex' },
+  { method: 'post', path: '/api/admin/rag/products/10/image-reindex' }
+];
 
 const users = {
   1: { id: 1, email: 'customer@example.com', role: 'customer', first_name: 'Test', last_name: 'Customer' },
@@ -47,10 +55,14 @@ function auth(userId) {
 
 test.beforeEach(() => {
   searchCalls = [];
+  reindexProductCalls = [];
   searchHandler = async () => ({ products: [{ id: 10, name: 'Runner' }], threshold: 0.35 });
   overviewHandler = async () => ({ totalImages: 14, indexedCount: 10, errorCount: 2, needsReindexCount: 1, model: 'gemini-embedding-2', dimension: 768, lastIndexedAt: null });
   reindexAllHandler = async () => ({ indexed: 10, failed: 2 });
-  reindexProductHandler = async () => ({ indexed: 2, failed: 1 });
+  reindexProductHandler = async (id) => {
+    reindexProductCalls.push(id);
+    return { indexed: 2, failed: 1 };
+  };
 });
 
 test.after(() => { Module._load = originalLoad; });
@@ -81,6 +93,43 @@ test('image search route rejects unsupported MIME types', async () => {
   assert.equal(searchCalls.length, 0);
 });
 
+test('image search route accepts an image exactly at the 8 MB limit', async () => {
+  const image = Buffer.alloc(MAX_IMAGE_BYTES, 1);
+  await request(createApp())
+    .post('/api/products/search-by-image')
+    .attach('image', image, { filename: 'shoe.png', contentType: 'image/png' })
+    .expect(200);
+
+  assert.equal(searchCalls.length, 1);
+  assert.equal(searchCalls[0].data.length, MAX_IMAGE_BYTES);
+});
+
+test('image search route rejects an image larger than 8 MB without calling the service', async () => {
+  const response = await request(createApp())
+    .post('/api/products/search-by-image')
+    .attach('image', Buffer.alloc(MAX_IMAGE_BYTES + 1, 1), { filename: 'shoe.png', contentType: 'image/png' })
+    .expect(400);
+
+  assert.deepEqual(response.body, { message: 'Image must not exceed 8 MB', details: null });
+  assert.equal(searchCalls.length, 0);
+});
+
+test('image search route maps unexpected and duplicate multipart files to stable 400 JSON', async () => {
+  const unexpected = await request(createApp())
+    .post('/api/products/search-by-image')
+    .attach('other', Buffer.from('png'), { filename: 'other.png', contentType: 'image/png' })
+    .expect(400);
+  assert.deepEqual(unexpected.body, { message: 'Invalid image upload', details: null });
+
+  const duplicate = await request(createApp())
+    .post('/api/products/search-by-image')
+    .attach('image', Buffer.from('png'), { filename: 'one.png', contentType: 'image/png' })
+    .attach('image', Buffer.from('png'), { filename: 'two.png', contentType: 'image/png' })
+    .expect(400);
+  assert.deepEqual(duplicate.body, { message: 'Invalid image upload', details: null });
+  assert.equal(searchCalls.length, 0);
+});
+
 test('image search route returns a stable unavailable error when the provider fails', async () => {
   searchHandler = async () => { throw new Error('secret provider response'); };
   const response = await request(createApp()).post('/api/products/search-by-image')
@@ -88,12 +137,14 @@ test('image search route returns a stable unavailable error when the provider fa
   assert.deepEqual(response.body, { message: 'Image search is temporarily unavailable', details: null });
 });
 
-test('image reindex admin routes require authentication and admin role', async () => {
-  await request(createApp()).get('/api/admin/rag/image-overview').expect(401);
-  await request(createApp()).post('/api/admin/rag/images/reindex').set('Authorization', auth(1)).expect(403);
+test('all image reindex admin routes require authentication and admin role', async () => {
+  for (const endpoint of ADMIN_IMAGE_ENDPOINTS) {
+    await request(createApp())[endpoint.method](endpoint.path).expect(401);
+    await request(createApp())[endpoint.method](endpoint.path).set('Authorization', auth(1)).expect(403);
+  }
 });
 
-test('image reindex admin routes return overview and reindex counts', async () => {
+test('image reindex admin routes return overview and reindex counts with the product id', async () => {
   const app = createApp();
   const header = auth(2);
   const overview = await request(app).get('/api/admin/rag/image-overview').set('Authorization', header).expect(200);
@@ -102,4 +153,18 @@ test('image reindex admin routes return overview and reindex counts', async () =
   assert.equal(overview.body.overview.dimension, 768);
   assert.deepEqual(all.body.summary, { indexed: 10, failed: 2 });
   assert.deepEqual(product.body.summary, { indexed: 2, failed: 1 });
+  assert.deepEqual(reindexProductCalls, ['10']);
+});
+
+test('all image reindex admin handlers return stable 503 JSON on failure', async () => {
+  overviewHandler = async () => { throw new Error('provider secret'); };
+  reindexAllHandler = async () => { throw new Error('provider secret'); };
+  reindexProductHandler = async () => { throw new Error('provider secret'); };
+
+  for (const endpoint of ADMIN_IMAGE_ENDPOINTS) {
+    const response = await request(createApp())[endpoint.method](endpoint.path)
+      .set('Authorization', auth(2))
+      .expect(503);
+    assert.deepEqual(response.body, { message: 'Image indexing is temporarily unavailable', details: null });
+  }
 });

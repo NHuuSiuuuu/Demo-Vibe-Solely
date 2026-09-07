@@ -770,16 +770,24 @@ test('creating a product triggers RAG reindex for the new product', async () => 
 test('image reindex hook does not fail product image creation when indexing fails', async () => {
   const { createApp } = require('../src/app');
   imageIndexShouldFail = true;
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (...args) => warnings.push(args);
 
-  const response = await request(createApp())
-    .post('/api/admin/products/10/images')
-    .set('Authorization', `Bearer ${tokenFor(2)}`)
-    .send({ imageUrl: 'https://example.test/shoe.jpg', altText: 'Shoe', sortOrder: 2 })
-    .expect(201);
+  try {
+    const response = await request(createApp())
+      .post('/api/admin/products/10/images')
+      .set('Authorization', `Bearer ${tokenFor(2)}`)
+      .send({ imageUrl: 'https://example.test/shoe.jpg', altText: 'Shoe', sortOrder: 2 })
+      .expect(201);
 
-  await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(response.body.image.imageUrl, 'https://example.test/shoe.jpg');
-  assert.deepEqual(imageIndexCalls, [{ productId: 10, productImageId: 1, imageUrl: 'https://example.test/shoe.jpg' }]);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(response.body.image.imageUrl, 'https://example.test/shoe.jpg');
+    assert.deepEqual(imageIndexCalls, [{ productId: 10, productImageId: 1, imageUrl: 'https://example.test/shoe.jpg' }]);
+    assert.deepEqual(warnings, [['[image-search] product image indexing failed', { productId: 10, productImageId: 1 }]]);
+  } finally {
+    console.warn = originalWarn;
+  }
 });
 
 test('variant mutations trigger RAG reindex for the affected product', async () => {
