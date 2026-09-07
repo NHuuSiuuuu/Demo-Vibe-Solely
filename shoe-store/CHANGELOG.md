@@ -46,6 +46,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm lựa chọn thanh toán COD/VNPay tại checkout, trang kết quả xác minh trạng thái từ đơn hàng và nhãn phương thức/trạng thái thanh toán trên lịch sử đơn hàng.
 
 ### Đã thay đổi
+- Sửa checkout để VNPay chuyển hướng ngay theo URL hợp lệ mà không bị lỗi làm mới giỏ hàng chặn lại, đồng thời bỏ qua `paymentUrl` bất thường trong response đơn COD.
 - Từ chối hủy đơn VNPay đã thanh toán bằng HTTP 409 trước khi hoàn tồn kho vì luồng hoàn tiền chưa nằm trong phạm vi hiện tại.
 - Siết chặt đối soát VNPay theo đồng thời mã phản hồi và trạng thái giao dịch, từ chối callback thiếu trường bắt buộc, đồng thời bảo vệ vòng đời đơn để admin không đánh dấu thanh toán VNPay thành công hoặc để IPN cập nhật đơn đã hủy.
 - Thêm migration tương thích cho database cũ để tạo bảng danh mục và cột Cloudinary của ảnh sản phẩm mà không xóa dữ liệu.

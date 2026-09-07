@@ -53,10 +53,10 @@ export default function CheckoutPage() {
 
     try {
       const data = await apiClient.post('/api/orders', payload, { token });
-      await refreshCart();
-      if (data.paymentUrl) {
+      const paymentUrl = typeof data.paymentUrl === 'string' ? data.paymentUrl.trim() : '';
+      if (paymentMethod === 'vnpay' && paymentUrl) {
         const paymentLink = document.createElement('a');
-        paymentLink.href = data.paymentUrl;
+        paymentLink.href = paymentUrl;
         paymentLink.rel = 'noreferrer';
         paymentLink.hidden = true;
         document.body.appendChild(paymentLink);
@@ -68,6 +68,7 @@ export default function CheckoutPage() {
         setError('Không nhận được đường dẫn thanh toán VNPay. Vui lòng thử lại.');
         return;
       }
+      await refreshCart();
       navigate(`/orders/${data.order.id}`);
     } catch (err) {
       setError(err.message);

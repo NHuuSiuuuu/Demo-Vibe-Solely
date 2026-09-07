@@ -385,6 +385,53 @@ describe('customer shopping flow', () => {
     );
   });
 
+  it('redirects to VNPay when cart refresh fails after the order is created', async () => {
+    const paymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=900&vnp_SecureHash=signed';
+    let redirectedUrl = '';
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function capturePaymentRedirect() {
+      redirectedUrl = this.href;
+    });
+    const fetchMock = renderAsCustomer('/checkout');
+    await screen.findByText('Road Runner 1');
+    const originalFetch = fetchMock.getMockImplementation();
+    let orderCreated = false;
+    fetchMock.mockImplementation((url, options = {}) => {
+      const parsed = new URL(String(url));
+      if (parsed.pathname === '/api/orders' && options.method === 'POST') {
+        orderCreated = true;
+        return jsonResponse({
+          order: { ...order, paymentMethod: 'vnpay', paymentStatus: 'pending' },
+          paymentUrl
+        });
+      }
+      if (parsed.pathname === '/api/cart' && orderCreated) {
+        return jsonResponse({ message: 'Cart refresh failed' }, false);
+      }
+      return originalFetch(url, options);
+    });
+    fireEvent.click(screen.getByRole('radio', { name: /VNPay/i }));
+    fillCheckoutForm();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán qua VNPay' }));
+
+    await waitFor(() => expect(redirectedUrl).toBe(paymentUrl));
+    expect(screen.queryByText('Cart refresh failed')).toBeNull();
+  });
+
+  it('ignores a malformed payment URL in a COD order response', async () => {
+    const malformedPaymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=900';
+    mockApi('/api/orders', { order, paymentUrl: malformedPaymentUrl });
+    const redirectSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    renderAsCustomer('/checkout');
+    await screen.findByText('Road Runner 1');
+    fillCheckoutForm();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt hàng COD' }));
+
+    expect(await screen.findByRole('heading', { name: 'Đơn hàng ORD-20260905-ABC123' })).toBeTruthy();
+    expect(redirectSpy).not.toHaveBeenCalled();
+  });
+
   it('does not redirect a VNPay checkout when the backend omits the payment URL', async () => {
     mockApi('/api/orders', {
       order: { ...order, paymentMethod: 'vnpay', paymentStatus: 'pending' }
