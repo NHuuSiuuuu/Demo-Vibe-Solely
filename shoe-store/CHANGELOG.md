@@ -4,6 +4,18 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Thiết kế tìm kiếm sản phẩm bằng hình ảnh
+
+- Thêm spec thiết kế tìm kiếm bằng Gemini Embedding 2: người dùng chọn/chụp ảnh từ biểu tượng camera cạnh ô tìm kiếm, backend truy vấn vector ảnh bằng pgvector và admin có thể reindex embedding ảnh sản phẩm.
+
+### Phân biệt COD, VNPay và hoàn tiền
+
+- Tách rõ trạng thái thanh toán COD/VNPay trên chi tiết đơn và trang kết quả; bổ sung timeline riêng cho tiến trình đơn hàng và tiến trình thanh toán.
+- Signed Return URL của VNPay cũng đối soát đơn ngay sau khi khách hoàn tất OTP; IPN vẫn giữ vai trò retry/server-to-server và chạy idempotent.
+- Cho phép khách hủy đơn đang chờ xử lý; hủy COD giữ trạng thái chưa thanh toán, còn hủy VNPay đã thanh toán chuyển sang chờ hoàn tiền và hoàn tồn kho an toàn.
+- Bổ sung trạng thái `refund_pending` và `refunded`; admin có nút xác nhận đã hoàn tiền VNPay, chống xác nhận lặp và không cho giao đơn đang chờ/đã hoàn tiền.
+- Bổ sung migration cộng dồn, API hủy đơn/xác nhận hoàn tiền, thông báo UI riêng cho COD/VNPay và kiểm thử backend/frontend tương ứng.
+
 ### Hoàn thiện sau rà soát thanh toán
 
 - Sửa form admin để chỉ gửi `discountPercent` của phiên bản đã tồn tại khi trường giảm giá được chỉnh sửa; lưu tồn kho không làm mất giá legacy, còn chủ động sửa về `0` vẫn ngừng fallback. Cờ chỉnh sửa được xóa sau khi lưu thành công.
@@ -13,9 +25,10 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ### Gia cố thanh toán và giá bán
 
+- Sửa URL thanh toán VNPay không gửi `vnp_IpnUrl` như một tham số thanh toán; IPN vẫn được cấu hình riêng ở endpoint backend để tránh Sandbox trả lỗi hệ thống `code=99`.
 - Sửa `db:migrate` để chạy migration catalog rồi VNPay/giảm giá với `ON_ERROR_STOP=1`; kiểm thử trực tiếp runner, lỗi tiến trình và migration chạy lặp trên PostgreSQL nhúng.
 - Bổ sung hạn thanh toán 15 phút theo GMT+7 vào cùng payload ký VNPay, kiểm thử chuyển ngày/năm và chữ ký không mã hóa lặp.
-- Chặn giao/hoàn tất đơn VNPay chưa thanh toán; chặn hủy khi thanh toán đang chờ hoặc đã thành công để bảo toàn tồn kho khi IPN đến muộn. Đơn thanh toán thất bại vẫn được hủy và hoàn tồn đúng một lần; COD giữ luồng cũ.
+- Chặn giao/hoàn tất đơn VNPay chưa thanh toán; chặn hủy khi thanh toán còn đang chờ đối soát để bảo toàn tồn kho khi IPN đến muộn. Đơn VNPay đã thanh toán khi hủy sẽ chuyển sang chờ hoàn tiền; đơn thất bại vẫn được hủy và hoàn tồn đúng một lần; COD giữ luồng cũ.
 - Thêm API có xác thực `POST /api/orders/:id/payment-url` và nút tiếp tục thanh toán trong chi tiết đơn, dùng số tiền/mã tham chiếu đã lưu mà không tạo thêm đơn, trừ kho hoặc xóa giỏ.
 - Thêm cờ phân biệt giá legacy với giảm giá do admin nhập; nhập `discountPercent` kể cả `0` sẽ ngừng fallback vĩnh viễn, giữ cột delta để kiểm toán và không bật lại khi chạy migration.
 - Đồng bộ helper, bộ lọc/sắp xếp catalog, giỏ hàng, đơn hàng và RAG sang giá bán làm tròn nguyên đồng trước khi nhân số lượng; giữ nguyên số tiền lịch sử và độ chính xác dữ liệu giá gốc.
