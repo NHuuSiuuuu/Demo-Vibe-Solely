@@ -1,6 +1,8 @@
 const DEFAULT_EMBEDDING_MODEL = 'gemini-embedding-001';
+const DEFAULT_IMAGE_EMBEDDING_MODEL = 'gemini-embedding-2';
 const DEFAULT_CHAT_MODEL = 'gemini-3.6-flash';
 const DEFAULT_DIMENSIONS = 768;
+const SUPPORTED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png']);
 // Thinking models can consume part of this budget before producing visible text.
 const MAX_CHAT_OUTPUT_TOKENS = 1400;
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -74,6 +76,73 @@ async function embedText(text) {
   return payload.embedding?.values || [];
 }
 
+function getImageEmbeddingConfig() {
+  const configuredDimension = Number(process.env.GEMINI_EMBEDDING_DIMENSION || DEFAULT_DIMENSIONS);
+
+  return {
+    model: process.env.GEMINI_IMAGE_EMBEDDING_MODEL || DEFAULT_IMAGE_EMBEDDING_MODEL,
+    dimension: Number.isInteger(configuredDimension) && configuredDimension > 0
+      ? configuredDimension
+      : DEFAULT_DIMENSIONS
+  };
+}
+
+async function embedImage({ data, mimeType }) {
+  if (!SUPPORTED_IMAGE_MIME_TYPES.has(mimeType)) {
+    throw new Error(`Unsupported image MIME type: ${mimeType}`);
+  }
+
+  if (!Buffer.isBuffer(data)) {
+    throw new Error('Image data must be a Buffer');
+  }
+
+  if (!isGeminiConfigured()) {
+    throw new Error('GEMINI_API_KEY is required for image embeddings');
+  }
+
+  const { model, dimension } = getImageEmbeddingConfig();
+  let response;
+
+  try {
+    response = await fetch(`${GEMINI_API_BASE_URL}/${model}:embedContent?key=${getApiKey()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: `models/${model}`,
+        content: {
+          parts: [{
+            inlineData: {
+              mimeType,
+              data: data.toString('base64')
+            }
+          }]
+        },
+        outputDimensionality: dimension
+      })
+    });
+  } catch {
+    throw new Error('Gemini image embedding request failed');
+  }
+
+  if (!response.ok) {
+    throw new Error(`Gemini image embedding failed with ${response.status}`);
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new Error('Gemini image embedding returned invalid JSON');
+  }
+
+  const values = payload?.embedding?.values;
+  if (!Array.isArray(values) || values.length !== dimension || !values.every(Number.isFinite)) {
+    throw new Error(`Gemini image embedding returned an invalid vector dimension; expected ${dimension}`);
+  }
+
+  return values;
+}
+
 async function generateGroundedAnswer({ message, context, products }) {
   if (!isGeminiConfigured() || typeof fetch !== 'function') {
     return null;
@@ -111,5 +180,7 @@ async function generateGroundedAnswer({ message, context, products }) {
 module.exports = {
   isGeminiConfigured,
   embedText,
+  embedImage,
+  getImageEmbeddingConfig,
   generateGroundedAnswer
 };
