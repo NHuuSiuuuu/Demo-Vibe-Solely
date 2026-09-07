@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS cart_items;
 DROP TABLE IF EXISTS carts;
 DROP TABLE IF EXISTS product_variants;
+DROP TABLE IF EXISTS product_image_embeddings;
 DROP TABLE IF EXISTS product_images;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS products;
@@ -68,6 +69,20 @@ CREATE TABLE product_images (
   alt_text TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
   cloudinary_public_id TEXT
+);
+
+CREATE TABLE product_image_embeddings (
+  id BIGSERIAL PRIMARY KEY,
+  product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  product_image_id BIGINT NOT NULL REFERENCES product_images(id) ON DELETE CASCADE,
+  embedding vector(768) NOT NULL,
+  embedding_model TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT product_image_embeddings_status_check CHECK (status IN ('active', 'needs_reindex', 'error')),
+  UNIQUE (product_image_id, embedding_model)
 );
 
 CREATE TABLE product_variants (
@@ -193,6 +208,10 @@ ALTER TABLE cart_items ADD CONSTRAINT cart_items_quantity_positive CHECK (quanti
 ALTER TABLE order_items ADD CONSTRAINT order_items_quantity_positive CHECK (quantity > 0);
 
 CREATE INDEX product_images_product_id_idx ON product_images(product_id);
+CREATE INDEX product_image_embeddings_product_id_idx ON product_image_embeddings(product_id);
+CREATE INDEX product_image_embeddings_product_image_id_idx ON product_image_embeddings(product_image_id);
+CREATE INDEX product_image_embeddings_status_idx ON product_image_embeddings(status);
+CREATE INDEX product_image_embeddings_embedding_idx ON product_image_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 CREATE INDEX categories_status_idx ON categories(status);
 CREATE INDEX product_variants_product_id_idx ON product_variants(product_id);
 CREATE INDEX cart_items_cart_id_idx ON cart_items(cart_id);

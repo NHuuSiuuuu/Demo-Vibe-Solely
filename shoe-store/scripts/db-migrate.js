@@ -12,7 +12,8 @@ if (!process.env.DATABASE_URL) {
 
 const migrations = [
   '20260907-product-catalog-admin.sql',
-  '20260907-vnpay-discount.sql'
+  '20260907-vnpay-discount.sql',
+  '20260907-product-image-search.sql'
 ];
 const result = spawnSync('psql', [process.env.DATABASE_URL, '-v', 'ON_ERROR_STOP=1',
   ...migrations.flatMap((name) => ['-f', path.join(rootDir, 'database/migrations', name)])], {
