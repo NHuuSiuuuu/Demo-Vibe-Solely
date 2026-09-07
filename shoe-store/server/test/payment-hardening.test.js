@@ -177,6 +177,24 @@ test('both additive migrations upgrade old payment enums and can run again witho
   assert.ok((await query('SELECT id FROM products')).rowCount >= 20);
 });
 
+test('admin form stock payload preserves legacy pricing; explicitly included zero retires it', async () => {
+  await query('UPDATE product_variants SET discount_percent = 0, legacy_price_delta = 25, legacy_pricing_active = TRUE WHERE id = $1', [variantId]);
+  const original = (await request(app).get(`/api/admin/products/${productId}`).set('Authorization', auth(adminId)).expect(200))
+    .body.product.variants.find((v) => v.id === Number(variantId));
+  const payload = { sku: original.sku, size: original.size, color: original.color, stockQuantity: 19 };
+  await request(app).patch(`/api/admin/variants/${variantId}`).set('Authorization', auth(adminId)).send(payload).expect(200);
+  let row = (await query('SELECT * FROM product_variants WHERE id = $1', [variantId])).rows[0];
+  assert.equal(row.legacy_pricing_active, true);
+  assert.equal(Number(row.stock_quantity), 19);
+  const getPrice = async () => (await request(app).get(`/api/products/${slug}`).expect(200)).body.product.variants.find((v) => v.id === Number(variantId)).unitPrice;
+  assert.equal(await getPrice(), 126);
+  await request(app).patch(`/api/admin/variants/${variantId}`).set('Authorization', auth(adminId)).send({ ...payload, discountPercent: 0 }).expect(200);
+  row = (await query('SELECT * FROM product_variants WHERE id = $1', [variantId])).rows[0];
+  assert.equal(row.legacy_pricing_active, false);
+  assert.equal(Number(row.legacy_price_delta), 25);
+  assert.equal(await getPrice(), 101);
+});
+
 for (const paymentStatus of ['pending', 'failed']) {
   for (const [from, to] of [['confirmed', 'shipping'], ['shipping', 'completed']]) {
     test(`VNPay ${paymentStatus} cannot move from ${from} to ${to}`, async () => {

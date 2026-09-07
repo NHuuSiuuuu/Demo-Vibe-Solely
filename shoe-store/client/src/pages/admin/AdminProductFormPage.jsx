@@ -139,7 +139,11 @@ export default function AdminProductFormPage() {
 
   function updateExistingVariantField(variantId, field, value) {
     setVariants((current) =>
-      current.map((variant) => (variant.id === variantId ? { ...variant, [field]: value } : variant))
+      current.map((variant) => (variant.id === variantId ? {
+        ...variant,
+        [field]: value,
+        discountEdited: variant.discountEdited || field === 'discountPercent'
+      } : variant))
     );
   }
 
@@ -224,7 +228,7 @@ export default function AdminProductFormPage() {
         size: String(variant.size || '').trim(),
         color: String(variant.color || '').trim(),
         stockQuantity: Number(variant.stockQuantity),
-        discountPercent: Number(variant.discountPercent || 0)
+        ...(variant.discountEdited ? { discountPercent: Number(variant.discountPercent || 0) } : {})
       };
       const data = await apiClient.patch(`/api/admin/variants/${variant.id}`, payload, { token });
       setVariants((current) => current.map((candidate) => (candidate.id === variant.id ? data.variant : candidate)));

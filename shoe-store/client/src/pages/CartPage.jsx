@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
+import ItemPriceDetails from '../components/ItemPriceDetails.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import { colorLabel } from '../utils/formatters.js';
 
@@ -35,6 +36,7 @@ export default function CartPage() {
               <p>
                 Size {item.size} / {colorLabel(item.color)} / {item.sku}
               </p>
+              <ItemPriceDetails item={item} />
             </div>
             <p>{formatMoney(item.unitPrice)}</p>
             <label>

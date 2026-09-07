@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
+import ItemPriceDetails from '../components/ItemPriceDetails.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { colorLabel, orderStatusLabel, paymentMethodLabel, paymentStatusLabel } from '../utils/formatters.js';
@@ -13,16 +14,32 @@ const timelineSteps = ['pending', 'confirmed', 'shipping', 'completed'];
 export default function OrderDetailPage() {
   const { id } = useParams();
   const { token } = useAuth();
+  if (!token) {
+    return <AuthPrompt message="Đăng nhập hoặc đăng ký để theo dõi đơn hàng này." />;
+  }
+  // Route/auth identity owns all loaded data and in-flight resume state.
+  return <OrderDetail key={JSON.stringify([id, token])} id={id} token={token} />;
+}
+
+function OrderDetail({ id, token }) {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
   const [retryError, setRetryError] = useState('');
   const [isRetrying, setIsRetrying] = useState(false);
+  const active = useRef(false);
+
+  useLayoutEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
 
   async function resumePayment() {
+    if (!active.current || isRetrying) return;
     setRetryError('');
     setIsRetrying(true);
     try {
       const data = await apiClient.post(`/api/orders/${order.id}/payment-url`, {}, { token });
+      if (!active.current) return;
       const paymentUrl = typeof data.paymentUrl === 'string' ? data.paymentUrl.trim() : '';
       if (!paymentUrl) throw new Error('Không nhận được đường dẫn thanh toán VNPay. Vui lòng thử lại.');
       const link = document.createElement('a');
@@ -33,18 +50,13 @@ export default function OrderDetailPage() {
       link.click();
       link.remove();
     } catch (err) {
-      setRetryError(err.message);
+      if (active.current) setRetryError(err.message);
     } finally {
-      setIsRetrying(false);
+      if (active.current) setIsRetrying(false);
     }
   }
 
   useEffect(() => {
-    if (!token) {
-      setOrder(null);
-      return undefined;
-    }
-
     let cancelled = false;
     apiClient
       .get(`/api/orders/${id}`, { token })
@@ -62,10 +74,6 @@ export default function OrderDetailPage() {
       cancelled = true;
     };
   }, [id, token]);
-
-  if (!token) {
-    return <AuthPrompt message="Đăng nhập hoặc đăng ký để theo dõi đơn hàng này." />;
-  }
 
   if (error) {
     return <p className="form-error">{error}</p>;
@@ -123,6 +131,8 @@ export default function OrderDetailPage() {
             <article className="summary-item" key={item.id}>
               <span>
                 {item.productName} / size {item.size} / {colorLabel(item.color)} x {item.quantity}
+                <br />
+                <ItemPriceDetails item={item} />
               </span>
               <strong>{formatMoney(item.lineTotal)}</strong>
             </article>

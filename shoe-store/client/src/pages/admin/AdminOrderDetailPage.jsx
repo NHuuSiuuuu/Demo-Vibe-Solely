@@ -4,6 +4,7 @@ import { apiClient } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatMoney } from '../../components/ProductCard.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import ItemPriceDetails from '../../components/ItemPriceDetails.jsx';
 import { colorLabel, orderStatusLabel, paymentStatusLabel } from '../../utils/formatters.js';
 import { formatOrderCode } from '../OrdersPage.jsx';
 
@@ -115,6 +116,8 @@ export default function AdminOrderDetailPage() {
             <article className="summary-item" key={item.id}>
               <span>
                 {item.productName} / {item.sku} / size {item.size} / {colorLabel(item.color)} x {item.quantity}
+                <br />
+                <ItemPriceDetails item={item} />
               </span>
               <strong>{formatMoney(item.lineTotal)}</strong>
             </article>

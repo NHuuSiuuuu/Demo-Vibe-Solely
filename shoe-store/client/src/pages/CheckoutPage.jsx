@@ -4,6 +4,7 @@ import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
+import ItemPriceDetails from '../components/ItemPriceDetails.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 
 const initialForm = {
@@ -167,6 +168,8 @@ export default function CheckoutPage() {
             <span>
               <span>{item.productName}</span>
               <small> x {item.quantity}</small>
+              <br />
+              <ItemPriceDetails item={item} />
             </span>
             <strong>{formatMoney(item.lineTotal)}</strong>
           </div>

@@ -196,7 +196,10 @@ Fallback applies only to those marked rows with a zero discount. Any explicit
 admin `discountPercent` write, including `0`, permanently clears the marker;
 stock-only edits keep it intact, and rerunning migration cannot reactivate it.
 Preexisting zero discounts cannot retrospectively be distinguished from an
-untouched migrated row; re-save an intended explicit zero after upgrading.
+untouched migrated row. To explicitly set zero after upgrading, edit the
+discount field (for example, clear it and enter `0`) and save. The admin form
+omits untouched discount fields when saving existing variants, so a stock-only
+save preserves active legacy pricing.
 
 Catalog filters/sorts, variant sale prices, cart unit prices, new order unit
 prices and line/order totals use whole đồng. Raw base-price audit context and

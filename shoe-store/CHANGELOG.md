@@ -4,6 +4,13 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Hoàn thiện sau rà soát thanh toán
+
+- Sửa form admin để chỉ gửi `discountPercent` của phiên bản đã tồn tại khi trường giảm giá được chỉnh sửa; lưu tồn kho không làm mất giá legacy, còn chủ động sửa về `0` vẫn ngừng fallback. Cờ chỉnh sửa được xóa sau khi lưu thành công.
+- Dùng chung phần hiển thị giá gốc/phần trăm giảm giá trong giỏ, checkout, chi tiết đơn khách hàng và chi tiết đơn admin; hiển thị đúng giá trị `0`, bỏ qua từng trường lịch sử `null`/thiếu và giữ nguyên tổng tiền đã lưu.
+- Tách trạng thái chi tiết đơn theo mã đơn/token để loại bỏ đơn và nút thanh toán cũ khi điều hướng; bỏ qua URL, lỗi và trạng thái tải từ yêu cầu tiếp tục thanh toán đã hết hiệu lực sau khi đổi đơn, đổi đăng nhập hoặc rời trang.
+- Bổ sung kiểm thử UI/API cho lưu tồn kho của phiên bản legacy, metadata lịch sử và phản hồi thanh toán đến muộn; cập nhật hướng dẫn thao tác giảm giá về `0`.
+
 ### Gia cố thanh toán và giá bán
 
 - Sửa `db:migrate` để chạy migration catalog rồi VNPay/giảm giá với `ON_ERROR_STOP=1`; kiểm thử trực tiếp runner, lỗi tiến trình và migration chạy lặp trên PostgreSQL nhúng.

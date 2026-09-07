@@ -1,11 +1,12 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { apiClient } from '../src/api/client.js';
 import PaymentResultPage from '../src/pages/PaymentResultPage.jsx';
 import OrderDetailPage from '../src/pages/OrderDetailPage.jsx';
 
-vi.mock('../src/auth/AuthContext.jsx', () => ({ useAuth: () => ({ token: 'customer-token' }) }));
+const authState = vi.hoisted(() => ({ token: 'customer-token' }));
+vi.mock('../src/auth/AuthContext.jsx', () => ({ useAuth: () => authState }));
 const order = { id: 1, orderCode: 'ORD-1', paymentMethod: 'vnpay', paymentStatus: 'paid',
   orderStatus: 'pending', shippingAddress: {}, items: [], grandTotal: 153 };
 function renderPage(path = '/payment-result?orderId=1') {
@@ -17,6 +18,7 @@ function renderPage(path = '/payment-result?orderId=1') {
   return router;
 }
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+beforeEach(() => { authState.token = 'customer-token'; });
 
 describe('payment result navigation', () => {
   it('clears the previous paid order while the newly requested order is loading', async () => {
@@ -59,6 +61,61 @@ describe('payment result navigation', () => {
 });
 
 describe('order payment resume', () => {
+  it('removes the old order and resume action while a new order loads', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValueOnce({ order: { ...order, paymentStatus: 'pending' } })
+      .mockImplementationOnce(() => new Promise(() => {}));
+    const router = renderPage('/orders/1');
+    await screen.findByRole('button', { name: 'Tiếp tục thanh toán VNPay' });
+    await act(() => router.navigate('/orders/2'));
+    expect(screen.queryByRole('heading', { name: 'Đơn hàng ORD-1' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tiếp tục thanh toán VNPay' })).toBeNull();
+    expect(screen.getByText('Đang tải đơn hàng...')).toBeTruthy();
+  });
+
+  it.each(['order', 'token', 'unmount'])('ignores a late resume URL after %s changes', async (change) => {
+    vi.spyOn(apiClient, 'get').mockImplementation(async (path) => ({ order: {
+      ...order, id: path.endsWith('/2') ? 2 : 1, paymentStatus: 'pending'
+    } }));
+    let resolveUrl;
+    vi.spyOn(apiClient, 'post').mockImplementation(() => new Promise((resolve) => { resolveUrl = resolve; }));
+    const redirect = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const router = renderPage('/orders/1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Tiếp tục thanh toán VNPay' }));
+    if (change === 'token') authState.token = 'replacement-token';
+    await act(() => router.navigate(change === 'order' ? '/orders/2' : change === 'token' ? '/orders/1?session=2' : '/payment-result'));
+    await act(() => resolveUrl({ paymentUrl: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=1' }));
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it('ignores an old resume error without clearing the new request busy state', async () => {
+    vi.spyOn(apiClient, 'get').mockImplementation(async (path) => ({ order: {
+      ...order, id: path.endsWith('/2') ? 2 : 1, paymentStatus: 'pending'
+    } }));
+    let rejectOld;
+    let resolveNew;
+    vi.spyOn(apiClient, 'post').mockImplementationOnce(() => new Promise((_, reject) => { rejectOld = reject; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveNew = resolve; }));
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const router = renderPage('/orders/1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Tiếp tục thanh toán VNPay' }));
+    await act(() => router.navigate('/orders/2'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Tiếp tục thanh toán VNPay' }));
+    await act(() => rejectOld(new Error('Stale payment error')));
+    expect(screen.queryByText('Stale payment error')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Đang tạo đường dẫn...' }).disabled).toBe(true);
+    await act(() => resolveNew({ paymentUrl: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=2' }));
+  });
+
+  it('clears a failed order lookup when navigating to another order', async () => {
+    vi.spyOn(apiClient, 'get').mockRejectedValueOnce(new Error('Order not found'))
+      .mockResolvedValueOnce({ order: { ...order, id: 2, orderCode: 'ORD-2' } });
+    const router = renderPage('/orders/1');
+    await screen.findByText('Order not found');
+    await act(() => router.navigate('/orders/2'));
+    expect(await screen.findByRole('heading', { name: 'Đơn hàng ORD-2' })).toBeTruthy();
+    expect(screen.queryByText('Order not found')).toBeNull();
+  });
+
   it('requests the owned order payment URL and disables duplicate clicks until redirect', async () => {
     vi.spyOn(apiClient, 'get').mockResolvedValue({ order: { ...order, paymentStatus: 'pending' } });
     let resolveUrl;

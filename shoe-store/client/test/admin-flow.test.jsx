@@ -403,6 +403,31 @@ describe('admin flow', () => {
     );
   });
 
+  it('omits untouched discount on stock saves but sends an intentional reset to zero', async () => {
+    const fetchMock = renderWithToken('/admin/products/10/edit');
+    const stock = await screen.findByLabelText('Tồn kho cho RR1-9-BLK');
+    const discount = screen.getByLabelText('% giảm giá cho RR1-9-BLK');
+    const save = screen.getByRole('button', { name: 'Lưu RR1-9-BLK' });
+    const savedBodies = () => fetchMock.mock.calls
+      .filter(([url, options]) => String(url).endsWith('/api/admin/variants/101') && options.method === 'PATCH')
+      .map(([, options]) => JSON.parse(options.body));
+    fireEvent.change(stock, { target: { value: '9' } });
+    fireEvent.click(save);
+    await screen.findByText('Đã lưu phiên bản.');
+    expect(savedBodies()[0].stockQuantity).toBe(9);
+    expect(savedBodies()[0]).not.toHaveProperty('discountPercent');
+    // Editing away and back to the displayed zero is an explicit pricing decision.
+    fireEvent.change(discount, { target: { value: '10' } });
+    fireEvent.change(discount, { target: { value: '0' } });
+    fireEvent.click(save);
+    await screen.findByText('Đã lưu phiên bản.');
+    expect(savedBodies()[1].discountPercent).toBe(0);
+    fireEvent.change(stock, { target: { value: '8' } });
+    fireEvent.click(save);
+    await screen.findByText('Đã lưu phiên bản.');
+    expect(savedBodies()[2]).not.toHaveProperty('discountPercent');
+  });
+
   it('renders admin order list', async () => {
     renderWithToken('/admin/orders');
 
