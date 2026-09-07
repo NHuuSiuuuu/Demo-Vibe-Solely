@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Database, FileText, PackageSearch, RefreshCcw, Search, Sparkles } from 'lucide-react';
+import { CircleAlert, Database, FileText, Image as ImageIcon, PackageSearch, RefreshCcw, Search, Sparkles } from 'lucide-react';
 import { apiClient } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 
@@ -14,6 +14,16 @@ const emptyOverview = {
   chunkCountsBySourceType: { document: 0, product: 0 },
   indexedProductCount: 0,
   staleProductCount: 0,
+  lastIndexedAt: null
+};
+
+const emptyImageOverview = {
+  totalImages: 0,
+  indexedCount: 0,
+  errorCount: 0,
+  needsReindexCount: 0,
+  model: '',
+  dimension: 0,
   lastIndexedAt: null
 };
 
@@ -83,6 +93,13 @@ export default function AdminRagPage() {
   const [isReindexingAll, setIsReindexingAll] = useState(false);
   const [productReindexId, setProductReindexId] = useState('');
   const [isReindexingProduct, setIsReindexingProduct] = useState(false);
+  const [imageOverview, setImageOverview] = useState(emptyImageOverview);
+  const [imageStatus, setImageStatus] = useState('loading');
+  const [imageError, setImageError] = useState('');
+  const [imageNotice, setImageNotice] = useState('');
+  const [isReindexingImages, setIsReindexingImages] = useState(false);
+  const [imageProductReindexId, setImageProductReindexId] = useState('');
+  const [isReindexingProductImages, setIsReindexingProductImages] = useState(false);
   const [testMessage, setTestMessage] = useState('');
   const [testStatus, setTestStatus] = useState('idle');
   const [testResult, setTestResult] = useState(null);
@@ -92,6 +109,14 @@ export default function AdminRagPage() {
     () => [...documents].sort((first, second) => new Date(second.updatedAt || 0) - new Date(first.updatedAt || 0)),
     [documents]
   );
+  const unindexedImageCount = Math.max(
+    Number(imageOverview.totalImages || 0)
+      - Number(imageOverview.indexedCount || 0)
+      - Number(imageOverview.needsReindexCount || 0)
+      - Number(imageOverview.errorCount || 0),
+    0
+  );
+  const isImageReindexing = isReindexingImages || isReindexingProductImages;
 
   async function loadRagData({ silent = false } = {}) {
     if (!silent) setStatus('loading');
@@ -111,10 +136,24 @@ export default function AdminRagPage() {
     }
   }
 
+  async function loadImageOverview({ silent = false } = {}) {
+    if (!silent) setImageStatus('loading');
+    setImageError('');
+
+    try {
+      const data = await apiClient.get('/api/admin/rag/image-overview', { token });
+      setImageOverview(data.overview || emptyImageOverview);
+      setImageStatus('ready');
+    } catch (err) {
+      setImageError(err.message);
+      setImageStatus('error');
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadRag() {
       setStatus('loading');
       setError('');
 
@@ -136,7 +175,26 @@ export default function AdminRagPage() {
       }
     }
 
-    load();
+    async function loadImages() {
+      setImageStatus('loading');
+      setImageError('');
+
+      try {
+        const data = await apiClient.get('/api/admin/rag/image-overview', { token });
+        if (!cancelled) {
+          setImageOverview(data.overview || emptyImageOverview);
+          setImageStatus('ready');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setImageError(err.message);
+          setImageStatus('error');
+        }
+      }
+    }
+
+    loadRag();
+    loadImages();
 
     return () => {
       cancelled = true;
@@ -275,6 +333,46 @@ export default function AdminRagPage() {
     }
   }
 
+  async function handleReindexAllImages() {
+    setIsReindexingImages(true);
+    setImageNotice('');
+    setImageError('');
+
+    try {
+      const data = await apiClient.post('/api/admin/rag/images/reindex', {}, { token });
+      const indexed = Number(data.summary?.indexed || 0);
+      const failed = Number(data.summary?.failed || 0);
+      setImageNotice(`Đã reindex ảnh: ${indexed} thành công, ${failed} lỗi.`);
+      await loadImageOverview({ silent: true });
+    } catch (err) {
+      setImageError(err.message);
+    } finally {
+      setIsReindexingImages(false);
+    }
+  }
+
+  async function handleReindexProductImages(event) {
+    event.preventDefault();
+    const productId = imageProductReindexId.trim();
+    if (!productId) return;
+
+    setIsReindexingProductImages(true);
+    setImageNotice('');
+    setImageError('');
+
+    try {
+      const data = await apiClient.post(`/api/admin/rag/products/${productId}/image-reindex`, {}, { token });
+      const indexed = Number(data.summary?.indexed || 0);
+      const failed = Number(data.summary?.failed || 0);
+      setImageNotice(`Đã reindex ảnh sản phẩm #${productId}: ${indexed} thành công, ${failed} lỗi.`);
+      await loadImageOverview({ silent: true });
+    } catch (err) {
+      setImageError(err.message);
+    } finally {
+      setIsReindexingProductImages(false);
+    }
+  }
+
   async function handleTestSubmit(event) {
     event.preventDefault();
     const message = testMessage.trim();
@@ -355,6 +453,56 @@ export default function AdminRagPage() {
             <button type="submit" className="button-link" disabled={isReindexingProduct}>
               <RefreshCcw size={16} aria-hidden="true" />
               {isReindexingProduct ? 'Đang reindex...' : 'Reindex sản phẩm'}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="admin-subsection rag-image-index-panel" aria-labelledby="rag-images-title">
+        <div className="admin-panel-heading rag-image-index-heading">
+          <div>
+            <h2 id="rag-images-title">Embedding ảnh sản phẩm</h2>
+            <p>Theo dõi ảnh của các sản phẩm đang bán và retry các embedding chưa sẵn sàng.</p>
+          </div>
+          <button type="button" className="button-secondary" onClick={handleReindexAllImages} disabled={isImageReindexing}>
+            <RefreshCcw size={16} aria-hidden="true" />
+            {isReindexingImages ? 'Đang reindex ảnh...' : 'Reindex toàn bộ ảnh'}
+          </button>
+        </div>
+
+        {imageStatus === 'loading' ? <p className="muted">Đang tải trạng thái embedding ảnh...</p> : null}
+        {imageError ? <p className="form-error" role="alert">{imageError}</p> : null}
+        {imageNotice ? <p className="form-success" role="status">{imageNotice}</p> : null}
+
+        <div className="rag-admin-grid rag-image-status-grid">
+          <StatusCard icon={ImageIcon} label="Ảnh sản phẩm đang bán" value={imageOverview.totalImages || 0} tone="blue" />
+          <StatusCard icon={Database} label="Đã index" value={imageOverview.indexedCount || 0} tone="green" />
+          <StatusCard icon={ImageIcon} label="Chưa index" value={unindexedImageCount} tone={unindexedImageCount ? 'orange' : 'blue'} />
+          <StatusCard icon={RefreshCcw} label="Cần reindex" value={imageOverview.needsReindexCount || 0} tone={imageOverview.needsReindexCount ? 'orange' : 'blue'} />
+          <StatusCard icon={CircleAlert} label="Lỗi" value={imageOverview.errorCount || 0} tone={imageOverview.errorCount ? 'red' : 'blue'} />
+        </div>
+
+        <div className="rag-overview-details" aria-label="Chi tiết embedding ảnh">
+          <span>Model: {imageOverview.model ? `${imageOverview.model} · ${imageOverview.dimension} chiều` : 'Chưa có dữ liệu'}</span>
+          <span>Index gần nhất: {formatDateTime(imageOverview.lastIndexedAt)}</span>
+        </div>
+
+        <form className="admin-form rag-product-reindex-form" onSubmit={handleReindexProductImages}>
+          <label>
+            ID sản phẩm
+            <input
+              inputMode="numeric"
+              pattern="[0-9]+"
+              value={imageProductReindexId}
+              onChange={(event) => setImageProductReindexId(event.target.value)}
+              placeholder="Ví dụ: 10"
+              required
+            />
+          </label>
+          <div className="admin-form__actions">
+            <button type="submit" className="button-link" disabled={isImageReindexing}>
+              <RefreshCcw size={16} aria-hidden="true" />
+              {isReindexingProductImages ? 'Đang reindex ảnh...' : 'Reindex ảnh sản phẩm'}
             </button>
           </div>
         </form>

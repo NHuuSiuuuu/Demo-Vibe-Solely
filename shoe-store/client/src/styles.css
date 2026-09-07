@@ -1569,6 +1569,29 @@ button:disabled {
   gap: 1rem;
 }
 
+.rag-image-index-panel {
+  border-top: 1px solid var(--admin-border);
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.rag-image-index-heading {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.rag-image-index-heading p {
+  color: var(--admin-muted);
+  margin: 0.3rem 0 0;
+}
+
+.rag-image-status-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .rag-product-reindex-form {
   align-items: end;
   grid-template-columns: minmax(12rem, 18rem) auto;
@@ -1607,6 +1630,11 @@ button:disabled {
 .rag-status-card--orange > span {
   background: #ffedd5;
   color: #c2410c;
+}
+
+.rag-status-card--red > span {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .rag-status-card p,
@@ -1744,6 +1772,7 @@ button:disabled {
   }
 
   .admin-rag-page .section-heading,
+  .rag-image-index-heading,
   .rag-document-actions {
     align-items: stretch;
     flex-direction: column;

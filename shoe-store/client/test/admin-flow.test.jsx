@@ -7,6 +7,9 @@ const customerUser = { id: 1, email: 'customer@shoestore.local', name: 'Customer
 
 let adminProducts;
 let adminOrders;
+let imageOverviewHandler;
+let imageReindexAllHandler;
+let imageReindexProductHandler;
 
 function resetProducts() {
   adminProducts = [
@@ -196,6 +199,18 @@ function createAdminFetchMock({ role = 'admin' } = {}) {
       });
     }
 
+    if (path === '/api/admin/rag/image-overview' && method === 'GET') {
+      return imageOverviewHandler();
+    }
+
+    if (path === '/api/admin/rag/images/reindex' && method === 'POST') {
+      return imageReindexAllHandler();
+    }
+
+    if (path === '/api/admin/rag/products/10/image-reindex' && method === 'POST') {
+      return imageReindexProductHandler();
+    }
+
     if (path === '/api/admin/rag/products/10/reindex' && method === 'POST') {
       return jsonResponse({ result: { status: 'indexed', chunksIndexed: 1 } });
     }
@@ -260,6 +275,19 @@ describe('admin flow', () => {
     localStorage.clear();
     resetProducts();
     resetOrders();
+    imageOverviewHandler = async () => jsonResponse({
+      overview: {
+        totalImages: 14,
+        indexedCount: 10,
+        errorCount: 2,
+        needsReindexCount: 1,
+        model: 'gemini-embedding-2',
+        dimension: 768,
+        lastIndexedAt: '2026-09-07T09:00:00.000Z'
+      }
+    });
+    imageReindexAllHandler = async () => jsonResponse({ summary: { indexed: 11, failed: 3 } });
+    imageReindexProductHandler = async () => jsonResponse({ summary: { indexed: 2, failed: 1 } });
     window.history.pushState({}, '', '/');
     global.fetch = vi.fn();
   });
@@ -315,17 +343,87 @@ describe('admin flow', () => {
   it('renders RAG product indexing status and can reindex one product', async () => {
     const fetchMock = renderWithToken('/admin/rag');
 
-    expect(await screen.findByRole('heading', { name: 'Sản phẩm' })).toBeTruthy();
-    expect(screen.getByText('Đã index')).toBeTruthy();
-    expect(screen.getAllByText('Cần reindex').length).toBeGreaterThan(0);
-    fireEvent.change(screen.getByLabelText('ID sản phẩm'), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Reindex sản phẩm' }));
+    const panel = (await screen.findByRole('heading', { name: 'Sản phẩm' })).closest('section');
+    expect(within(panel).getByText('Đã index')).toBeTruthy();
+    expect(within(panel).getByText('Cần reindex')).toBeTruthy();
+    fireEvent.change(within(panel).getByLabelText('ID sản phẩm'), { target: { value: '10' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Reindex sản phẩm' }));
 
     await screen.findByText('Đã reindex sản phẩm #10.');
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/admin/rag/products/10/reindex'),
       expect.objectContaining({ method: 'POST' })
     );
+  });
+
+  it('renders the image embedding overview with all operational statuses and public model details', async () => {
+    renderWithToken('/admin/rag');
+
+    const panel = (await screen.findByRole('heading', { name: 'Embedding ảnh sản phẩm' })).closest('section');
+    const statusCard = async (label) => (await within(panel).findByText(label)).closest('article');
+    expect((await statusCard('Ảnh sản phẩm đang bán')).textContent).toContain('14');
+    expect((await statusCard('Đã index')).textContent).toContain('10');
+    expect((await statusCard('Chưa index')).textContent).toContain('1');
+    expect((await statusCard('Cần reindex')).textContent).toContain('1');
+    expect((await statusCard('Lỗi')).textContent).toContain('2');
+    const details = within(panel).getByLabelText('Chi tiết embedding ảnh');
+    expect(details.textContent).toContain('gemini-embedding-2 · 768 chiều');
+    expect(details.textContent).toContain('Index gần nhất:');
+  });
+
+  it('disables global image reindex while running and reports returned counts', async () => {
+    let finishReindex;
+    imageReindexAllHandler = () => new Promise((resolve) => {
+      finishReindex = () => resolve(jsonResponse({ summary: { indexed: 11, failed: 3 } }));
+    });
+    const fetchMock = renderWithToken('/admin/rag');
+    const button = await screen.findByRole('button', { name: 'Reindex toàn bộ ảnh' });
+
+    fireEvent.click(button);
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Đang reindex ảnh...');
+    finishReindex();
+
+    expect(await screen.findByText('Đã reindex ảnh: 11 thành công, 3 lỗi.')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/admin/rag/images/reindex'),
+      expect.objectContaining({ method: 'POST' })
+    );
+  });
+
+  it('keeps the policy RAG UI usable when the image overview fails', async () => {
+    imageOverviewHandler = async () => jsonResponse(
+      { message: 'Image indexing is temporarily unavailable' },
+      false,
+      'Service Unavailable'
+    );
+    renderWithToken('/admin/rag');
+
+    expect(await screen.findByText('Image indexing is temporarily unavailable')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Tổng quan tri thức' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Chính sách' })).toBeTruthy();
+    expect(screen.getByText('Chính sách đổi trả')).toBeTruthy();
+  });
+
+  it('reindexes image embeddings for the selected product ID and surfaces failures safely', async () => {
+    const fetchMock = renderWithToken('/admin/rag');
+    const panel = (await screen.findByRole('heading', { name: 'Embedding ảnh sản phẩm' })).closest('section');
+    fireEvent.change(within(panel).getByLabelText('ID sản phẩm'), { target: { value: '10' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Reindex ảnh sản phẩm' }));
+
+    expect(await screen.findByText('Đã reindex ảnh sản phẩm #10: 2 thành công, 1 lỗi.')).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/admin/rag/products/10/image-reindex'),
+      expect.objectContaining({ method: 'POST' })
+    );
+
+    imageReindexProductHandler = async () => jsonResponse(
+      { message: 'Image indexing is temporarily unavailable' },
+      false,
+      'Service Unavailable'
+    );
+    fireEvent.click(within(panel).getByRole('button', { name: 'Reindex ảnh sản phẩm' }));
+    expect(await screen.findByText('Image indexing is temporarily unavailable')).toBeTruthy();
   });
 
   it('renders product admin table', async () => {
