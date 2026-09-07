@@ -18,6 +18,7 @@ export default function Layout() {
   const [searchError, setSearchError] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || 'light');
   const headerFileInputRef = useRef(null);
+  const headerTextSearchNonceRef = useRef(0);
   const itemCount = cart.items?.reduce((total, item) => total + Number(item.quantity || 0), 0) || 0;
   const isCustomerPage = !['/login', '/register', '/admin'].some((path) => location.pathname.startsWith(path));
   const isDarkTheme = theme === 'dark';
@@ -41,7 +42,10 @@ export default function Layout() {
     }
     setIsMenuOpen(false);
     setSearchError('');
-    navigate(params.size ? `/products?${params.toString()}` : '/products');
+    headerTextSearchNonceRef.current += 1;
+    navigate(params.size ? `/products?${params.toString()}` : '/products', {
+      state: { headerTextSearchNonce: headerTextSearchNonceRef.current }
+    });
   }
 
   function selectHeaderImage(event) {

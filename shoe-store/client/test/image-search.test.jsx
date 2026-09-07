@@ -162,6 +162,33 @@ describe('customer image search', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
   });
 
+  it('clears image search when the header submits the current URL query again', async () => {
+    const fetchMock = renderCatalog(undefined, '/products?q=gi%C3%A0y+catalog');
+    expect(await screen.findByRole('heading', { name: catalogProduct.name })).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByRole('searchbox', { name: 'Tìm kiếm sản phẩm' }).value).toBe('giày catalog');
+    });
+    fireEvent.change(screen.getByLabelText('Chọn ảnh để tìm sản phẩm'), {
+      target: { files: [new File(['shoe'], 'same-query.jpg', { type: 'image/jpeg' })] }
+    });
+    expect(await screen.findByRole('heading', { name: imageProduct.name })).toBeTruthy();
+    const catalogCallsBeforeSubmit = fetchMock.mock.calls.filter(([url]) => (
+      String(url).includes('/api/products?')
+    )).length;
+
+    fireEvent.submit(screen.getByRole('search', { name: 'Tìm kiếm sản phẩm toàn cửa hàng' }));
+
+    expect(await screen.findByRole('heading', { name: catalogProduct.name })).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByRole('img', { name: 'Ảnh dùng để tìm sản phẩm' })).toBeNull();
+      const catalogCallsAfterSubmit = fetchMock.mock.calls.filter(([url]) => (
+        String(url).includes('/api/products?')
+      )).length;
+      expect(catalogCallsAfterSubmit).toBeGreaterThan(catalogCallsBeforeSubmit);
+    });
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+  });
+
   it.each([
     [new File(['text'], 'header.gif', { type: 'image/gif' }), 'Chỉ chấp nhận ảnh JPEG hoặc PNG.'],
     [new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'header-large.jpg', { type: 'image/jpeg' }), 'Ảnh không được vượt quá 8 MB.']

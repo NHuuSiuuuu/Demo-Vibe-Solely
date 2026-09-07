@@ -68,6 +68,7 @@ export default function ProductListPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const routedImageFile = location.state?.imageSearchFile;
+  const headerTextSearchNonce = location.state?.headerTextSearchNonce;
   const [filters, setFilters] = useState(() => ({
     ...initialFilters,
     q: searchParams.get('q') || '',
@@ -81,20 +82,35 @@ export default function ProductListPage() {
   const [imageSearchRetry, setImageSearchRetry] = useState(0);
   const fileInputRef = useRef(null);
   const consumedRoutedImageRef = useRef(routedImageFile || null);
+  const consumedHeaderTextSearchNonceRef = useRef(null);
   const previousQueryRef = useRef(searchParams.get('q') || '');
 
   useEffect(() => {
-    if (!routedImageFile) {
-      return;
+    let shouldConsumeLocationState = false;
+
+    if (routedImageFile) {
+      if (consumedRoutedImageRef.current !== routedImageFile) {
+        consumedRoutedImageRef.current = routedImageFile;
+        setImageSearch(createImageSearchState(routedImageFile));
+      }
+      shouldConsumeLocationState = true;
+    } else if (
+      headerTextSearchNonce != null
+      && consumedHeaderTextSearchNonceRef.current !== headerTextSearchNonce
+    ) {
+      consumedHeaderTextSearchNonceRef.current = headerTextSearchNonce;
+      setProducts([]);
+      setImageSearch(initialImageSearch);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      shouldConsumeLocationState = true;
     }
 
-    if (consumedRoutedImageRef.current !== routedImageFile) {
-      consumedRoutedImageRef.current = routedImageFile;
-      setImageSearch(createImageSearchState(routedImageFile));
+    if (shouldConsumeLocationState) {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
     }
-
-    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
-  }, [location.pathname, location.search, navigate, routedImageFile]);
+  }, [headerTextSearchNonce, location.pathname, location.search, navigate, routedImageFile]);
 
   useEffect(() => {
     const file = imageSearch.file;

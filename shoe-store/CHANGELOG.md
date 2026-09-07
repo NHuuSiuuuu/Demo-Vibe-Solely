@@ -7,6 +7,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 ### Hoàn thiện tìm kiếm sản phẩm bằng hình ảnh
 
 - Thêm form tìm kiếm chữ/ảnh trên header cho toàn bộ trang khách hàng; tìm kiếm ảnh tiếp tục dùng luồng preview, trạng thái và kết quả của catalog.
+- Mỗi lần submit tìm kiếm chữ trên header đều thoát chế độ tìm bằng ảnh, kể cả khi từ khóa trùng với query hiện tại.
 - Giới hạn kết quả tìm kiếm sản phẩm bằng hình ảnh ở tối đa bốn sản phẩm tương tự.
 - Hoàn tất luồng embedding ảnh trực tiếp bằng Gemini, tìm kiếm vector ảnh
   bằng pgvector trong bảng product_image_embeddings, qua API
