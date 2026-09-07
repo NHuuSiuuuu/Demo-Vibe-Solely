@@ -35,8 +35,8 @@ test('schema defines the required PostgreSQL enums, tables, and constraints', ()
     "CREATE TYPE user_role AS ENUM ('customer', 'admin');",
     "CREATE TYPE product_status AS ENUM ('active', 'hidden');",
     "CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipping', 'completed', 'cancelled');",
-    "CREATE TYPE payment_method AS ENUM ('cod');",
-    "CREATE TYPE payment_status AS ENUM ('unpaid', 'paid');",
+    "CREATE TYPE payment_method AS ENUM ('cod', 'vnpay');",
+    "CREATE TYPE payment_status AS ENUM ('unpaid', 'pending', 'paid', 'failed');",
     'ALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE (email);',
     'ALTER TABLE products ADD CONSTRAINT products_slug_unique UNIQUE (slug);',
     'ALTER TABLE product_variants ADD CONSTRAINT product_variants_sku_unique UNIQUE (sku);',
@@ -61,6 +61,10 @@ test('schema defines the required PostgreSQL enums, tables, and constraints', ()
   ].forEach((tableName) => {
     assert.match(schema, new RegExp(`CREATE TABLE ${tableName}\\b`));
   });
+  const variantsTable = schema.match(/CREATE TABLE product_variants \(([\s\S]*?)\n\);/);
+  assert.notEqual(variantsTable, null);
+  assert.match(variantsTable[1], /discount_percent NUMERIC\(5, 2\) NOT NULL DEFAULT 0/);
+  assert.doesNotMatch(variantsTable[1], /\bprice_delta\b/);
 });
 
 test('orders table exposes order_status column for later API code', () => {
@@ -71,6 +75,11 @@ test('orders table exposes order_status column for later API code', () => {
   assert.match(ordersTable[1], /\border_code TEXT NOT NULL/);
   assert.match(ordersTable[1], /\bnote TEXT/);
   assert.match(ordersTable[1], /\border_status order_status NOT NULL DEFAULT 'pending'/);
+  assert.match(ordersTable[1], /\bpayment_method payment_method NOT NULL DEFAULT 'cod'/);
+  assert.match(ordersTable[1], /\bpayment_status payment_status NOT NULL DEFAULT 'unpaid'/);
+  assert.match(ordersTable[1], /\bvnpay_transaction_no TEXT/);
+  assert.match(ordersTable[1], /\bvnpay_amount NUMERIC\(10, 2\)/);
+  assert.match(ordersTable[1], /\bvnpay_updated_at TIMESTAMPTZ/);
   assert.doesNotMatch(ordersTable[1], /\n\s+status order_status\b/);
 });
 

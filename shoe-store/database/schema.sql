@@ -20,8 +20,8 @@ DROP TYPE IF EXISTS user_role;
 CREATE TYPE user_role AS ENUM ('customer', 'admin');
 CREATE TYPE product_status AS ENUM ('active', 'hidden');
 CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipping', 'completed', 'cancelled');
-CREATE TYPE payment_method AS ENUM ('cod');
-CREATE TYPE payment_status AS ENUM ('unpaid', 'paid');
+CREATE TYPE payment_method AS ENUM ('cod', 'vnpay');
+CREATE TYPE payment_status AS ENUM ('unpaid', 'pending', 'paid', 'failed');
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
@@ -77,7 +77,7 @@ CREATE TABLE product_variants (
   size TEXT NOT NULL,
   color TEXT NOT NULL,
   stock_quantity INTEGER NOT NULL DEFAULT 0,
-  price_delta NUMERIC(10, 2) NOT NULL DEFAULT 0
+  discount_percent NUMERIC(5, 2) NOT NULL DEFAULT 0
 );
 
 CREATE TABLE carts (
@@ -118,6 +118,9 @@ CREATE TABLE orders (
   order_status order_status NOT NULL DEFAULT 'pending',
   payment_method payment_method NOT NULL DEFAULT 'cod',
   payment_status payment_status NOT NULL DEFAULT 'unpaid',
+  vnpay_transaction_no TEXT,
+  vnpay_amount NUMERIC(10, 2),
+  vnpay_updated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
