@@ -250,3 +250,22 @@ Customer chat at `/api/ai/chat` uses the same RAG context. With Gemini
 configured and the RAG tables indexed, a prompt such as `giày leo núi nam
 dưới 3 triệu` should return trail/outdoor products and sources from the
 knowledge base.
+
+### Tìm sản phẩm bằng hình ảnh
+
+Catalog hỗ trợ tìm giày bằng embedding ảnh trực tiếp với Gemini
+`gemini-embedding-2`. Ảnh sản phẩm được index vào bảng
+`product_image_embeddings`, tách riêng khỏi RAG văn bản, với vector 768
+chiều và truy vấn bằng pgvector.
+
+- Ở ô tìm kiếm sản phẩm, bấm biểu tượng camera để chọn ảnh từ máy hoặc mở
+  camera sau trên điện thoại.
+- Chỉ nhận JPEG/PNG tối đa 8 MB; ảnh truy vấn không được lưu lại.
+- Các bộ lọc thương hiệu, giới tính, size, màu và khoảng giá được áp dụng
+  cùng truy vấn ảnh.
+- Admin xem trạng thái tại `/admin/rag`, có thể reindex toàn bộ ảnh hoặc
+  reindex theo ID sản phẩm.
+
+Nếu Gemini hoặc pgvector chưa cấu hình, catalog vẫn hoạt động với tìm kiếm
+văn bản; chức năng tìm bằng ảnh sẽ trả lỗi cấu hình an toàn và không làm lộ
+API key.

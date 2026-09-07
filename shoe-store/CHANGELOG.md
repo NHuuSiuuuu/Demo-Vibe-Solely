@@ -4,6 +4,15 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Hoàn thiện tìm kiếm sản phẩm bằng hình ảnh
+
+- Hoàn tất luồng embedding ảnh trực tiếp bằng Gemini, tìm kiếm vector ảnh
+  bằng pgvector và giao diện camera/chọn ảnh trên catalog.
+- Bổ sung quản trị embedding ảnh trong /admin/rag: theo dõi trạng thái,
+  model/kích thước vector, reindex toàn bộ hoặc theo sản phẩm.
+- Cập nhật README với cấu hình, giới hạn ảnh, bộ lọc hỗ trợ và cách xử lý
+  khi Gemini/pgvector chưa sẵn sàng.
+
 ### Hoàn thiện tương tác tìm kiếm sản phẩm bằng hình ảnh
 
 - Tự động chạy lại tìm kiếm ảnh với các bộ lọc backend hỗ trợ, hủy request cũ khi filter đổi hoặc trang unmount và chặn response cũ ghi đè kết quả mới.
