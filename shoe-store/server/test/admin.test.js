@@ -900,6 +900,22 @@ test('creates and updates a product variant', async () => {
     .expect(404);
 });
 
+test('rejects legacy priceDelta input when creating an admin variant', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .post('/api/admin/products/10/variants')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ sku: 'RR1-LEGACY', size: '10', color: 'White', stockQuantity: 1, priceDelta: 5 })
+    .expect(400);
+
+  assert.deepEqual(response.body, {
+    message: 'priceDelta is not supported; use discountPercent',
+    details: null
+  });
+  assert.equal(variants.length, 1);
+});
+
 test('rejects invalid variant stock with 400 JSON', async () => {
   const { createApp } = require('../src/app');
   const token = tokenFor(2);

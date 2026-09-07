@@ -198,6 +198,10 @@ function prepareProductInput(input, requireAll) {
 }
 
 function prepareVariantInput(input, requireAll) {
+  if (Object.prototype.hasOwnProperty.call(input, 'priceDelta')) {
+    throw new HttpError(400, 'priceDelta is not supported; use discountPercent');
+  }
+
   const output = {};
 
   if (requireAll || Object.prototype.hasOwnProperty.call(input, 'sku')) {

@@ -101,6 +101,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật admin RAG overview để báo trạng thái bảng RAG/pgvector chưa sẵn sàng thay vì trả lỗi 500 chung.
 - Cập nhật demo database in-memory để bỏ cú pháp pgvector không được PGlite hỗ trợ nhưng vẫn giữ schema PostgreSQL thật có pgvector.
 - Chuyển catalog, giỏ hàng, tạo đơn và API quản trị biến thể sang `discountPercent`; backend tự tính và chốt giá sau giảm, không còn đọc hoặc ghi `priceDelta` trong API runtime mới.
+- Từ chối payload quản trị biến thể còn gửi `priceDelta` bằng HTTP 400, tránh âm thầm lưu mức giảm giá `0%` thay cho dữ liệu legacy.
 
 ### Đã kiểm chứng
 
@@ -135,6 +136,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test backend bắt buộc admin xem được RAG overview và customer bị chặn khỏi endpoint admin RAG.
 - Bổ sung test backend bắt buộc admin RAG test query trả về chunk tri thức khi retrieval tìm thấy ngữ cảnh.
 - Bổ sung test backend cho các mức giảm giá `0%`, `10%`, `100%`, phần trăm thập phân, làm tròn, fallback giá legacy, giá catalog/cart/order và validation admin `0..100`.
+- Bổ sung regression test POST admin để bảo đảm `priceDelta` legacy không được chấp nhận trong runtime API.
 - Bổ sung test backend bắt buộc `/api/ai/chat` dùng RAG, không lưu tin nhắn chat và trả `sources` cùng sản phẩm/tri thức liên quan.
 - Bổ sung test frontend bắt buộc admin navigation hiển thị "Kho tri thức AI" và route `/admin/rag` render tổng quan tri thức, chính sách và kiểm thử truy vấn.
 - Bổ sung test frontend bắt buộc trợ lý mua sắm hiển thị câu trả lời chính sách RAG mà không render "Sản phẩm gợi ý" khi API trả `products: []`.
