@@ -692,7 +692,15 @@ async function createProductImage(productId, input) {
     `INSERT INTO product_images (product_id, image_url, alt_text, sort_order, cloudinary_public_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, image_url, alt_text, sort_order, cloudinary_public_id`,
     [productId, imageUrl, altText, Number(input.sortOrder || 0), cleanText(input.publicId)]
   );
-  return mapImage(result.rows[0]);
+  const image = mapImage(result.rows[0]);
+  Promise.resolve()
+    .then(() => require('../imageSearch/imageSearch.service').indexProductImage({
+      productId: Number(productId),
+      productImageId: image.id,
+      imageUrl: image.imageUrl
+    }))
+    .catch(() => {});
+  return image;
 }
 
 module.exports = {

@@ -29,6 +29,9 @@ let ragChunkStatusUpdates;
 let ragChunkUpdateShouldFail;
 let ragDocumentStatusUpdates;
 let ragOverviewUnavailable;
+let productImages;
+let imageIndexCalls;
+let imageIndexShouldFail;
 
 function resetStore() {
   users = [
@@ -141,6 +144,9 @@ function resetStore() {
   ragChunkUpdateShouldFail = false;
   ragDocumentStatusUpdates = [];
   ragOverviewUnavailable = false;
+  productImages = [];
+  imageIndexCalls = [];
+  imageIndexShouldFail = false;
 }
 
 function tokenFor(userId) {
@@ -314,7 +320,15 @@ async function mockQuery(text, params = []) {
   }
 
   if (text.includes('FROM product_images') && text.includes('WHERE product_id = $1')) {
-    return { rows: [], rowCount: 0 };
+    const rows = productImages.filter((image) => image.product_id === Number(params[0]));
+    return { rows: rows.map((image) => ({ ...image })), rowCount: rows.length };
+  }
+
+  if (text.includes('INSERT INTO product_images')) {
+    const [productId, imageUrl, altText, sortOrder, publicId] = params;
+    const image = { id: productImages.length + 1, product_id: Number(productId), image_url: imageUrl, alt_text: altText, sort_order: sortOrder, cloudinary_public_id: publicId };
+    productImages.push(image);
+    return { rows: [{ ...image }], rowCount: 1 };
   }
 
   if (text.includes('SELECT status') && text.includes('FROM products') && text.includes('WHERE id = $1')) {
@@ -504,6 +518,16 @@ Module._load = function patchedLoad(requestPath, parent, isMain) {
           throw new Error('RAG document reindex failed');
         }
         return { status: 'indexed', chunksIndexed: 1 };
+      }
+    };
+  }
+
+  if (requestPath === '../imageSearch/imageSearch.service' || requestPath.endsWith('/modules/imageSearch/imageSearch.service')) {
+    return {
+      async indexProductImage(input) {
+        imageIndexCalls.push(input);
+        if (imageIndexShouldFail) throw new Error('Gemini unavailable');
+        return { status: 'active' };
       }
     };
   }
@@ -741,6 +765,21 @@ test('creating a product triggers RAG reindex for the new product', async () => 
     .expect(201);
 
   assert.equal(ragReindexCalls.includes(11), true);
+});
+
+test('image reindex hook does not fail product image creation when indexing fails', async () => {
+  const { createApp } = require('../src/app');
+  imageIndexShouldFail = true;
+
+  const response = await request(createApp())
+    .post('/api/admin/products/10/images')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ imageUrl: 'https://example.test/shoe.jpg', altText: 'Shoe', sortOrder: 2 })
+    .expect(201);
+
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(response.body.image.imageUrl, 'https://example.test/shoe.jpg');
+  assert.deepEqual(imageIndexCalls, [{ productId: 10, productImageId: 1, imageUrl: 'https://example.test/shoe.jpg' }]);
 });
 
 test('variant mutations trigger RAG reindex for the affected product', async () => {

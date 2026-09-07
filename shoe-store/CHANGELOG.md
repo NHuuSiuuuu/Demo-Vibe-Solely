@@ -4,6 +4,11 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Expose API tìm kiếm sản phẩm bằng hình ảnh
+
+- Bổ sung endpoint public multipart `POST /api/products/search-by-image` với bộ lọc catalog được allowlist và giới hạn ảnh 8 MB.
+- Bổ sung overview/reindex ảnh cho admin và hook index ảnh best-effort sau khi lưu ảnh sản phẩm.
+
 ### Kế hoạch triển khai tìm kiếm sản phẩm bằng hình ảnh
 
 - Thêm plan triển khai Gemini Embedding 2, vector ảnh sản phẩm riêng, API tìm kiếm multipart, nút camera cho catalog, quản trị reindex và các bước kiểm thử backend/frontend.

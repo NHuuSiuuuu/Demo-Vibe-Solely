@@ -6,6 +6,11 @@ const { HttpError } = require('../../utils/httpError');
 const { answerWithRag } = require('./rag.service');
 const { reindexAll, reindexProduct, reindexDocument } = require('./ragIndex.service');
 const { isGeminiConfigured } = require('./gemini.client');
+const {
+  getImageEmbeddingOverview,
+  reindexAllProductImages,
+  reindexProductImages
+} = require('../imageSearch/imageSearch.service');
 
 const router = express.Router();
 
@@ -251,6 +256,17 @@ router.get(
 );
 
 router.get(
+  '/image-overview',
+  asyncHandler(async (_req, res) => {
+    try {
+      res.json({ overview: await getImageEmbeddingOverview() });
+    } catch (_error) {
+      throw new HttpError(503, 'Image indexing is temporarily unavailable');
+    }
+  })
+);
+
+router.get(
   '/documents',
   asyncHandler(async (req, res) => {
     const documents = await listDocuments();
@@ -287,6 +303,28 @@ router.post(
   asyncHandler(async (req, res) => {
     const summary = await reindexAll();
     res.json({ summary });
+  })
+);
+
+router.post(
+  '/images/reindex',
+  asyncHandler(async (_req, res) => {
+    try {
+      res.json({ summary: await reindexAllProductImages() });
+    } catch (_error) {
+      throw new HttpError(503, 'Image indexing is temporarily unavailable');
+    }
+  })
+);
+
+router.post(
+  '/products/:id/image-reindex',
+  asyncHandler(async (req, res) => {
+    try {
+      res.json({ summary: await reindexProductImages(req.params.id) });
+    } catch (_error) {
+      throw new HttpError(503, 'Image indexing is temporarily unavailable');
+    }
   })
 );
 
