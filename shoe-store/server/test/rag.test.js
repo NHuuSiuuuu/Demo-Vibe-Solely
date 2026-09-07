@@ -86,7 +86,10 @@ async function mockQuery(text, params = []) {
     return { rows: row ? [{ ...row }] : [], rowCount: row ? 1 : 0 };
   }
 
-  if (text.includes('FROM rag_documents') && text.includes("status = 'active'")) {
+  if (
+    text.includes('FROM rag_documents') &&
+    (text.includes("status = 'active'") || text.includes("status IN ('active', 'needs_reindex')"))
+  ) {
     return { rows: documentRows, rowCount: documentRows.length };
   }
 
@@ -151,6 +154,28 @@ test('Gemini client reports missing key without calling fetch', async () => {
 
   assert.equal(isGeminiConfigured(), false);
   await assert.rejects(() => embedText('hello'), /GEMINI_API_KEY/);
+});
+
+test('Gemini chat request uses the Solely assistant instruction and complete output budget', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  let requestBody;
+  global.fetch = async (_url, options) => {
+    requestBody = JSON.parse(options.body);
+    return {
+      ok: true,
+      async json() {
+        return { candidates: [{ content: { parts: [{ text: 'Đã có câu trả lời đầy đủ.' }] } }] };
+      }
+    };
+  };
+
+  const { generateGroundedAnswer } = require('../src/modules/rag/gemini.client');
+  const answer = await generateGroundedAnswer({ message: 'Chính sách cửa hàng?', context: 'Thông tin chính sách.', products: [] });
+
+  assert.equal(answer, 'Đã có câu trả lời đầy đủ.');
+  assert.match(requestBody.systemInstruction.parts[0].text, /trợ lý ảo chính thức của website Solely/);
+  assert.match(requestBody.systemInstruction.parts[0].text, /Không dùng placeholder/);
+  assert.equal(requestBody.generationConfig.maxOutputTokens, 1400);
 });
 
 test('RAG text helper chunks long Vietnamese policy text', () => {
@@ -285,6 +310,22 @@ test('reindexAll reports indexed products and documents', async () => {
   const result = await reindexAll();
 
   assert.deepEqual(result, { productsIndexed: 2, documentsIndexed: 1, failed: [] });
+});
+
+test('reindexAll retries documents marked needs_reindex', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  documentRows[0].status = 'needs_reindex';
+  global.fetch = async () => ({
+    ok: true,
+    async json() {
+      return { embedding: { values: Array.from({ length: 768 }, () => 0.1) } };
+    }
+  });
+
+  const { reindexAll } = require('../src/modules/rag/ragIndex.service');
+  const result = await reindexAll();
+
+  assert.equal(result.documentsIndexed, 1);
 });
 
 test('answerWithRag returns greeting without product cards or sources', async () => {

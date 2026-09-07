@@ -223,7 +223,7 @@ async function reindexDocument(documentId) {
 async function reindexAll() {
   const [productsResult, documentsResult] = await Promise.all([
     query("SELECT id FROM products WHERE status = 'active' ORDER BY id ASC"),
-    query("SELECT id FROM rag_documents WHERE status = 'active' ORDER BY id ASC")
+    query("SELECT id FROM rag_documents WHERE status IN ('active', 'needs_reindex') ORDER BY id ASC")
   ]);
   const summary = { productsIndexed: 0, documentsIndexed: 0, failed: [] };
 

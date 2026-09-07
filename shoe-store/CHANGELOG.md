@@ -40,7 +40,12 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm khu vực index sản phẩm trong admin RAG để xem số sản phẩm đã index/cần reindex và reindex một sản phẩm bằng ID.
 
 ### Đã thay đổi
+- Tăng ngân sách đầu ra của Gemini để các câu trả lời chính sách và hướng dẫn không bị cắt giữa chừng, đồng thời giới hạn độ dài bằng chỉ dẫn trợ lý.
 
+- Cải thiện prompt trợ lý ảo Solely để trả lời tiếng Việt tự nhiên, đủ ý, không lộ nhãn kỹ thuật và tăng giới hạn output để tránh câu trả lời bị cắt giữa chừng.
+- Cho câu hỏi chính sách tổng quát retrieve đủ các tài liệu policy liên quan, đồng thời giữ giới hạn card sản phẩm đúng theo số lượng khách yêu cầu.
+- Cho phép lệnh reindex toàn bộ retry cả tài liệu RAG đang ở trạng thái `needs_reindex`, tránh bỏ sót policy sau khi Gemini tạm thời chưa được cấu hình.
+- Cập nhật model chat Gemini mặc định sang `gemini-3.6-flash` vì model `gemini-2.5-flash` không còn khả dụng với cấu hình API hiện tại.
 - Thêm fallback database in-memory để review local khi chưa cấu hình `DATABASE_URL`.
 - Cập nhật lớp truy cập database để backend chạy được với PostgreSQL thật hoặc demo fallback.
 - Cải thiện phần admin chỉnh tồn kho biến thể sau vòng review implementation.

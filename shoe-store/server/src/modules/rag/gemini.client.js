@@ -1,7 +1,22 @@
 const DEFAULT_EMBEDDING_MODEL = 'gemini-embedding-001';
-const DEFAULT_CHAT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_CHAT_MODEL = 'gemini-3.6-flash';
 const DEFAULT_DIMENSIONS = 768;
+// Thinking models can consume part of this budget before producing visible text.
+const MAX_CHAT_OUTPUT_TOKENS = 1400;
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+const ASSISTANT_SYSTEM_INSTRUCTION = [
+  'Bạn là trợ lý ảo chính thức của website Solely, cửa hàng giày tại Việt Nam.',
+  'Trả lời bằng tiếng Việt, tự nhiên, lịch sự, gần gũi và dễ hiểu.',
+  'Chỉ sử dụng dữ liệu trong ngữ cảnh được cung cấp; không được bịa giá, tồn kho, sản phẩm, chính sách hoặc cam kết.',
+  'Trả lời đủ ý và trọn câu, không cắt ngang câu trả lời giữa chừng.',
+  'Nếu khách hỏi chính sách chung, hãy tổng hợp các mục liên quan thành các ý ngắn rõ ràng.',
+  'Giữ câu trả lời gọn; quy trình nên có tối đa 5 bước và chính sách nên có tối đa 6 ý chính.',
+  'Nếu không có đủ dữ liệu, nói thẳng Solely chưa có đủ thông tin và hướng dẫn khách hỏi cụ thể hơn.',
+  'Không nhắc đến RAG, embedding, context, prompt, model hoặc lỗi nội bộ.',
+  'Không dùng placeholder hoặc nhãn kỹ thuật như [others], [context] trong câu trả lời.',
+  'Khi khách yêu cầu số lượng sản phẩm, chỉ giới thiệu đúng số lượng đó và không thêm sản phẩm ngoài danh sách được cung cấp.'
+].join(' ');
 
 function getApiKey() {
   return process.env.GEMINI_API_KEY || '';
@@ -23,11 +38,8 @@ function extractGeneratedText(payload) {
 
 function buildGroundedPrompt({ message, context, products }) {
   return [
-    'Bạn là trợ lý mua sắm của Solely, một cửa hàng giày tại Việt Nam.',
-    'Chỉ trả lời dựa trên ngữ cảnh RAG và danh sách sản phẩm được cung cấp.',
-    'Không bịa sản phẩm, giá, tồn kho, chính sách, khuyến mãi hoặc cam kết ngoài dữ liệu.',
-    'Nếu thiếu dữ liệu để trả lời chắc chắn, hãy nói rõ là Solely chưa có đủ thông tin trong kho tri thức.',
-    'Trả lời bằng tiếng Việt, ngắn gọn, hữu ích và ưu tiên thông tin có căn cứ.',
+    'Hãy trả lời câu hỏi khách hàng dưới đây dựa trên các dữ liệu được cung cấp.',
+    'Ưu tiên câu trả lời ngắn gọn nhưng đầy đủ; với quy trình hoặc chính sách, trình bày theo các bước hoặc gạch đầu dòng.',
     '',
     `Câu hỏi khách hàng: ${message}`,
     '',
@@ -78,9 +90,13 @@ async function generateGroundedAnswer({ message, context, products }) {
           parts: [{ text: buildGroundedPrompt({ message, context, products }) }]
         }
       ],
+      systemInstruction: {
+        role: 'system',
+        parts: [{ text: ASSISTANT_SYSTEM_INSTRUCTION }]
+      },
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 320
+        maxOutputTokens: MAX_CHAT_OUTPUT_TOKENS
       }
     })
   });

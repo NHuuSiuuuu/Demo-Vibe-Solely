@@ -29,6 +29,10 @@ function isGreeting(message) {
   return /^(alo|hello|hi|xin chao|chao|hey|em oi|shop oi)[!.?]*$/.test(normalizeText(message));
 }
 
+function isBroadPolicyQuestion(message) {
+  return /\b(chinh sach|dieu khoan|quy dinh|quy che)\b/.test(normalizeText(message));
+}
+
 function extractCategory(message) {
   const normalized = normalizeText(message);
   const categoryMap = [
@@ -95,7 +99,8 @@ async function answerWithRag({ user, message, includeChunks = false }) {
   const filters = buildFilters(cleanedMessage);
   let context;
   try {
-    context = await retrieveContext({ message: cleanedMessage, filters, limit: Math.max(6, requestedCount) });
+    const retrievalLimit = isBroadPolicyQuestion(cleanedMessage) ? 10 : Math.max(6, requestedCount);
+    context = await retrieveContext({ message: cleanedMessage, filters, limit: retrievalLimit });
   } catch (_error) {
     return {
       answer: RAG_SETUP_FALLBACK_ANSWER,
