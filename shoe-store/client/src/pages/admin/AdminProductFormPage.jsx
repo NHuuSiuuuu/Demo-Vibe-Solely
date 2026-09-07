@@ -5,7 +5,6 @@ import { useAuth } from '../../auth/AuthContext.jsx';
 import { genderLabel, productStatusLabel } from '../../utils/formatters.js';
 
 const emptyProduct = {
-  slug: '',
   name: '',
   description: '',
   brand: '',
@@ -24,9 +23,19 @@ const emptyVariant = {
   priceDelta: '0'
 };
 
+function createSlug(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function toProductForm(product) {
   return {
-    slug: product.slug || '',
     name: product.name || '',
     description: product.description || '',
     brand: product.brand || '',
@@ -46,12 +55,20 @@ export default function AdminProductFormPage() {
   const [form, setForm] = useState(emptyProduct);
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [images, setImages] = useState([]);
+  const [imageFiles, setImageFiles] = useState([]);
   const [variantForm, setVariantForm] = useState(emptyVariant);
   const [status, setStatus] = useState(isNew ? 'ready' : 'loading');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
+    apiClient
+      .get('/api/admin/categories', { token })
+      .then((data) => setCategories((data.categories || []).filter((category) => category.status === 'active')))
+      .catch(() => setCategories([]));
+
     if (isNew) {
       return undefined;
     }
@@ -73,6 +90,7 @@ export default function AdminProductFormPage() {
         setProduct(matchedProduct);
         setForm(toProductForm(matchedProduct));
         setVariants(matchedProduct.variants || []);
+        setImages(matchedProduct.images || []);
         setStatus('ready');
       })
       .catch((err) => {
@@ -90,10 +108,13 @@ export default function AdminProductFormPage() {
   const pageTitle = isNew ? 'Tạo sản phẩm' : 'Sửa sản phẩm';
   const savedProductId = product?.id || id;
   const canManageVariants = Boolean(savedProductId);
+  const categoryOptions = categories.length
+    ? categories
+    : (form.category ? [{ id: 'current', slug: form.category, name: form.category }] : []);
 
   const productPayload = useMemo(
     () => ({
-      slug: form.slug.trim(),
+      slug: createSlug(form.name),
       name: form.name.trim(),
       description: form.description.trim(),
       brand: form.brand.trim(),
@@ -133,6 +154,7 @@ export default function AdminProductFormPage() {
         : await apiClient.patch(`/api/admin/products/${id}`, productPayload, { token });
       setProduct(data.product);
       setForm(toProductForm(data.product));
+      await uploadImages(data.product.id);
       setMessage('Đã lưu sản phẩm.');
       if (isNew) {
         navigate(`/admin/products/${data.product.id}/edit`, { replace: true });
@@ -140,6 +162,34 @@ export default function AdminProductFormPage() {
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  async function uploadImages(productId) {
+    if (!imageFiles.length) return;
+    const { upload } = await apiClient.post('/api/admin/uploads/signature', {}, { token });
+    const uploadedImages = [];
+    for (const file of imageFiles) {
+      const body = new FormData();
+      body.append('file', file);
+      body.append('api_key', upload.apiKey);
+      body.append('timestamp', String(upload.timestamp));
+      body.append('folder', upload.folder);
+      body.append('signature', upload.signature);
+      const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${upload.cloudName}/image/upload`, {
+        method: 'POST',
+        body
+      });
+      if (!cloudinaryResponse.ok) throw new Error('Không thể tải ảnh lên Cloudinary');
+      const cloudinaryImage = await cloudinaryResponse.json();
+      const imageData = await apiClient.post(`/api/admin/products/${productId}/images`, {
+        imageUrl: cloudinaryImage.secure_url,
+        publicId: cloudinaryImage.public_id,
+        altText: form.name.trim()
+      }, { token });
+      uploadedImages.push(imageData.image);
+    }
+    setImages((current) => [...current, ...uploadedImages]);
+    setImageFiles([]);
   }
 
   async function handleVariantSubmit(event) {
@@ -205,10 +255,6 @@ export default function AdminProductFormPage() {
 
       <form className="admin-form" onSubmit={handleSubmit}>
         <label>
-          Slug
-          <input name="slug" required value={form.slug} onChange={updateField} />
-        </label>
-        <label>
           Tên sản phẩm
           <input name="name" required value={form.name} onChange={updateField} />
         </label>
@@ -222,7 +268,12 @@ export default function AdminProductFormPage() {
         </label>
         <label>
           Danh mục
-          <input name="category" required value={form.category} onChange={updateField} />
+          <select name="category" required value={form.category} onChange={updateField}>
+            <option value="">Chọn danh mục</option>
+            {categoryOptions.map((category) => (
+              <option value={category.slug} key={category.id}>{category.name}</option>
+            ))}
+          </select>
         </label>
         <label>
           Giới tính
@@ -251,6 +302,21 @@ export default function AdminProductFormPage() {
           <button type="submit">Lưu sản phẩm</button>
         </div>
       </form>
+
+      <section className="admin-subsection" aria-labelledby="product-images-title">
+        <div className="section-heading"><h2 id="product-images-title">Hình ảnh sản phẩm</h2></div>
+        <p className="muted">Ảnh sẽ được tải lên Cloudinary sau khi lưu sản phẩm.</p>
+        <label className="admin-upload-field">
+          Chọn ảnh
+          <input type="file" accept="image/*" multiple onChange={(event) => setImageFiles(Array.from(event.target.files || []))} />
+        </label>
+        {imageFiles.length ? <p className="muted">Đã chọn {imageFiles.length} ảnh chờ tải lên.</p> : null}
+        {images.length ? (
+          <div className="admin-image-grid">
+            {images.map((image) => <img key={image.id} src={image.imageUrl} alt={image.altText} />)}
+          </div>
+        ) : null}
+      </section>
 
       <section className="admin-subsection" aria-labelledby="variant-section-title">
         <div className="section-heading">

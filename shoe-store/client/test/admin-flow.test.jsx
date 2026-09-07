@@ -204,6 +204,10 @@ function createAdminFetchMock({ role = 'admin' } = {}) {
       return jsonResponse({ products: adminProducts });
     }
 
+    if (path === '/api/admin/categories' && method === 'GET') {
+      return jsonResponse({ categories: [{ id: 1, name: 'Lifestyle', slug: 'Lifestyle', status: 'active' }] });
+    }
+
     if (path === '/api/admin/products/10' && method === 'GET') {
       return jsonResponse({ product: adminProducts[0] });
     }
@@ -338,7 +342,7 @@ describe('admin flow', () => {
     const fetchMock = renderWithToken('/admin/products/new');
 
     await screen.findByRole('heading', { name: 'Tạo sản phẩm' });
-    fireEvent.change(screen.getByLabelText('Slug'), { target: { value: 'court-classic-low' } });
+    await screen.findByRole('option', { name: 'Lifestyle' });
     fireEvent.change(screen.getByLabelText('Tên sản phẩm'), { target: { value: 'Court Classic Low' } });
     fireEvent.change(screen.getByLabelText('Mô tả'), { target: { value: 'Low profile court shoe' } });
     fireEvent.change(screen.getByLabelText('Thương hiệu'), { target: { value: 'Stride' } });

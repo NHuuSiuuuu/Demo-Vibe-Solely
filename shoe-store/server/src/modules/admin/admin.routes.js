@@ -11,7 +11,13 @@ const {
   updateVariant,
   listOrders,
   getOrder,
-  updateOrderStatus
+  updateOrderStatus,
+  listCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getCloudinarySignature,
+  createProductImage
 } = require('./admin.service');
 
 const router = express.Router();
@@ -34,6 +40,12 @@ router.get(
   })
 );
 
+router.get('/categories', asyncHandler(async (_req, res) => res.json({ categories: await listCategories() })));
+router.post('/categories', asyncHandler(async (req, res) => res.status(201).json({ category: await createCategory(req.body || {}) })));
+router.patch('/categories/:id', asyncHandler(async (req, res) => res.json({ category: await updateCategory(req.params.id, req.body || {}) })));
+router.delete('/categories/:id', asyncHandler(async (req, res) => { await deleteCategory(req.params.id); res.status(204).end(); }));
+router.post('/uploads/signature', asyncHandler(async (_req, res) => res.json({ upload: getCloudinarySignature() })));
+
 router.get(
   '/products/:id',
   asyncHandler(async (req, res) => {
@@ -41,6 +53,11 @@ router.get(
     res.json({ product });
   })
 );
+
+router.post('/products/:id/images', asyncHandler(async (req, res) => {
+  const image = await createProductImage(req.params.id, req.body || {});
+  res.status(201).json({ image });
+}));
 
 router.post(
   '/products',

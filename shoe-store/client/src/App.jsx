@@ -4,6 +4,7 @@ import { AuthProvider } from './auth/AuthContext.jsx';
 import { CartProvider } from './cart/CartContext.jsx';
 import Layout from './components/Layout.jsx';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
+import AdminCategoriesPage from './pages/admin/AdminCategoriesPage.jsx';
 import AdminLayout from './pages/admin/AdminLayout.jsx';
 import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage.jsx';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage.jsx';
@@ -82,6 +83,10 @@ function createAppRouter() {
             {
               path: 'products',
               element: <AdminProductsPage />
+            },
+            {
+              path: 'categories',
+              element: <AdminCategoriesPage />
             },
             {
               path: 'products/new',

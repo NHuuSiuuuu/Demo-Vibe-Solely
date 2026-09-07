@@ -809,6 +809,22 @@ button:disabled {
   font-weight: 800;
 }
 
+.admin-image-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  margin-top: 0.75rem;
+  max-width: 40rem;
+}
+
+.admin-image-grid img {
+  aspect-ratio: 1;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: 8px;
+  object-fit: cover;
+  width: 100%;
+}
+
 .ai-message-row--assistant .ai-message-bubble {
   background: rgb(255 255 255 / 9%);
   border-top-left-radius: 0.35rem;

@@ -53,6 +53,9 @@ GEMINI_EMBEDDING_MODEL=gemini-embedding-001
 GEMINI_EMBEDDING_DIMENSIONS=768
 GEMINI_CHAT_MODEL=gemini-3.6-flash
 RAG_TOP_K=6
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 Never commit Gemini keys. Set secrets in `server/.env` locally and in
@@ -60,6 +63,11 @@ the deployment environment for production. The frontend must never
 receive or store `GEMINI_API_KEY`. If `GEMINI_API_KEY` is empty, the
 admin RAG page may show an unconfigured/degraded status and customers
 will receive a graceful fallback response from chat.
+
+To upload product images from the admin product form, configure the three
+Cloudinary variables above in `server/.env`. The backend signs uploads, while
+the browser sends image files directly to Cloudinary and stores only the
+returned URL and public ID in PostgreSQL.
 
 Set up the database and start the app:
 

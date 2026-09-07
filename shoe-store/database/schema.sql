@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS cart_items;
 DROP TABLE IF EXISTS carts;
 DROP TABLE IF EXISTS product_variants;
 DROP TABLE IF EXISTS product_images;
+DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS users;
 
@@ -50,12 +51,23 @@ CREATE TABLE products (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE categories (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT categories_status_check CHECK (status IN ('active', 'hidden'))
+);
+
 CREATE TABLE product_images (
   id BIGSERIAL PRIMARY KEY,
   product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   image_url TEXT NOT NULL,
   alt_text TEXT NOT NULL,
-  sort_order INTEGER NOT NULL DEFAULT 0
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  cloudinary_public_id TEXT
 );
 
 CREATE TABLE product_variants (
@@ -174,6 +186,7 @@ ALTER TABLE cart_items ADD CONSTRAINT cart_items_quantity_positive CHECK (quanti
 ALTER TABLE order_items ADD CONSTRAINT order_items_quantity_positive CHECK (quantity > 0);
 
 CREATE INDEX product_images_product_id_idx ON product_images(product_id);
+CREATE INDEX categories_status_idx ON categories(status);
 CREATE INDEX product_variants_product_id_idx ON product_variants(product_id);
 CREATE INDEX cart_items_cart_id_idx ON cart_items(cart_id);
 CREATE INDEX order_items_order_id_idx ON order_items(order_id);

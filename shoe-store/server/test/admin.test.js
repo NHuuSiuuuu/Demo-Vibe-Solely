@@ -313,6 +313,10 @@ async function mockQuery(text, params = []) {
     return { rows: product ? [productRow(product)] : [], rowCount: product ? 1 : 0 };
   }
 
+  if (text.includes('FROM product_images') && text.includes('WHERE product_id = $1')) {
+    return { rows: [], rowCount: 0 };
+  }
+
   if (text.includes('SELECT status') && text.includes('FROM products') && text.includes('WHERE id = $1')) {
     const product = products.find((candidate) => candidate.id === Number(params[0]));
     return { rows: product ? [{ status: product.status }] : [], rowCount: product ? 1 : 0 };

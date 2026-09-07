@@ -7,7 +7,10 @@ const env = {
   GEMINI_EMBEDDING_MODEL: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
   GEMINI_EMBEDDING_DIMENSIONS: Number(process.env.GEMINI_EMBEDDING_DIMENSIONS || 768),
   GEMINI_CHAT_MODEL: process.env.GEMINI_CHAT_MODEL || 'gemini-3.6-flash',
-  RAG_TOP_K: Number(process.env.RAG_TOP_K || 6)
+  RAG_TOP_K: Number(process.env.RAG_TOP_K || 6),
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || ''
 };
 
 module.exports = { env };

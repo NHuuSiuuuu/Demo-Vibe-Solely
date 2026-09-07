@@ -40,6 +40,8 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm khu vực index sản phẩm trong admin RAG để xem số sản phẩm đã index/cần reindex và reindex một sản phẩm bằng ID.
 
 ### Đã thay đổi
+- Thêm quản lý danh mục trong admin, tự sinh slug sản phẩm từ tên và upload nhiều ảnh sản phẩm qua Cloudinary.
+- Thêm upload nhiều ảnh sản phẩm lên Cloudinary qua chữ ký backend, tự sinh slug từ tên sản phẩm và chọn danh mục bằng dropdown quản trị.
 - Cải thiện giao diện chatbot: render xuống dòng, danh sách đánh số/gạch đầu dòng và chữ đậm đúng định dạng Markdown từ Gemini.
 - Tăng ngân sách đầu ra của Gemini để các câu trả lời chính sách và hướng dẫn không bị cắt giữa chừng, đồng thời giới hạn độ dài bằng chỉ dẫn trợ lý.
 

@@ -2,8 +2,11 @@ const { query } = require('../../db/pool');
 const { withTransaction } = require('../../db/transactions');
 const { mapOrder } = require('../orders/orders.service');
 const { HttpError } = require('../../utils/httpError');
+const { env } = require('../../config/env');
+const crypto = require('node:crypto');
 
 const PRODUCT_STATUSES = new Set(['active', 'hidden']);
+const CATEGORY_STATUSES = new Set(['active', 'hidden']);
 const ORDER_TRANSITIONS = {
   pending: new Set(['confirmed', 'cancelled']),
   confirmed: new Set(['shipping', 'cancelled']),
@@ -27,6 +30,17 @@ function requireText(value, message) {
     throw new HttpError(400, message);
   }
   return text;
+}
+
+function slugify(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'san-pham';
 }
 
 function normalizeMoney(value, message) {
@@ -86,6 +100,14 @@ function mapProduct(row) {
   };
 }
 
+function mapCategory(row) {
+  return { id: Number(row.id), name: row.name, slug: row.slug, status: row.status };
+}
+
+function mapImage(row) {
+  return { id: Number(row.id), imageUrl: row.image_url, altText: row.alt_text, sortOrder: Number(row.sort_order), publicId: row.cloudinary_public_id || null };
+}
+
 function mapVariant(row) {
   return {
     id: Number(row.id),
@@ -143,7 +165,7 @@ function pushUpdate(updates, params, column, value) {
 function prepareProductInput(input, requireAll) {
   const output = {};
 
-  if (requireAll || Object.prototype.hasOwnProperty.call(input, 'slug')) {
+  if (Object.prototype.hasOwnProperty.call(input, 'slug') && input.slug) {
     output.slug = requireText(input.slug, 'Slug is required');
   }
   if (requireAll || Object.prototype.hasOwnProperty.call(input, 'name')) {
@@ -298,7 +320,11 @@ async function getProduct(id) {
   }
 
   const variants = await getVariantsForProductIds([Number(id)]);
-  return attachInventory([mapProduct(product)], variants)[0];
+  const imagesResult = await query(
+    'SELECT id, image_url, alt_text, sort_order, cloudinary_public_id FROM product_images WHERE product_id = $1 ORDER BY sort_order ASC, id ASC',
+    [id]
+  );
+  return { ...attachInventory([mapProduct(product)], variants)[0], images: imagesResult.rows.map(mapImage) };
 }
 
 async function createProduct(input) {
@@ -320,7 +346,7 @@ async function createProduct(input) {
       RETURNING *
     `,
     [
-      product.slug,
+      slugify(product.name),
       product.name,
       product.description,
       product.brand,
@@ -343,6 +369,9 @@ async function updateProduct(id, input) {
   const params = [];
 
   if (Object.prototype.hasOwnProperty.call(product, 'slug')) pushUpdate(updates, params, 'slug', product.slug);
+  if (Object.prototype.hasOwnProperty.call(product, 'name') && !Object.prototype.hasOwnProperty.call(input, 'slug')) {
+    pushUpdate(updates, params, 'slug', slugify(product.name));
+  }
   if (Object.prototype.hasOwnProperty.call(product, 'name')) pushUpdate(updates, params, 'name', product.name);
   if (Object.prototype.hasOwnProperty.call(product, 'description')) pushUpdate(updates, params, 'description', product.description);
   if (Object.prototype.hasOwnProperty.call(product, 'brand')) pushUpdate(updates, params, 'brand', product.brand);
@@ -572,6 +601,69 @@ async function updateOrderStatus(id, status) {
   });
 }
 
+async function listCategories() {
+  const result = await query(`SELECT id, name, slug, status FROM categories ORDER BY name ASC, id ASC`);
+  return result.rows.map(mapCategory);
+}
+
+async function createCategory(input) {
+  const name = requireText(input.name, 'Category name is required');
+  const slug = slugify(name);
+  const result = await query(
+    `INSERT INTO categories (name, slug) VALUES ($1, $2) RETURNING id, name, slug, status`,
+    [name, slug]
+  );
+  return mapCategory(result.rows[0]);
+}
+
+async function updateCategory(id, input) {
+  const updates = [];
+  const params = [];
+  if (Object.prototype.hasOwnProperty.call(input, 'name')) {
+    const name = requireText(input.name, 'Category name is required');
+    pushUpdate(updates, params, 'name', name);
+    pushUpdate(updates, params, 'slug', slugify(name));
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'status')) {
+    const status = requireText(input.status, 'Category status is required');
+    if (!CATEGORY_STATUSES.has(status)) throw new HttpError(400, 'Category status is invalid');
+    pushUpdate(updates, params, 'status', status);
+  }
+  if (!updates.length) throw new HttpError(400, 'No category updates provided');
+  params.push(id);
+  const result = await query(
+    `UPDATE categories SET ${updates.join(', ')}, updated_at = NOW() WHERE id = $${params.length} RETURNING id, name, slug, status`,
+    params
+  );
+  if (!result.rows.length) throw new HttpError(404, 'Category not found');
+  return mapCategory(result.rows[0]);
+}
+
+async function deleteCategory(id) {
+  const result = await query(`UPDATE categories SET status = 'hidden', updated_at = NOW() WHERE id = $1 RETURNING id`, [id]);
+  if (!result.rows.length) throw new HttpError(404, 'Category not found');
+}
+
+function getCloudinarySignature() {
+  if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY || !env.CLOUDINARY_API_SECRET) {
+    throw new HttpError(503, 'Cloudinary is not configured');
+  }
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = 'solely/products';
+  const signature = crypto.createHash('sha1').update(`folder=${folder}&timestamp=${timestamp}${env.CLOUDINARY_API_SECRET}`).digest('hex');
+  return { timestamp, folder, signature, apiKey: env.CLOUDINARY_API_KEY, cloudName: env.CLOUDINARY_CLOUD_NAME };
+}
+
+async function createProductImage(productId, input) {
+  const imageUrl = requireText(input.imageUrl, 'Image URL is required');
+  const altText = requireText(input.altText || 'Ảnh sản phẩm Solely', 'Alt text is required');
+  const result = await query(
+    `INSERT INTO product_images (product_id, image_url, alt_text, sort_order, cloudinary_public_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, image_url, alt_text, sort_order, cloudinary_public_id`,
+    [productId, imageUrl, altText, Number(input.sortOrder || 0), cleanText(input.publicId)]
+  );
+  return mapImage(result.rows[0]);
+}
+
 module.exports = {
   getDashboard,
   listProducts,
@@ -582,5 +674,11 @@ module.exports = {
   updateVariant,
   listOrders,
   getOrder,
-  updateOrderStatus
+  updateOrderStatus,
+  listCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getCloudinarySignature,
+  createProductImage
 };

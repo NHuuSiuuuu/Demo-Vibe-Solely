@@ -13,6 +13,17 @@ VALUES
   ('Hướng dẫn chọn size', 'huong-dan-chon-size', 'size_guide', 'Khách nên đo chiều dài bàn chân vào cuối ngày, mang loại tất thường dùng và so sánh với bảng size của từng mẫu. Nếu chân bè hoặc thích mang thoải mái, cân nhắc tăng nửa size hoặc chọn form rộng. Với giày chạy bộ và trekking, nên chừa khoảng trống nhẹ ở mũi chân để giảm cấn khi di chuyển lâu.', 'active'),
   ('Điều khoản mua hàng', 'dieu-khoan-mua-hang', 'terms', 'Khi đặt hàng tại Solely, khách đồng ý cung cấp thông tin chính xác để xử lý đơn, nhận hàng và hỗ trợ sau bán. Giá bán, tồn kho và chương trình khuyến mãi có thể thay đổi theo thời điểm. Solely có quyền liên hệ xác nhận hoặc từ chối đơn bất thường, sai thông tin hoặc không đáp ứng điều kiện mua hàng.', 'active');
 
+INSERT INTO categories (name, slug)
+VALUES
+  ('Chạy bộ', 'running'),
+  ('Sneaker hằng ngày', 'sneakers'),
+  ('Trekking và outdoor', 'trail'),
+  ('Tập luyện', 'training'),
+  ('Đi bộ và du lịch', 'walking'),
+  ('Boot', 'boots'),
+  ('Tennis', 'tennis'),
+  ('Bóng rổ', 'basketball');
+
 INSERT INTO products (slug, name, description, brand, category, gender, base_price, status, featured)
 VALUES
   ('urban-runner-knit', 'Solely Air Knit', 'Mục đích: chạy bộ hằng ngày, đi bộ nhanh và mang cả ngày. Chất liệu knit thoáng khí, đệm foam êm, form ôm vừa chân. Phù hợp người cần giày nhẹ cho đường nhựa, văn phòng năng động và lịch tập nhẹ.', 'Solely', 'running', 'unisex', 1890000, 'active', true),
