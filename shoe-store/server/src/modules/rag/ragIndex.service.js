@@ -1,4 +1,5 @@
 const { query } = require('../../db/pool');
+const { calculateVariantPrice } = require('../products/pricing');
 const { embedText } = require('./gemini.client');
 const { buildProductKnowledgeText, chunkText } = require('./ragText.service');
 
@@ -15,6 +16,19 @@ function toNumber(value) {
 function mapProduct(row) {
   if (!row) return null;
 
+  const basePrice = toNumber(row.basePrice);
+  const variants = (row.variants || []).map((variant) => {
+    const discountPercent = toNumber(variant.discountPercent);
+    return {
+      sku: variant.sku,
+      size: variant.size,
+      color: variant.color,
+      stockQuantity: Number(variant.stockQuantity || 0),
+      discountPercent,
+      unitPrice: calculateVariantPrice(basePrice, discountPercent, variant.legacyPriceDelta)
+    };
+  });
+
   return {
     id: Number(row.id),
     name: row.name,
@@ -23,12 +37,22 @@ function mapProduct(row) {
     brand: row.brand,
     category: row.category,
     gender: row.gender,
-    price: toNumber(row.price),
+    price: basePrice,
+    variants,
     imageUrl: row.imageUrl,
     availableSizes: row.availableSizes || [],
     availableColors: row.availableColors || [],
     totalStock: Number(row.totalStock || 0)
   };
+}
+
+function buildVariantPriceContext(product) {
+  const originalPrice = Number(product.price).toLocaleString('vi-VN');
+  const variantLines = product.variants.map((variant) => (
+    `Phiên bản ${variant.sku} (size ${variant.size}, màu ${variant.color}) - Giảm: ${variant.discountPercent}% - Giá sau giảm: ${Number(variant.unitPrice).toLocaleString('vi-VN')} ₫`
+  ));
+
+  return [`Giá gốc: ${originalPrice} ₫`, ...variantLines].join('\n');
 }
 
 async function loadProduct(productId) {
@@ -42,11 +66,12 @@ async function loadProduct(productId) {
         p.brand,
         p.category,
         p.gender,
-        p.base_price AS "price",
+        p.base_price AS "basePrice",
         primary_image.image_url AS "imageUrl",
         COALESCE(variant_summary.available_sizes, ARRAY[]::TEXT[]) AS "availableSizes",
         COALESCE(variant_summary.available_colors, ARRAY[]::TEXT[]) AS "availableColors",
-        COALESCE(variant_summary.total_stock, 0) AS "totalStock"
+        COALESCE(variant_summary.total_stock, 0) AS "totalStock",
+        COALESCE(variant_summary.variants, '[]'::JSON) AS variants
       FROM products p
       LEFT JOIN LATERAL (
         SELECT pi.image_url
@@ -59,13 +84,23 @@ async function loadProduct(productId) {
         SELECT
           ARRAY_AGG(DISTINCT pv.size ORDER BY pv.size) FILTER (WHERE pv.stock_quantity > 0) AS available_sizes,
           ARRAY_AGG(DISTINCT pv.color ORDER BY pv.color) FILTER (WHERE pv.stock_quantity > 0) AS available_colors,
-          SUM(pv.stock_quantity) FILTER (WHERE pv.stock_quantity > 0) AS total_stock
+          SUM(pv.stock_quantity) FILTER (WHERE pv.stock_quantity > 0) AS total_stock,
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'sku', pv.sku,
+              'size', pv.size,
+              'color', pv.color,
+              'stockQuantity', pv.stock_quantity,
+              'discountPercent', pv.discount_percent,
+              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta'
+            ) ORDER BY pv.id
+          ) FILTER (WHERE pv.stock_quantity > 0) AS variants
         FROM product_variants pv
         WHERE pv.product_id = p.id
       ) variant_summary ON true
       WHERE p.id = $1
         AND p.status = 'active'
-      GROUP BY p.id, primary_image.image_url, variant_summary.available_sizes, variant_summary.available_colors, variant_summary.total_stock
+      GROUP BY p.id, primary_image.image_url, variant_summary.available_sizes, variant_summary.available_colors, variant_summary.total_stock, variant_summary.variants
     `,
     [productId]
   );
@@ -182,11 +217,15 @@ async function reindexProduct(productId) {
     category: product.category,
     gender: product.gender,
     price: product.price,
+    variants: product.variants,
     availableSizes: product.availableSizes,
     availableColors: product.availableColors,
     totalStock: product.totalStock
   };
-  const chunks = chunkText({ title: product.name, content: buildProductKnowledgeText(product) });
+  const chunks = chunkText({
+    title: product.name,
+    content: `${buildProductKnowledgeText(product)}\n${buildVariantPriceContext(product)}`
+  });
 
   try {
     await replaceChunks({ sourceType: 'product', sourceId: product.id, chunks, metadata });

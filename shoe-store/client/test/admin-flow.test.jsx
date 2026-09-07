@@ -23,8 +23,8 @@ function resetProducts() {
       featured: true,
       totalStock: 8,
       variants: [
-        { id: 101, productId: 10, sku: 'RR1-9-BLK', size: '9', color: 'Black', stockQuantity: 3, priceDelta: 0 },
-        { id: 102, productId: 10, sku: 'RR1-10-WHT', size: '10', color: 'White', stockQuantity: 5, priceDelta: 100000 }
+        { id: 101, productId: 10, sku: 'RR1-9-BLK', size: '9', color: 'Black', stockQuantity: 3, discountPercent: 0 },
+        { id: 102, productId: 10, sku: 'RR1-10-WHT', size: '10', color: 'White', stockQuantity: 5, discountPercent: 10 }
       ]
     }
   ];
@@ -377,8 +377,14 @@ describe('admin flow', () => {
     const fetchMock = renderWithToken('/admin/products/10/edit');
 
     const variantsTable = await screen.findByRole('table', { name: 'Phiên bản sản phẩm' });
+    expect(within(variantsTable).getByRole('columnheader', { name: '% giảm giá' })).toBeTruthy();
+    const newVariantDiscount = screen.getByLabelText('% giảm giá');
+    expect(newVariantDiscount.min).toBe('0');
+    expect(newVariantDiscount.max).toBe('100');
+    expect(newVariantDiscount.step).toBe('0.01');
     const variantRow = within(variantsTable).getByDisplayValue('RR1-9-BLK').closest('tr');
     fireEvent.change(within(variantRow).getByLabelText('Tồn kho cho RR1-9-BLK'), { target: { value: '9' } });
+    fireEvent.change(within(variantRow).getByLabelText('% giảm giá cho RR1-9-BLK'), { target: { value: '12.5' } });
     fireEvent.click(within(variantRow).getByRole('button', { name: 'Lưu RR1-9-BLK' }));
 
     await screen.findByText('Đã lưu phiên bản.');
@@ -391,7 +397,7 @@ describe('admin flow', () => {
           size: '9',
           color: 'Black',
           stockQuantity: 9,
-          priceDelta: 0
+          discountPercent: 12.5
         })
       })
     );

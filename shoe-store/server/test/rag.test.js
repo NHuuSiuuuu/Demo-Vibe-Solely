@@ -16,11 +16,16 @@ const productRows = [
     brand: 'Solely',
     category: 'trail',
     gender: 'men',
-    price: '2490000.00',
+    basePrice: '2490000.00',
+    discountPercent: '10.00',
+    legacyPriceDelta: null,
     imageUrl: '/images/solely-trail-guard.jpg',
     availableSizes: ['42', '43'],
     availableColors: ['olive', 'gray'],
-    totalStock: '12'
+    totalStock: '12',
+    variants: [
+      { sku: 'STG-42-OLV', size: '42', color: 'olive', stockQuantity: 12, discountPercent: '10.00', legacyPriceDelta: null }
+    ]
   },
   {
     id: '13',
@@ -30,11 +35,16 @@ const productRows = [
     brand: 'Solely',
     category: 'walking',
     gender: 'women',
-    price: '1790000.00',
+    basePrice: '1790000.00',
+    discountPercent: '0.00',
+    legacyPriceDelta: null,
     imageUrl: '/images/solely-cloud-walker.jpg',
     availableSizes: ['37', '38'],
     availableColors: ['gray', 'navy'],
-    totalStock: '29'
+    totalStock: '29',
+    variants: [
+      { sku: 'SCW-37-GRY', size: '37', color: 'gray', stockQuantity: 29, discountPercent: '0.00', legacyPriceDelta: null }
+    ]
   }
 ];
 
@@ -203,6 +213,9 @@ test('reindexProduct stores product chunks with embeddings', async () => {
   assert.equal(result.chunksIndexed >= 1, true);
   assert.equal(staleDeletes.some((deleteQuery) => deleteQuery.params[0] === 'product' && deleteQuery.params[1] === 12), true);
   assert.equal(insertedChunks.length >= 1, true);
+  assert.match(insertedChunks[0].params[4], /Giá gốc: 2\.490\.000 ₫/);
+  assert.match(insertedChunks[0].params[4], /Giá sau giảm: 2\.241\.000 ₫/);
+  assert.match(insertedChunks[0].params[4], /Giảm: 10%/);
 });
 
 test('reindexProduct leaves a product reindex marker when Gemini embedding fails after stale chunks are deleted', async () => {
@@ -277,6 +290,35 @@ test('retrieveContext removes product chunks from context when filters remove th
   assert.equal(result.chunks.some((chunk) => chunk.sourceType === 'product'), false);
   assert.equal(result.sources.some((source) => source.type === 'product'), false);
   assert.equal(result.sources.some((source) => source.type === 'document'), true);
+});
+
+test('retrieveContext returns the backend-calculated discounted price in product cards', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  retrievalRows = [
+    {
+      id: '201',
+      source_type: 'product',
+      source_id: '12',
+      title: 'Solely Trail Guard',
+      content: 'Giày trail nam cho trekking cuối tuần.',
+      metadata: { productId: 12, slug: 'trail-guard-pro', category: 'trail', gender: 'men' },
+      score: '0.94'
+    }
+  ];
+  global.fetch = async () => ({
+    ok: true,
+    async json() {
+      return { embedding: { values: Array.from({ length: 768 }, () => 0.1) } };
+    }
+  });
+
+  const { retrieveContext } = require('../src/modules/rag/ragRetrieval.service');
+  const result = await retrieveContext({ message: 'Tìm giày trail đang giảm giá', filters: {}, limit: 6 });
+
+  assert.equal(result.products.length, 1);
+  assert.equal(result.products[0].price, 2241000);
+  assert.equal(result.products[0].discountPercent, 10);
+  assert.equal(Object.hasOwn(result.products[0], 'priceDelta'), false);
 });
 
 test('reindexDocument stores document chunks with embeddings', async () => {

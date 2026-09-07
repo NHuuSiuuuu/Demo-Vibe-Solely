@@ -20,7 +20,7 @@ const emptyVariant = {
   size: '',
   color: '',
   stockQuantity: '',
-  priceDelta: '0'
+  discountPercent: '0'
 };
 
 function createSlug(value) {
@@ -203,7 +203,7 @@ export default function AdminProductFormPage() {
         size: variantForm.size.trim(),
         color: variantForm.color.trim(),
         stockQuantity: Number(variantForm.stockQuantity),
-        priceDelta: Number(variantForm.priceDelta || 0)
+        discountPercent: Number(variantForm.discountPercent || 0)
       };
       const data = await apiClient.post(`/api/admin/products/${savedProductId}/variants`, payload, { token });
       setVariants((current) => [...current, data.variant]);
@@ -224,7 +224,7 @@ export default function AdminProductFormPage() {
         size: String(variant.size || '').trim(),
         color: String(variant.color || '').trim(),
         stockQuantity: Number(variant.stockQuantity),
-        priceDelta: Number(variant.priceDelta || 0)
+        discountPercent: Number(variant.discountPercent || 0)
       };
       const data = await apiClient.patch(`/api/admin/variants/${variant.id}`, payload, { token });
       setVariants((current) => current.map((candidate) => (candidate.id === variant.id ? data.variant : candidate)));
@@ -350,8 +350,16 @@ export default function AdminProductFormPage() {
                 />
               </label>
               <label>
-                Chênh lệch giá
-                <input name="priceDelta" type="number" min="0" step="1000" value={variantForm.priceDelta} onChange={updateVariantField} />
+                % giảm giá
+                <input
+                  name="discountPercent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={variantForm.discountPercent}
+                  onChange={updateVariantField}
+                />
               </label>
               <div className="admin-form__actions">
                 <button type="submit">Thêm phiên bản</button>
@@ -365,7 +373,7 @@ export default function AdminProductFormPage() {
                     <th>Size</th>
                     <th>Màu</th>
                     <th>Tồn kho</th>
-                    <th>Chênh lệch giá</th>
+                    <th>% giảm giá</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -405,12 +413,13 @@ export default function AdminProductFormPage() {
                       </td>
                       <td>
                         <input
-                          aria-label={`Chênh lệch giá cho ${variant.sku}`}
+                          aria-label={`% giảm giá cho ${variant.sku}`}
                           type="number"
                           min="0"
-                          step="1000"
-                          value={variant.priceDelta}
-                          onChange={(event) => updateExistingVariantField(variant.id, 'priceDelta', event.target.value)}
+                          max="100"
+                          step="0.01"
+                          value={variant.discountPercent}
+                          onChange={(event) => updateExistingVariantField(variant.id, 'discountPercent', event.target.value)}
                         />
                       </td>
                       <td>

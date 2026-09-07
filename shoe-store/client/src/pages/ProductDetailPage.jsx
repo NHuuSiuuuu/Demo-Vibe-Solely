@@ -87,7 +87,9 @@ export default function ProductDetailPage() {
     () => product?.variants?.find((variant) => String(variant.id) === selectedVariantId),
     [product, selectedVariantId]
   );
-  const selectedPrice = Number(product?.price || 0) + Number(selectedVariant?.priceDelta || 0);
+  const selectedPrice = Number(selectedVariant?.unitPrice ?? product?.price ?? 0);
+  const selectedDiscountPercent = Number(selectedVariant?.discountPercent || 0);
+  const hasSelectedDiscount = selectedDiscountPercent > 0 && selectedPrice < Number(product?.price || 0);
   const maxQuantity = selectedVariant?.stockQuantity || 1;
   const visibleRelatedProducts = relatedProducts.length ? relatedProducts.slice(relatedIndex, relatedIndex + 4) : [];
 
@@ -192,11 +194,11 @@ export default function ProductDetailPage() {
                       checked={selectedVariantId === String(variant.id)}
                       onChange={(event) => setSelectedVariantId(event.target.value)}
                       disabled={variant.stockQuantity <= 0}
-                      aria-label={`Size ${variant.size}, màu ${colorLabel(variant.color)}, ${formatMoney(Number(product.price) + Number(variant.priceDelta || 0))}`}
+                      aria-label={`Size ${variant.size}, màu ${colorLabel(variant.color)}, ${formatMoney(variant.unitPrice)}`}
                     />
                     <span>{variant.size}</span>
                     <span>{colorLabel(variant.color)}</span>
-                    <span>{formatMoney(Number(product.price) + Number(variant.priceDelta || 0))}</span>
+                    <span>{formatMoney(variant.unitPrice)}</span>
                     <small>Còn {variant.stockQuantity}</small>
                   </label>
                 ))}
@@ -224,8 +226,14 @@ export default function ProductDetailPage() {
                 </div>
               </label>
               <div className="price-metric">
-                <span>Giá</span>
+                <span>{hasSelectedDiscount ? 'Giá sau giảm' : 'Giá'}</span>
                 <strong>{formatMoney(selectedPrice)}</strong>
+                {hasSelectedDiscount ? (
+                  <>
+                    <small>Giá gốc: {formatMoney(product.price)}</small>
+                    <small>Giảm {selectedDiscountPercent}%</small>
+                  </>
+                ) : null}
               </div>
             </div>
 

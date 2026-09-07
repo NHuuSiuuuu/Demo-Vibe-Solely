@@ -43,8 +43,8 @@ const productDetail = {
     { id: 12, imageUrl: '/images/road-runner-1-sole.jpg', altText: 'Road Runner 1 sole', sortOrder: 1 }
   ],
   variants: [
-    { id: 101, sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 3, priceDelta: 0 },
-    { id: 102, sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 5, priceDelta: 100000 }
+    { id: 101, sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 3, discountPercent: 0, unitPrice: 1200000 },
+    { id: 102, sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 5, discountPercent: 10, unitPrice: 1080000 }
   ]
 };
 
@@ -268,8 +268,11 @@ describe('customer shopping flow', () => {
     await screen.findByRole('heading', { name: 'Road Runner 1' });
     expect(screen.getAllByText(/1\.200\.000\s*₫/).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByLabelText(/Size 10, màu trắng, 1\.300\.000\s*₫/));
-    expect(screen.getAllByText(/1\.300\.000\s*₫/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByLabelText(/Size 10, màu trắng, 1\.080\.000\s*₫/));
+    const discountedPrice = screen.getByText('Giá sau giảm').closest('.price-metric');
+    expect(within(discountedPrice).getByText(/1\.080\.000\s*₫/)).toBeTruthy();
+    expect(within(discountedPrice).getByText(/Giá gốc: 1\.200\.000\s*₫/)).toBeTruthy();
+    expect(within(discountedPrice).getByText('Giảm 10%')).toBeTruthy();
     fireEvent.click(screen.getByLabelText(/Size 9, màu đen, 1\.200\.000\s*₫/));
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Số lượng' }), { target: { value: '2' } });
     fireEvent.click(screen.getAllByRole('button', { name: 'Thêm vào giỏ hàng' })[0]);

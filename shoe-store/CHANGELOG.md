@@ -102,6 +102,8 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật demo database in-memory để bỏ cú pháp pgvector không được PGlite hỗ trợ nhưng vẫn giữ schema PostgreSQL thật có pgvector.
 - Chuyển catalog, giỏ hàng, tạo đơn và API quản trị biến thể sang `discountPercent`; backend tự tính và chốt giá sau giảm, không còn đọc hoặc ghi `priceDelta` trong API runtime mới.
 - Từ chối payload quản trị biến thể còn gửi `priceDelta` bằng HTTP 400, tránh âm thầm lưu mức giảm giá `0%` thay cho dữ liệu legacy.
+- Đồng bộ form biến thể admin sang `% giảm giá`, trang chi tiết dùng `unitPrice` từ backend và hiển thị quan hệ giữa giá gốc với giá sau giảm.
+- Cập nhật index/retrieval RAG dùng helper giá chung, đưa phần trăm giảm và giá sau giảm chính xác vào ngữ cảnh cùng card sản phẩm gợi ý.
 
 ### Đã kiểm chứng
 
@@ -142,6 +144,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test frontend bắt buộc trợ lý mua sắm hiển thị câu trả lời chính sách RAG mà không render "Sản phẩm gợi ý" khi API trả `products: []`.
 - Bổ sung test backend cho reindex tài liệu chính sách sau create/update, fallback `needs_reindex`, overview RAG vận hành và parser số lượng `2 sản phẩm`.
 - Bổ sung test frontend bắt buộc admin RAG hiển thị trạng thái index sản phẩm và gọi API reindex một sản phẩm.
+- Bổ sung test frontend và RAG bảo vệ payload `discountPercent`, ràng buộc nhập `0..100`, giá chi tiết sau giảm và card RAG không lộ `priceDelta`.
 
 ## 2026-09-05
 

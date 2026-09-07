@@ -1,4 +1,5 @@
 const { query } = require('../../db/pool');
+const { calculateVariantPrice } = require('../products/pricing');
 const { embedText } = require('./gemini.client');
 
 function vectorLiteral(values) {
@@ -34,6 +35,7 @@ function mapChunk(row) {
 }
 
 function mapProductCard(row) {
+  const discountPercent = toNumber(row.discountPercent);
   return {
     id: Number(row.id),
     name: row.name,
@@ -41,7 +43,8 @@ function mapProductCard(row) {
     brand: row.brand,
     category: row.category,
     gender: row.gender,
-    price: toNumber(row.price),
+    price: calculateVariantPrice(row.basePrice, discountPercent, row.legacyPriceDelta),
+    discountPercent,
     imageUrl: row.imageUrl,
     availableSizes: row.availableSizes || [],
     availableColors: row.availableColors || [],
@@ -61,7 +64,9 @@ async function loadProductsByIds(productIds) {
         p.brand,
         p.category,
         p.gender,
-        p.base_price AS "price",
+        p.base_price AS "basePrice",
+        COALESCE(default_variant.discount_percent, 0) AS "discountPercent",
+        default_variant.legacy_price_delta AS "legacyPriceDelta",
         primary_image.image_url AS "imageUrl",
         COALESCE(variant_summary.available_sizes, ARRAY[]::TEXT[]) AS "availableSizes",
         COALESCE(variant_summary.available_colors, ARRAY[]::TEXT[]) AS "availableColors",
@@ -76,6 +81,16 @@ async function loadProductsByIds(productIds) {
       ) primary_image ON true
       LEFT JOIN LATERAL (
         SELECT
+          pv.discount_percent,
+          to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+          AND pv.stock_quantity > 0
+        ORDER BY pv.id ASC
+        LIMIT 1
+      ) default_variant ON true
+      LEFT JOIN LATERAL (
+        SELECT
           ARRAY_AGG(DISTINCT pv.size ORDER BY pv.size) FILTER (WHERE pv.stock_quantity > 0) AS available_sizes,
           ARRAY_AGG(DISTINCT pv.color ORDER BY pv.color) FILTER (WHERE pv.stock_quantity > 0) AS available_colors,
           SUM(pv.stock_quantity) FILTER (WHERE pv.stock_quantity > 0) AS total_stock
@@ -84,7 +99,7 @@ async function loadProductsByIds(productIds) {
       ) variant_summary ON true
       WHERE p.status = 'active'
         AND p.id = ANY($1::bigint[])
-      GROUP BY p.id, primary_image.image_url, variant_summary.available_sizes, variant_summary.available_colors, variant_summary.total_stock
+      GROUP BY p.id, primary_image.image_url, default_variant.discount_percent, default_variant.legacy_price_delta, variant_summary.available_sizes, variant_summary.available_colors, variant_summary.total_stock
     `,
     [productIds]
   );
