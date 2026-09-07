@@ -66,6 +66,63 @@ function responseForImage(data, mimeType = 'image/jpeg') {
   };
 }
 
+function trackedResponse({
+  data = 'catalog-image',
+  mimeType = 'image/jpeg',
+  ok = true,
+  streamable = true,
+  read
+} = {}) {
+  const chunks = Array.isArray(data) ? data : [data];
+  const state = {
+    cancelled: 0,
+    released: 0,
+    readCalls: 0
+  };
+  let index = 0;
+
+  const body = streamable
+    ? {
+        getReader() {
+          return {
+            async read() {
+              state.readCalls += 1;
+              if (read) return read();
+              if (index >= chunks.length) return { done: true, value: undefined };
+              const value = Buffer.from(chunks[index]);
+              index += 1;
+              return { done: false, value };
+            },
+            async cancel() {
+              state.cancelled += 1;
+            },
+            releaseLock() {
+              state.released += 1;
+            }
+          };
+        }
+      }
+    : {
+        async cancel() {
+          state.cancelled += 1;
+        }
+      };
+
+  return {
+    response: {
+      ok,
+      headers: {
+        get(name) {
+          if (name.toLowerCase() === 'content-type') return mimeType;
+          return null;
+        }
+      },
+      body
+    },
+    state
+  };
+}
+
 test.beforeEach(() => {
   queries = [];
   embeddedInputs = [];
@@ -160,29 +217,79 @@ test('image search service records a safe error row when catalog download or pro
   });
 });
 
-test('image search service safely records HTTP download failures and wrong catalog MIME types', async () => {
+test('image search service aborts, cancels, and releases HTTP and MIME failure responses', async () => {
   queryHandler = async (text, params) => {
     assert.match(text, /INSERT INTO product_image_embeddings/);
     assert.equal(params[4], 'error');
     return { rows: [], rowCount: 1 };
   };
 
-  global.fetch = async () => ({ ok: false, status: 502, headers: { get: () => null } });
-  const failedDownload = await service.indexProductImage({
-    productId: 20,
-    productImageId: 201,
-    imageUrl: 'https://example.test/failure.jpg'
-  });
-  assert.equal(failedDownload.status, 'error');
+  for (const [productImageId, responseOptions] of [
+    [201, { ok: false }],
+    [202, { mimeType: 'image/gif' }]
+  ]) {
+    const { response, state } = trackedResponse(responseOptions);
+    let requestSignal;
+    global.fetch = async (_url, options) => {
+      requestSignal = options.signal;
+      return response;
+    };
 
-  global.fetch = async () => responseForImage('gif-data', 'image/gif');
-  const wrongMime = await service.indexProductImage({
-    productId: 20,
-    productImageId: 202,
-    imageUrl: 'https://example.test/wrong-mime.gif'
-  });
-  assert.equal(wrongMime.status, 'error');
+    const result = await service.indexProductImage({
+      productId: 20,
+      productImageId,
+      imageUrl: `https://example.test/${productImageId}.jpg`
+    });
+
+    assert.equal(result.status, 'error');
+    assert.equal(requestSignal.aborted, true);
+    assert.equal(state.cancelled, 1);
+    assert.equal(state.released, 1);
+    assert.equal(state.readCalls, 0);
+  }
   assert.equal(embeddedInputs.length, 0);
+});
+
+test('image search service aborts and cancels a non-streamable catalog response', async () => {
+  const { response, state } = trackedResponse({ streamable: false });
+  let requestSignal;
+  global.fetch = async (_url, options) => {
+    requestSignal = options.signal;
+    return response;
+  };
+  queryHandler = async (_text, params) => {
+    assert.equal(params[4], 'error');
+    return { rows: [], rowCount: 1 };
+  };
+
+  const result = await service.indexProductImage({
+    productId: 20,
+    productImageId: 203,
+    imageUrl: 'https://example.test/non-streamable.jpg'
+  });
+
+  assert.equal(result.status, 'error');
+  assert.equal(requestSignal.aborted, true);
+  assert.equal(state.cancelled, 1);
+  assert.equal(embeddedInputs.length, 0);
+});
+
+test('image search service disables automatic redirects for catalog downloads', async () => {
+  let redirectMode;
+  global.fetch = async (_url, options) => {
+    redirectMode = options.redirect;
+    return responseForImage('catalog-image');
+  };
+  queryHandler = async () => ({ rows: [], rowCount: 1 });
+
+  const result = await service.indexProductImage({
+    productId: 20,
+    productImageId: 204,
+    imageUrl: 'https://example.test/redirect.jpg'
+  });
+
+  assert.equal(result.status, 'active');
+  assert.equal(redirectMode, 'error');
 });
 
 test('image search service rejects non-HTTPS catalog URLs before fetch', async () => {
@@ -208,18 +315,13 @@ test('image search service rejects non-HTTPS catalog URLs before fetch', async (
 });
 
 test('image search service stops streamed catalog downloads above eight megabytes', async () => {
-  let cancelled = false;
   const firstChunk = Buffer.alloc(8 * 1024 * 1024);
   const secondChunk = Buffer.from([1]);
+  const { response, state } = trackedResponse({ data: [firstChunk, secondChunk] });
+  let requestSignal;
   global.fetch = async (_url, options) => {
     assert.equal(options.signal instanceof AbortSignal, true);
-    const response = responseForImage([firstChunk, secondChunk]);
-    const originalGetReader = response.body.getReader;
-    response.body.getReader = () => {
-      const reader = originalGetReader();
-      reader.cancel = async () => { cancelled = true; };
-      return reader;
-    };
+    requestSignal = options.signal;
     return response;
   };
   queryHandler = async (_text, params) => {
@@ -234,8 +336,61 @@ test('image search service stops streamed catalog downloads above eight megabyte
   });
 
   assert.equal(result.status, 'error');
-  assert.equal(cancelled, true);
+  assert.equal(requestSignal.aborted, true);
+  assert.equal(state.cancelled, 1);
+  assert.equal(state.released, 1);
   assert.equal(embeddedInputs.length, 0);
+});
+
+test('image search service aborts a timed-out read and cleans up without waiting ten seconds', async () => {
+  const originalSetTimeout = global.setTimeout;
+  const originalClearTimeout = global.clearTimeout;
+  let triggerTimeout;
+  let clearedTimer;
+  let requestSignal;
+
+  global.setTimeout = (callback, delay) => {
+    assert.equal(delay, 10_000);
+    triggerTimeout = callback;
+    return 73;
+  };
+  global.clearTimeout = (handle) => {
+    clearedTimer = handle;
+  };
+
+  const { response, state } = trackedResponse({
+    read: async () => {
+      triggerTimeout();
+      assert.equal(requestSignal.aborted, true);
+      throw new Error('read aborted');
+    }
+  });
+  global.fetch = async (_url, options) => {
+    requestSignal = options.signal;
+    return response;
+  };
+  queryHandler = async (_text, params) => {
+    assert.equal(params[4], 'error');
+    return { rows: [], rowCount: 1 };
+  };
+
+  try {
+    const result = await service.indexProductImage({
+      productId: 23,
+      productImageId: 231,
+      imageUrl: 'https://example.test/timeout.jpg'
+    });
+
+    assert.equal(result.status, 'error');
+    assert.equal(requestSignal.aborted, true);
+    assert.equal(state.cancelled, 1);
+    assert.equal(state.released, 1);
+    assert.equal(clearedTimer, 73);
+    assert.equal(embeddedInputs.length, 0);
+  } finally {
+    global.setTimeout = originalSetTimeout;
+    global.clearTimeout = originalClearTimeout;
+  }
 });
 
 test('image search service reindexes current product images and isolates individual failures', async () => {

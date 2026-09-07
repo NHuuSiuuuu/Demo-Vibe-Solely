@@ -123,10 +123,16 @@ async function downloadCatalogImage(imageUrl) {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), CATALOG_IMAGE_TIMEOUT_MS);
+  let response;
   let reader;
+  let completed = false;
 
   try {
-    const response = await fetch(parsedUrl.toString(), { signal: controller.signal });
+    response = await fetch(parsedUrl.toString(), {
+      signal: controller.signal,
+      redirect: 'error'
+    });
+    reader = response.body?.getReader?.();
     if (!response.ok) throw new Error('Catalog image download failed');
 
     const mimeType = responseMimeType(response);
@@ -143,11 +149,10 @@ async function downloadCatalogImage(imageUrl) {
       throw new Error('Catalog image is too large');
     }
 
-    if (!response.body?.getReader) {
+    if (!reader) {
       throw new Error('Catalog image response is not streamable');
     }
 
-    reader = response.body.getReader();
     const chunks = [];
     let receivedBytes = 0;
 
@@ -158,18 +163,31 @@ async function downloadCatalogImage(imageUrl) {
       const chunk = Buffer.from(value);
       receivedBytes += chunk.length;
       if (receivedBytes > MAX_IMAGE_BYTES) {
-        controller.abort();
-        await reader.cancel().catch(() => {});
         throw new Error('Catalog image is too large');
       }
       chunks.push(chunk);
     }
 
     const data = Buffer.concat(chunks, receivedBytes);
-    return validateImageInput({ buffer: data, mimetype: mimeType, size: receivedBytes });
+    const image = validateImageInput({ buffer: data, mimetype: mimeType, size: receivedBytes });
+    completed = true;
+    return image;
   } finally {
     clearTimeout(timeout);
-    reader?.releaseLock?.();
+    if (!completed) {
+      controller.abort();
+      try {
+        if (reader?.cancel) await reader.cancel();
+        else if (response?.body?.cancel) await response.body.cancel();
+      } catch {
+        // Cleanup is best-effort and must not replace the original download error.
+      }
+    }
+    try {
+      reader?.releaseLock?.();
+    } catch {
+      // A failed release must not replace the original download error.
+    }
   }
 }
 
