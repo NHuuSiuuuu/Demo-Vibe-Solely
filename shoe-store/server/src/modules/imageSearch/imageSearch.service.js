@@ -4,6 +4,7 @@ const { calculateVariantPrice } = require('../products/pricing');
 const { embedImage, getImageEmbeddingConfig } = require('../rag/gemini.client');
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const CATALOG_IMAGE_TIMEOUT_MS = 10_000;
 const IMAGE_SEARCH_THRESHOLD = 0.35;
 const MAX_SEARCH_RESULTS = 12;
 const SUPPORTED_MIME_TYPES = new Set(['image/jpeg', 'image/png']);
@@ -110,16 +111,66 @@ function responseMimeType(response) {
 }
 
 async function downloadCatalogImage(imageUrl) {
-  const response = await fetch(imageUrl);
-  if (!response.ok) throw new Error('Catalog image download failed');
-
-  const contentLength = Number(response.headers?.get?.('content-length'));
-  if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES) {
-    throw new Error('Catalog image is too large');
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(imageUrl);
+  } catch {
+    throw new Error('Catalog image URL is invalid');
+  }
+  if (parsedUrl.protocol !== 'https:') {
+    throw new Error('Catalog image URL must use HTTPS');
   }
 
-  const data = Buffer.from(await response.arrayBuffer());
-  return validateImageInput({ buffer: data, mimetype: responseMimeType(response), size: data.length });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), CATALOG_IMAGE_TIMEOUT_MS);
+  let reader;
+
+  try {
+    const response = await fetch(parsedUrl.toString(), { signal: controller.signal });
+    if (!response.ok) throw new Error('Catalog image download failed');
+
+    const mimeType = responseMimeType(response);
+    if (!SUPPORTED_MIME_TYPES.has(mimeType)) {
+      throw new Error('Catalog image must be JPEG or PNG');
+    }
+
+    const contentLengthHeader = response.headers?.get?.('content-length');
+    const contentLength = contentLengthHeader === null || contentLengthHeader === undefined
+      ? null
+      : Number(contentLengthHeader);
+    if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES) {
+      controller.abort();
+      throw new Error('Catalog image is too large');
+    }
+
+    if (!response.body?.getReader) {
+      throw new Error('Catalog image response is not streamable');
+    }
+
+    reader = response.body.getReader();
+    const chunks = [];
+    let receivedBytes = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = Buffer.from(value);
+      receivedBytes += chunk.length;
+      if (receivedBytes > MAX_IMAGE_BYTES) {
+        controller.abort();
+        await reader.cancel().catch(() => {});
+        throw new Error('Catalog image is too large');
+      }
+      chunks.push(chunk);
+    }
+
+    const data = Buffer.concat(chunks, receivedBytes);
+    return validateImageInput({ buffer: data, mimetype: mimeType, size: receivedBytes });
+  } finally {
+    clearTimeout(timeout);
+    reader?.releaseLock?.();
+  }
 }
 
 async function indexProductImage({ productId, productImageId, imageUrl }) {
@@ -207,9 +258,14 @@ async function reindexAllProductImages() {
   return reindexRows(result.rows);
 }
 
-function buildSearchQuery(embedding, filters, limit) {
-  const params = [vectorLiteral(embedding), IMAGE_SEARCH_THRESHOLD];
-  const productConditions = ["p.status = 'active'", "pie.status = 'active'", 'pie.embedding IS NOT NULL'];
+function buildSearchQuery(embedding, model, filters, limit) {
+  const params = [vectorLiteral(embedding), IMAGE_SEARCH_THRESHOLD, model];
+  const productConditions = [
+    "p.status = 'active'",
+    "pie.status = 'active'",
+    'pie.embedding IS NOT NULL',
+    'pie.embedding_model = $3'
+  ];
   const variantConditions = ['source_variant.stock_quantity > 0'];
 
   for (const field of ['brand', 'gender']) {
@@ -350,8 +406,9 @@ function mapProductCard(row) {
 
 async function searchProductsByImage({ data, mimeType, filters = {}, limit = MAX_SEARCH_RESULTS }) {
   const image = validateImageInput({ buffer: data, mimetype: mimeType, size: data?.length });
+  const { model } = getImageEmbeddingConfig();
   const embedding = await embedImage(image);
-  const searchQuery = buildSearchQuery(embedding, filters, limit);
+  const searchQuery = buildSearchQuery(embedding, model, filters, limit);
   const result = await query(searchQuery.text, searchQuery.params);
   return { products: result.rows.map(mapProductCard), threshold: IMAGE_SEARCH_THRESHOLD };
 }
@@ -361,18 +418,18 @@ async function getImageEmbeddingOverview() {
   const result = await query(
     `
       SELECT
-        (
-          SELECT COUNT(*)
-          FROM product_images pi
-          JOIN products p ON p.id = pi.product_id
-          WHERE p.status = 'active'
-        ) AS "totalImages",
+        COUNT(*) AS "totalImages",
         COUNT(*) FILTER (WHERE pie.status = 'active') AS "indexedCount",
         COUNT(*) FILTER (WHERE pie.status = 'error') AS "errorCount",
         COUNT(*) FILTER (WHERE pie.status = 'needs_reindex') AS "needsReindexCount",
         MAX(pie.updated_at) FILTER (WHERE pie.status = 'active') AS "lastIndexedAt"
-      FROM product_image_embeddings pie
-      WHERE pie.embedding_model = $1
+      FROM product_images pi
+      JOIN products p ON p.id = pi.product_id
+      LEFT JOIN product_image_embeddings pie
+        ON pie.product_image_id = pi.id
+        AND pie.product_id = pi.product_id
+        AND pie.embedding_model = $1
+      WHERE p.status = 'active'
     `,
     [model]
   );

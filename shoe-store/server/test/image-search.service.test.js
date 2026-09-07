@@ -9,6 +9,7 @@ let queries = [];
 let queryHandler;
 let embeddedInputs = [];
 let embedImageHandler;
+let imageModel = 'gemini-embedding-2';
 
 async function mockQuery(text, params = []) {
   queries.push({ text, params });
@@ -22,7 +23,7 @@ const geminiMock = {
     return embedImageHandler(input);
   },
   getImageEmbeddingConfig() {
-    return { model: 'gemini-embedding-2', dimension: 768 };
+    return { model: imageModel, dimension: 768 };
   }
 };
 
@@ -43,11 +44,24 @@ function vector(value = 0.1) {
 }
 
 function responseForImage(data, mimeType = 'image/jpeg') {
+  const chunks = Array.isArray(data) ? data : [data];
+  let index = 0;
   return {
     ok: true,
     headers: { get: (name) => (name.toLowerCase() === 'content-type' ? mimeType : null) },
-    async arrayBuffer() {
-      return Buffer.from(data);
+    body: {
+      getReader() {
+        return {
+          async read() {
+            if (index >= chunks.length) return { done: true, value: undefined };
+            const value = Buffer.from(chunks[index]);
+            index += 1;
+            return { done: false, value };
+          },
+          async cancel() {},
+          releaseLock() {}
+        };
+      }
     }
   };
 }
@@ -55,6 +69,7 @@ function responseForImage(data, mimeType = 'image/jpeg') {
 test.beforeEach(() => {
   queries = [];
   embeddedInputs = [];
+  imageModel = 'gemini-embedding-2';
   queryHandler = null;
   embedImageHandler = async () => vector();
   global.fetch = async () => responseForImage('catalog-image');
@@ -145,6 +160,84 @@ test('image search service records a safe error row when catalog download or pro
   });
 });
 
+test('image search service safely records HTTP download failures and wrong catalog MIME types', async () => {
+  queryHandler = async (text, params) => {
+    assert.match(text, /INSERT INTO product_image_embeddings/);
+    assert.equal(params[4], 'error');
+    return { rows: [], rowCount: 1 };
+  };
+
+  global.fetch = async () => ({ ok: false, status: 502, headers: { get: () => null } });
+  const failedDownload = await service.indexProductImage({
+    productId: 20,
+    productImageId: 201,
+    imageUrl: 'https://example.test/failure.jpg'
+  });
+  assert.equal(failedDownload.status, 'error');
+
+  global.fetch = async () => responseForImage('gif-data', 'image/gif');
+  const wrongMime = await service.indexProductImage({
+    productId: 20,
+    productImageId: 202,
+    imageUrl: 'https://example.test/wrong-mime.gif'
+  });
+  assert.equal(wrongMime.status, 'error');
+  assert.equal(embeddedInputs.length, 0);
+});
+
+test('image search service rejects non-HTTPS catalog URLs before fetch', async () => {
+  let fetchCalls = 0;
+  global.fetch = async () => {
+    fetchCalls += 1;
+    return responseForImage('image');
+  };
+  queryHandler = async (_text, params) => {
+    assert.equal(params[4], 'error');
+    return { rows: [], rowCount: 1 };
+  };
+
+  const result = await service.indexProductImage({
+    productId: 21,
+    productImageId: 211,
+    imageUrl: 'http://example.test/insecure.jpg'
+  });
+
+  assert.equal(result.status, 'error');
+  assert.equal(fetchCalls, 0);
+  assert.equal(embeddedInputs.length, 0);
+});
+
+test('image search service stops streamed catalog downloads above eight megabytes', async () => {
+  let cancelled = false;
+  const firstChunk = Buffer.alloc(8 * 1024 * 1024);
+  const secondChunk = Buffer.from([1]);
+  global.fetch = async (_url, options) => {
+    assert.equal(options.signal instanceof AbortSignal, true);
+    const response = responseForImage([firstChunk, secondChunk]);
+    const originalGetReader = response.body.getReader;
+    response.body.getReader = () => {
+      const reader = originalGetReader();
+      reader.cancel = async () => { cancelled = true; };
+      return reader;
+    };
+    return response;
+  };
+  queryHandler = async (_text, params) => {
+    assert.equal(params[4], 'error');
+    return { rows: [], rowCount: 1 };
+  };
+
+  const result = await service.indexProductImage({
+    productId: 22,
+    productImageId: 221,
+    imageUrl: 'https://example.test/oversized.jpg'
+  });
+
+  assert.equal(result.status, 'error');
+  assert.equal(cancelled, true);
+  assert.equal(embeddedInputs.length, 0);
+});
+
 test('image search service reindexes current product images and isolates individual failures', async () => {
   queryHandler = async (text, params) => {
     if (text.includes('FROM product_images')) {
@@ -192,9 +285,10 @@ test('image search service collapses product images by best score and excludes h
     assert.match(text, /MAX\(1 - \(pie\.embedding <=> \$1::vector\)\)/);
     assert.match(text, /p\.status = 'active'/);
     assert.match(text, /pie\.status = 'active'/);
+    assert.match(text, /pie\.embedding_model = \$3/);
     assert.match(text, /HAVING MAX\(1 - \(pie\.embedding <=> \$1::vector\)\) >= \$2/);
     assert.match(text, /ORDER BY rp\.similarity_score DESC/);
-    assert.equal(params[1], 0.35);
+    assert.deepEqual(params.slice(1, 3), [0.35, 'gemini-embedding-2']);
     return {
       rows: [{
         id: '12',
@@ -246,14 +340,15 @@ test('image search service parameterizes catalog filters and caps the result lim
   const untrustedBrand = "Solely' OR 1=1 --";
   queryHandler = async (text, params) => {
     assert.doesNotMatch(text, /OR 1=1/);
-    assert.match(text, /LOWER\(p\.brand\) = LOWER\(\$3\)/);
-    assert.match(text, /LOWER\(p\.gender\) = LOWER\(\$4\)/);
-    assert.match(text, /matching_variant\.size = \$5/);
-    assert.match(text, /LOWER\(matching_variant\.color\) = LOWER\(\$6\)/);
-    assert.match(text, /displayed_price >= \$7/);
-    assert.match(text, /displayed_price <= \$8/);
-    assert.match(text, /LIMIT \$9/);
-    assert.deepEqual(params.slice(1), [0.35, untrustedBrand, 'women', '38', 'white', '1000000.00', '2500000.00', 12]);
+    assert.match(text, /pie\.embedding_model = \$3/);
+    assert.match(text, /LOWER\(p\.brand\) = LOWER\(\$4\)/);
+    assert.match(text, /LOWER\(p\.gender\) = LOWER\(\$5\)/);
+    assert.match(text, /matching_variant\.size = \$6/);
+    assert.match(text, /LOWER\(matching_variant\.color\) = LOWER\(\$7\)/);
+    assert.match(text, /displayed_price >= \$8/);
+    assert.match(text, /displayed_price <= \$9/);
+    assert.match(text, /LIMIT \$10/);
+    assert.deepEqual(params.slice(1), [0.35, 'gemini-embedding-2', untrustedBrand, 'women', '38', 'white', '1000000.00', '2500000.00', 12]);
     return { rows: [], rowCount: 0 };
   };
 
@@ -277,6 +372,10 @@ test('image search service parameterizes catalog filters and caps the result lim
 test('image search service overview returns aggregate counts and public embedding config only', async () => {
   queryHandler = async (text, params) => {
     assert.match(text, /COUNT\(\*\) FILTER/);
+    assert.match(text, /FROM product_images pi[\s\S]*JOIN products p ON p\.id = pi\.product_id[\s\S]*LEFT JOIN product_image_embeddings pie/);
+    assert.match(text, /p\.status = 'active'/);
+    assert.match(text, /pie\.embedding_model = \$1/);
+    assert.doesNotMatch(text, /WHERE pie\.embedding_model/);
     assert.deepEqual(params, ['gemini-embedding-2']);
     return {
       rows: [{
