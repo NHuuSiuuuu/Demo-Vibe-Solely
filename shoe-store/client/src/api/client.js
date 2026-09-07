@@ -39,12 +39,37 @@ async function request(path, { method = 'GET', body, token } = {}) {
   return data;
 }
 
+async function requestForm(path, { method = 'POST', body, token } = {}) {
+  const headers = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    method,
+    headers,
+    body
+  });
+  const data = await parseJson(response);
+
+  if (!response.ok) {
+    const message = data?.message || data?.error?.message || response.statusText || 'Request failed';
+    throw new Error(message);
+  }
+
+  return data;
+}
+
 export const apiClient = {
   get(path, options = {}) {
     return request(path, { ...options, method: 'GET' });
   },
   post(path, body, options = {}) {
     return request(path, { ...options, method: 'POST', body });
+  },
+  postForm(path, formData, options = {}) {
+    return requestForm(path, { ...options, method: 'POST', body: formData });
   },
   put(path, body, options = {}) {
     return request(path, { ...options, method: 'PUT', body });

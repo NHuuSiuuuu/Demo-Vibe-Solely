@@ -3724,3 +3724,116 @@ button:hover:not(:disabled),
     grid-template-columns: 1fr;
   }
 }
+
+/* Product image search */
+.image-search-field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.image-search-field > label {
+  color: var(--solely-text, #374151);
+  font-weight: 800;
+}
+
+.image-search-field__control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.image-search-field__control input {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.image-search-field__camera {
+  align-items: center;
+  border: 1px solid var(--solely-accent, #1f4f46);
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  display: inline-flex;
+  justify-content: center;
+  min-width: 2.75rem;
+  padding: 0.55rem;
+}
+
+.image-search-field__camera:focus-visible,
+.image-search-preview button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.image-search-field__input {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.image-search-preview {
+  align-items: center;
+  background: var(--theme-panel, #ffffff);
+  border: 1px solid var(--solely-border, #d7dee8);
+  border-radius: 8px;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  padding: 1rem;
+}
+
+.image-search-preview > img {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  height: 7rem;
+  object-fit: cover;
+  width: 7rem;
+}
+
+.image-search-preview__details {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.image-search-preview__details > strong {
+  overflow-wrap: anywhere;
+}
+
+.image-search-status {
+  color: var(--solely-muted, #64748b);
+  margin: 0;
+}
+
+.image-search-preview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.image-search-preview__actions button {
+  gap: 0.4rem;
+}
+
+@media (max-width: 560px) {
+  .image-search-preview {
+    align-items: start;
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+
+  .image-search-preview > img {
+    height: 5rem;
+    width: 5rem;
+  }
+
+  .image-search-preview__actions {
+    grid-column: 1 / -1;
+  }
+}
