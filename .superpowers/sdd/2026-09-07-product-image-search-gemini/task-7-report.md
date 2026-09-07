@@ -23,7 +23,10 @@ Status: DONE
 - Client production build passed.
 - git diff --check passed.
 
-The full server package suite remains environment-limited by the local
-PGlite setup lacking the PostgreSQL vector type; this is unrelated to the
-image-search implementation. Existing VNPay/catalog dirty files were
+The command cd shoe-store/server && npm test remains environment-limited by
+the local PGlite setup lacking the PostgreSQL vector type; this is unrelated
+to the image-search implementation. The opt-in live pgvector test was not
+run because IMAGE_SEARCH_TEST_DATABASE_URL is not configured. Without
+pgvector and a valid rotated Gemini key, this feature is not claimed as
+production-ready end-to-end. Existing VNPay/catalog dirty files were
 preserved and excluded.

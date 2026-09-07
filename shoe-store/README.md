@@ -258,6 +258,10 @@ Catalog hỗ trợ tìm giày bằng embedding ảnh trực tiếp với Gemini
 `product_image_embeddings`, tách riêng khỏi RAG văn bản, với vector 768
 chiều và truy vấn bằng pgvector.
 
+Backend dùng `GEMINI_IMAGE_EMBEDDING_MODEL=gemini-embedding-2` và
+`GEMINI_EMBEDDING_DIMENSION=768`; không đổi dimension vì schema dùng
+`vector(768)`.
+
 - Ở ô tìm kiếm sản phẩm, bấm biểu tượng camera để chọn ảnh từ máy hoặc mở
   camera sau trên điện thoại.
 - Chỉ nhận JPEG/PNG tối đa 8 MB; ảnh truy vấn không được lưu lại.
@@ -269,3 +273,10 @@ chiều và truy vấn bằng pgvector.
 Nếu Gemini hoặc pgvector chưa cấu hình, catalog vẫn hoạt động với tìm kiếm
 văn bản; chức năng tìm bằng ảnh sẽ trả lỗi cấu hình an toàn và không làm lộ
 API key.
+
+Kiểm thử live: sau khi cài pgvector và đặt Gemini key đã rotate trong
+`server/.env`, chạy migration, khởi động server/client, đăng nhập admin,
+reindex một ảnh sản phẩm, thử chọn ảnh trên desktop và camera trên mobile,
+sau đó kiểm tra kết quả cùng bộ lọc. Nếu thiếu pgvector hoặc Gemini key hợp
+lệ, chỉ được xác nhận unit/route/UI tests; chưa được coi là kiểm thử
+end-to-end production.
