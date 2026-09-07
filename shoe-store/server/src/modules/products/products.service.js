@@ -1,5 +1,6 @@
 const { query } = require('../../db/pool');
 const { HttpError } = require('../../utils/httpError');
+const { calculateVariantPrice } = require('./pricing');
 
 const SORTS = {
   price_asc: 'price ASC',
@@ -83,14 +84,18 @@ function mapProductDetail(row) {
       altText: image.altText,
       sortOrder: Number(image.sortOrder)
     })),
-    variants: (row.variants || []).map((variant) => ({
-      id: Number(variant.id),
-      sku: variant.sku,
-      size: variant.size,
-      color: variant.color,
-      stockQuantity: Number(variant.stockQuantity),
-      priceDelta: toNumber(variant.priceDelta)
-    }))
+    variants: (row.variants || []).map((variant) => {
+      const discountPercent = toNumber(variant.discountPercent);
+      return {
+        id: Number(variant.id),
+        sku: variant.sku,
+        size: variant.size,
+        color: variant.color,
+        stockQuantity: Number(variant.stockQuantity),
+        discountPercent,
+        unitPrice: calculateVariantPrice(row.price, discountPercent, variant.legacyPriceDelta)
+      };
+    })
   };
 }
 
@@ -232,7 +237,8 @@ async function getProductBySlug(slug) {
               'size', pv.size,
               'color', pv.color,
               'stockQuantity', pv.stock_quantity,
-              'priceDelta', pv.price_delta
+              'discountPercent', pv.discount_percent,
+              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta'
             )
           ) FILTER (WHERE pv.id IS NOT NULL),
           '[]'

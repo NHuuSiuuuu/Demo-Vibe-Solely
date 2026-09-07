@@ -40,6 +40,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm khu vực index sản phẩm trong admin RAG để xem số sản phẩm đã index/cần reindex và reindex một sản phẩm bằng ID.
 - Thêm schema giá giảm theo phần trăm và hợp đồng thanh toán VNPay, gồm trạng thái thanh toán, cột đối soát giao dịch và migration bảo toàn giá biến thể legacy.
 - Đồng bộ seed và script Việt hóa biến thể sang discount_percent để bootstrap schema mới không còn tham chiếu price_delta.
+- Thêm helper backend dùng chung để chuẩn hóa phần trăm giảm giá và tính giá biến thể chính xác đến hai chữ số thập phân, kèm fallback tạm thời cho dữ liệu giá cũ đã migrate.
 
 ### Đã thay đổi
 - Thêm migration tương thích cho database cũ để tạo bảng danh mục và cột Cloudinary của ảnh sản phẩm mà không xóa dữ liệu.
@@ -99,6 +100,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Cập nhật parser yêu cầu số lượng của trợ lý RAG để hiểu các câu như `2 sản phẩm`, `2 mẫu`, `2 đôi`.
 - Cập nhật admin RAG overview để báo trạng thái bảng RAG/pgvector chưa sẵn sàng thay vì trả lỗi 500 chung.
 - Cập nhật demo database in-memory để bỏ cú pháp pgvector không được PGlite hỗ trợ nhưng vẫn giữ schema PostgreSQL thật có pgvector.
+- Chuyển catalog, giỏ hàng, tạo đơn và API quản trị biến thể sang `discountPercent`; backend tự tính và chốt giá sau giảm, không còn đọc hoặc ghi `priceDelta` trong API runtime mới.
 
 ### Đã kiểm chứng
 
@@ -132,6 +134,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test backend cho service RAG indexing/retrieval và câu chào nhanh của trợ lý RAG.
 - Bổ sung test backend bắt buộc admin xem được RAG overview và customer bị chặn khỏi endpoint admin RAG.
 - Bổ sung test backend bắt buộc admin RAG test query trả về chunk tri thức khi retrieval tìm thấy ngữ cảnh.
+- Bổ sung test backend cho các mức giảm giá `0%`, `10%`, `100%`, phần trăm thập phân, làm tròn, fallback giá legacy, giá catalog/cart/order và validation admin `0..100`.
 - Bổ sung test backend bắt buộc `/api/ai/chat` dùng RAG, không lưu tin nhắn chat và trả `sources` cùng sản phẩm/tri thức liên quan.
 - Bổ sung test frontend bắt buộc admin navigation hiển thị "Kho tri thức AI" và route `/admin/rag` render tổng quan tri thức, chính sách và kiểm thử truy vấn.
 - Bổ sung test frontend bắt buộc trợ lý mua sắm hiển thị câu trả lời chính sách RAG mà không render "Sản phẩm gợi ý" khi API trả `products: []`.

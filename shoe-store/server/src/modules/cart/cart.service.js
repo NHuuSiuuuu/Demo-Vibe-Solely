@@ -1,9 +1,6 @@
 const { query } = require('../../db/pool');
 const { HttpError } = require('../../utils/httpError');
-
-function toNumber(value) {
-  return value === null || value === undefined ? value : Number(value);
-}
+const { calculateVariantPrice } = require('../products/pricing');
 
 function parsePositiveInteger(value, fieldName = 'Quantity') {
   const number = Number(value);
@@ -14,19 +11,23 @@ function parsePositiveInteger(value, fieldName = 'Quantity') {
 }
 
 function mapCart(rows) {
-  const items = rows.map((row) => ({
-    id: Number(row.item_id),
-    variantId: Number(row.product_variant_id),
-    productId: Number(row.product_id),
-    productName: row.product_name,
-    sku: row.sku,
-    size: row.size,
-    color: row.color,
-    quantity: Number(row.quantity),
-    stockQuantity: Number(row.stock_quantity),
-    unitPrice: toNumber(row.unit_price),
-    lineTotal: toNumber(row.line_total)
-  }));
+  const items = rows.map((row) => {
+    const quantity = Number(row.quantity);
+    const unitPrice = calculateVariantPrice(row.base_price, row.discount_percent, row.legacy_price_delta);
+    return {
+      id: Number(row.item_id),
+      variantId: Number(row.product_variant_id),
+      productId: Number(row.product_id),
+      productName: row.product_name,
+      sku: row.sku,
+      size: row.size,
+      color: row.color,
+      quantity,
+      stockQuantity: Number(row.stock_quantity),
+      unitPrice,
+      lineTotal: Math.round(unitPrice * 100) * quantity / 100
+    };
+  });
 
   return {
     id: rows[0] ? Number(rows[0].cart_id) : null,
@@ -72,7 +73,9 @@ async function getVariant(variantId) {
         pv.size,
         pv.color,
         pv.stock_quantity,
-        (p.base_price + pv.price_delta) AS unit_price
+        p.base_price,
+        pv.discount_percent,
+        to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
       FROM product_variants pv
       JOIN products p ON p.id = pv.product_id
       WHERE pv.id = $1
@@ -98,8 +101,9 @@ async function getCartRows(userId) {
         pv.size,
         pv.color,
         pv.stock_quantity,
-        (p.base_price + pv.price_delta) AS unit_price,
-        ((p.base_price + pv.price_delta) * ci.quantity) AS line_total
+        p.base_price,
+        pv.discount_percent,
+        to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
       FROM carts c
       LEFT JOIN cart_items ci ON ci.cart_id = c.id
       LEFT JOIN product_variants pv ON pv.id = ci.product_variant_id

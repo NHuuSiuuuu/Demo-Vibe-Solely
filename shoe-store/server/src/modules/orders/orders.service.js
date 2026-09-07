@@ -1,6 +1,7 @@
 const { query } = require('../../db/pool');
 const { withTransaction } = require('../../db/transactions');
 const { HttpError } = require('../../utils/httpError');
+const { calculateVariantPrice } = require('../products/pricing');
 const crypto = require('node:crypto');
 
 function toNumber(value) {
@@ -127,8 +128,9 @@ async function getCartSnapshot(userId, client) {
         pv.size,
         pv.color,
         pv.stock_quantity,
-        (p.base_price + pv.price_delta) AS unit_price,
-        ((p.base_price + pv.price_delta) * ci.quantity) AS line_total
+        p.base_price,
+        pv.discount_percent,
+        to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
       FROM carts c
       JOIN cart_items ci ON ci.cart_id = c.id
       JOIN product_variants pv ON pv.id = ci.product_variant_id
@@ -140,7 +142,14 @@ async function getCartSnapshot(userId, client) {
     [userId]
   );
 
-  return result.rows;
+  return result.rows.map((row) => {
+    const unitPrice = calculateVariantPrice(row.base_price, row.discount_percent, row.legacy_price_delta);
+    return {
+      ...row,
+      unit_price: unitPrice,
+      line_total: Math.round(unitPrice * 100) * Number(row.quantity) / 100
+    };
+  });
 }
 
 async function lockVariants(variantIds, client) {

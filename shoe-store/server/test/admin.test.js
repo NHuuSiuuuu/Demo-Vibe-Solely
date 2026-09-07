@@ -73,7 +73,7 @@ function resetStore() {
       size: '9',
       color: 'Black',
       stock_quantity: 5,
-      price_delta: '0.00'
+      discount_percent: '10.00'
     }
   ];
   orders = [
@@ -389,7 +389,7 @@ async function mockQuery(text, params = []) {
   }
 
   if (text.includes('INSERT INTO product_variants')) {
-    const [productId, sku, size, color, stockQuantity, priceDelta] = params;
+    const [productId, sku, size, color, stockQuantity, discountPercent] = params;
     const variant = {
       id: nextVariantId++,
       product_id: Number(productId),
@@ -397,7 +397,7 @@ async function mockQuery(text, params = []) {
       size,
       color,
       stock_quantity: Number(stockQuantity),
-      price_delta: priceDelta
+      discount_percent: discountPercent
     };
     variants.push(variant);
     return { rows: [variantRow(variant)], rowCount: 1 };
@@ -425,7 +425,7 @@ async function mockQuery(text, params = []) {
       ['size', 'size'],
       ['color', 'color'],
       ['stock_quantity', 'stock_quantity'],
-      ['price_delta', 'price_delta']
+      ['discount_percent', 'discount_percent']
     ];
     let paramIndex = 0;
     for (const [sqlName, propertyName] of fields) {
@@ -741,7 +741,7 @@ test('variant mutations trigger RAG reindex for the affected product', async () 
   const createResponse = await request(createApp())
     .post('/api/admin/products/10/variants')
     .set('Authorization', `Bearer ${token}`)
-    .send({ sku: 'RR1-11-NAV', size: '11', color: 'Navy', stockQuantity: 3, priceDelta: 0 })
+    .send({ sku: 'RR1-11-NAV', size: '11', color: 'Navy', stockQuantity: 3, discountPercent: 0 })
     .expect(201);
 
   await request(createApp())
@@ -826,7 +826,7 @@ test('lists admin products with authoritative variants and totalStock', async ()
       size: '9',
       color: 'Black',
       stockQuantity: 5,
-      priceDelta: 0
+      discountPercent: 10
     }
   ]);
 });
@@ -876,25 +876,27 @@ test('creates and updates a product variant', async () => {
   const createResponse = await request(createApp())
     .post('/api/admin/products/10/variants')
     .set('Authorization', `Bearer ${token}`)
-    .send({ sku: 'RR1-10-WHT', size: '10', color: 'White', stockQuantity: 8, priceDelta: 5 })
+    .send({ sku: 'RR1-10-WHT', size: '10', color: 'White', stockQuantity: 8, discountPercent: 12.5 })
     .expect(201);
 
   assert.equal(createResponse.body.variant.sku, 'RR1-10-WHT');
   assert.equal(createResponse.body.variant.stockQuantity, 8);
+  assert.equal(createResponse.body.variant.discountPercent, 12.5);
 
   const updateResponse = await request(createApp())
     .patch(`/api/admin/variants/${createResponse.body.variant.id}`)
     .set('Authorization', `Bearer ${token}`)
-    .send({ color: 'Cream', stockQuantity: 6 })
+    .send({ color: 'Cream', stockQuantity: 6, discountPercent: 25 })
     .expect(200);
 
   assert.equal(updateResponse.body.variant.color, 'Cream');
   assert.equal(updateResponse.body.variant.stockQuantity, 6);
+  assert.equal(updateResponse.body.variant.discountPercent, 25);
 
   await request(createApp())
     .post('/api/admin/products/999/variants')
     .set('Authorization', `Bearer ${token}`)
-    .send({ sku: 'MISSING-10-WHT', size: '10', color: 'White', stockQuantity: 1, priceDelta: 0 })
+    .send({ sku: 'MISSING-10-WHT', size: '10', color: 'White', stockQuantity: 1, discountPercent: 0 })
     .expect(404);
 });
 
@@ -912,11 +914,33 @@ test('rejects invalid variant stock with 400 JSON', async () => {
         size: '10',
         color: 'White',
         stockQuantity,
-        priceDelta: 0
+        discountPercent: 0
       })
       .expect(400);
 
     assert.deepEqual(response.body, { message: 'Stock quantity must be nonnegative', details: null });
+  }
+});
+
+test('rejects invalid variant discount percentages with 400 JSON', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(2);
+  const invalidDiscounts = [null, '', '   ', [], {}, 'abc', -0.01, 100.01, false];
+
+  for (const [index, discountPercent] of invalidDiscounts.entries()) {
+    const response = await request(createApp())
+      .post('/api/admin/products/10/variants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        sku: `BAD-DISCOUNT-${index}`,
+        size: '10',
+        color: 'White',
+        stockQuantity: 1,
+        discountPercent
+      })
+      .expect(400);
+
+    assert.deepEqual(response.body, { message: 'Discount percent must be between 0 and 100', details: null });
   }
 });
 

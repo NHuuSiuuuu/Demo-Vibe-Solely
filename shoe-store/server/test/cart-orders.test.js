@@ -57,7 +57,8 @@ function resetStore() {
       size: '9',
       color: 'black',
       stock_quantity: 5,
-      price_delta: '0.00'
+      discount_percent: '10.00',
+      legacy_price_delta: null
     }
   ];
   carts = [];
@@ -118,8 +119,6 @@ function fullCartRows(userId) {
     .map((item) => {
       const variant = variants.find((candidate) => candidate.id === item.product_variant_id);
       const product = products.find((candidate) => candidate.id === variant.product_id);
-      const unitPrice = Number(product.base_price) + Number(variant.price_delta);
-
       return {
         cart_id: cart.id,
         item_id: item.id,
@@ -131,8 +130,9 @@ function fullCartRows(userId) {
         size: variant.size,
         color: variant.color,
         stock_quantity: variant.stock_quantity,
-        unit_price: unitPrice.toFixed(2),
-        line_total: (unitPrice * item.quantity).toFixed(2)
+        base_price: product.base_price,
+        discount_percent: variant.discount_percent,
+        legacy_price_delta: variant.legacy_price_delta
       };
     });
 }
@@ -187,7 +187,9 @@ async function mockQuery(text, params = []) {
           size: variant.size,
           color: variant.color,
           stock_quantity: variant.stock_quantity,
-          unit_price: (Number(product.base_price) + Number(variant.price_delta)).toFixed(2)
+          base_price: product.base_price,
+          discount_percent: variant.discount_percent,
+          legacy_price_delta: variant.legacy_price_delta
         }
       ],
       rowCount: 1
@@ -408,11 +410,27 @@ test('adds a product variant to the customer cart', async () => {
       color: 'black',
       quantity: 2,
       stockQuantity: 5,
-      unitPrice: 89.99,
-      lineTotal: 179.98
+      unitPrice: 80.99,
+      lineTotal: 161.98
     }
   ]);
-  assert.equal(response.body.cart.subtotal, 179.98);
+  assert.equal(response.body.cart.subtotal, 161.98);
+});
+
+test('keeps migrated legacy variant pricing in the cart', async () => {
+  const { createApp } = require('../src/app');
+  variants[0].discount_percent = '0.00';
+  variants[0].legacy_price_delta = '5.00';
+
+  const response = await request(createApp())
+    .post('/api/cart/items')
+    .set('Authorization', `Bearer ${tokenFor(1)}`)
+    .send({ variantId: 101, quantity: 1 })
+    .expect(201);
+
+  assert.equal(response.body.cart.items[0].unitPrice, 94.99);
+  assert.equal(response.body.cart.items[0].lineTotal, 94.99);
+  assert.equal(response.body.cart.subtotal, 94.99);
 });
 
 test('rejects cart quantity above stock with 409 JSON', async () => {
@@ -457,7 +475,7 @@ test('updates and removes cart items', async () => {
     .expect(200);
 
   assert.equal(updateResponse.body.cart.items[0].quantity, 3);
-  assert.equal(updateResponse.body.cart.subtotal, 269.97);
+  assert.equal(updateResponse.body.cart.subtotal, 242.97);
 
   const removeResponse = await request(createApp())
     .delete(`/api/cart/items/${itemId}`)
@@ -500,7 +518,9 @@ test('creates a COD order from cart and clears cart', async () => {
   assert.equal(response.body.order.orderStatus, 'pending');
   assert.equal(response.body.order.note, 'Leave at door');
   assert.match(response.body.order.orderCode, /^ORD-[A-Z0-9-]+$/);
-  assert.equal(response.body.order.grandTotal, 179.98);
+  assert.equal(response.body.order.grandTotal, 161.98);
+  assert.equal(response.body.order.items[0].unitPrice, 80.99);
+  assert.equal(response.body.order.items[0].lineTotal, 161.98);
   assert.equal(response.body.order.items[0].sku, 'RR1-9-BLK');
   assert.deepEqual(fullCartRows(1), []);
 });

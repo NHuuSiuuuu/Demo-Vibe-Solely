@@ -52,8 +52,8 @@ const productDetail = {
     { id: '12', imageUrl: '/images/road-runner-1-sole.jpg', altText: 'Road Runner 1 sole', sortOrder: 1 }
   ],
   variants: [
-    { id: '101', sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 5, priceDelta: '0.00' },
-    { id: '102', sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 3, priceDelta: '5.00' }
+    { id: '101', sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 5, discountPercent: '0.00', legacyPriceDelta: null },
+    { id: '102', sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 3, discountPercent: '10.00', legacyPriceDelta: '5.00' }
   ]
 };
 
@@ -77,6 +77,8 @@ function normalizeCard(row) {
 
 async function mockQuery(text, params = []) {
   if (text.includes('FROM products p') && text.includes('WHERE p.slug = $1')) {
+    assert.match(text, /pv\.discount_percent/);
+    assert.doesNotMatch(text, /'priceDelta'/);
     return { rows: params[0] === 'road-runner-1' ? [productDetail] : [], rowCount: params[0] === 'road-runner-1' ? 1 : 0 };
   }
 
@@ -176,8 +178,8 @@ test('returns one product by slug', async () => {
       { id: 12, imageUrl: '/images/road-runner-1-sole.jpg', altText: 'Road Runner 1 sole', sortOrder: 1 }
     ],
     variants: [
-      { id: 101, sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 5, priceDelta: 0 },
-      { id: 102, sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 3, priceDelta: 5 }
+      { id: 101, sku: 'RR1-9-BLK', size: '9', color: 'black', stockQuantity: 5, discountPercent: 0, unitPrice: 89.99 },
+      { id: 102, sku: 'RR1-10-WHT', size: '10', color: 'white', stockQuantity: 3, discountPercent: 10, unitPrice: 80.99 }
     ]
   });
 });

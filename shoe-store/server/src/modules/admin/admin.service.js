@@ -1,6 +1,7 @@
 const { query } = require('../../db/pool');
 const { withTransaction } = require('../../db/transactions');
 const { mapOrder } = require('../orders/orders.service');
+const { normalizeDiscountPercent } = require('../products/pricing');
 const { HttpError } = require('../../utils/httpError');
 const { env } = require('../../config/env');
 const crypto = require('node:crypto');
@@ -116,7 +117,7 @@ function mapVariant(row) {
     size: row.size,
     color: row.color,
     stockQuantity: Number(row.stock_quantity),
-    priceDelta: toNumber(row.price_delta)
+    discountPercent: toNumber(row.discount_percent)
   };
 }
 
@@ -211,8 +212,10 @@ function prepareVariantInput(input, requireAll) {
   if (requireAll || Object.prototype.hasOwnProperty.call(input, 'stockQuantity')) {
     output.stockQuantity = normalizeStock(input.stockQuantity);
   }
-  if (requireAll || Object.prototype.hasOwnProperty.call(input, 'priceDelta')) {
-    output.priceDelta = normalizeMoney(input.priceDelta || 0, 'Price delta must be nonnegative');
+  if (Object.prototype.hasOwnProperty.call(input, 'discountPercent')) {
+    output.discountPercent = normalizeDiscountPercent(input.discountPercent);
+  } else if (requireAll) {
+    output.discountPercent = normalizeDiscountPercent(0);
   }
 
   return output;
@@ -429,12 +432,12 @@ async function createVariant(productId, input) {
         size,
         color,
         stock_quantity,
-        price_delta
+        discount_percent
       )
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `,
-    [productId, variant.sku, variant.size, variant.color, variant.stockQuantity, variant.priceDelta]
+    [productId, variant.sku, variant.size, variant.color, variant.stockQuantity, variant.discountPercent]
   );
 
   const createdVariant = mapVariant(result.rows[0]);
@@ -451,7 +454,7 @@ async function updateVariant(id, input) {
   if (Object.prototype.hasOwnProperty.call(variant, 'size')) pushUpdate(updates, params, 'size', variant.size);
   if (Object.prototype.hasOwnProperty.call(variant, 'color')) pushUpdate(updates, params, 'color', variant.color);
   if (Object.prototype.hasOwnProperty.call(variant, 'stockQuantity')) pushUpdate(updates, params, 'stock_quantity', variant.stockQuantity);
-  if (Object.prototype.hasOwnProperty.call(variant, 'priceDelta')) pushUpdate(updates, params, 'price_delta', variant.priceDelta);
+  if (Object.prototype.hasOwnProperty.call(variant, 'discountPercent')) pushUpdate(updates, params, 'discount_percent', variant.discountPercent);
 
   if (updates.length === 0) {
     throw new HttpError(400, 'No variant updates provided');
