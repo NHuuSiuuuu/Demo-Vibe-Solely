@@ -310,6 +310,26 @@ describe('customer shopping flow', () => {
     vi.useRealTimers();
   });
 
+  it('closes header suggestions when clicking outside the search field', async () => {
+    mockApi('/api/products', { products: [products[0]] });
+    vi.useFakeTimers();
+    renderCustomerHome();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm kiếm sản phẩm' }), {
+      target: { value: 'runner' }
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('option')).toBeTruthy();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole('option')).toBeNull();
+    vi.useRealTimers();
+  });
+
   it('closes the mobile menu when header text search is submitted', async () => {
     renderCustomerHome();
     fireEvent.click(screen.getByRole('button', { name: 'Mở menu' }));

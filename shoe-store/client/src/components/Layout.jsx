@@ -22,6 +22,7 @@ export default function Layout() {
   const [suggestionsError, setSuggestionsError] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || 'light');
   const headerFileInputRef = useRef(null);
+  const headerSearchRef = useRef(null);
   const headerTextSearchNonceRef = useRef(0);
   const suggestionsRequestRef = useRef(null);
   const itemCount = cart.items?.reduce((total, item) => total + Number(item.quantity || 0), 0) || 0;
@@ -75,6 +76,17 @@ export default function Layout() {
       controller.abort();
     };
   }, [searchQuery]);
+
+  useEffect(() => {
+    function closeSuggestionsOnOutsideClick(event) {
+      if (!headerSearchRef.current?.contains(event.target)) {
+        setSuggestions([]);
+      }
+    }
+
+    document.addEventListener('pointerdown', closeSuggestionsOnOutsideClick);
+    return () => document.removeEventListener('pointerdown', closeSuggestionsOnOutsideClick);
+  }, []);
 
   function submitSearch(event) {
     event.preventDefault();
@@ -148,7 +160,7 @@ export default function Layout() {
             </NavLink>
           ) : null}
         </nav>
-        <form className="header-search" role="search" aria-label="Tìm kiếm sản phẩm toàn cửa hàng" onSubmit={submitSearch}>
+        <form ref={headerSearchRef} className="header-search" role="search" aria-label="Tìm kiếm sản phẩm toàn cửa hàng" onSubmit={submitSearch}>
           <label className="header-search__label" htmlFor="header-product-query">
             Tìm kiếm sản phẩm
           </label>
