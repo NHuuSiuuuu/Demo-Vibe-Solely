@@ -461,8 +461,17 @@ async function mockQuery(text, params = []) {
       return { rows: [], rowCount: 0 };
     }
     order.order_status = params[0];
-    if (text.includes("THEN 'paid'") && (params[2] ?? params[0]) === 'completed') {
+    const nextStatus = params[2] ?? params[0];
+    if (text.includes("payment_method = 'cod'") && nextStatus === 'completed' && order.payment_method === 'cod') {
       order.payment_status = 'paid';
+    }
+    if (
+      text.includes("payment_method = 'vnpay'")
+      && nextStatus === 'cancelled'
+      && order.payment_method === 'vnpay'
+      && order.payment_status === 'pending'
+    ) {
+      order.payment_status = 'failed';
     }
     order.updated_at = '2026-09-05T00:00:00.000Z';
     return { rows: [orderRow(order)], rowCount: 1 };
@@ -1020,6 +1029,42 @@ test('sets payment_status paid when order is completed', async () => {
   assert.equal(response.body.order.paymentStatus, 'paid');
 });
 
+test('does not mark a pending VNPay order paid when admin completes fulfillment', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(2);
+  orders[0].payment_method = 'vnpay';
+  orders[0].payment_status = 'pending';
+
+  for (const status of ['confirmed', 'shipping', 'completed']) {
+    await request(createApp())
+      .patch('/api/admin/orders/900/status')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status })
+      .expect(200);
+  }
+
+  assert.equal(orders[0].order_status, 'completed');
+  assert.equal(orders[0].payment_status, 'pending');
+});
+
+test('does not mark a failed VNPay order paid when admin completes fulfillment', async () => {
+  const { createApp } = require('../src/app');
+  const token = tokenFor(2);
+  orders[0].payment_method = 'vnpay';
+  orders[0].payment_status = 'failed';
+
+  for (const status of ['confirmed', 'shipping', 'completed']) {
+    await request(createApp())
+      .patch('/api/admin/orders/900/status')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status })
+      .expect(200);
+  }
+
+  assert.equal(orders[0].order_status, 'completed');
+  assert.equal(orders[0].payment_status, 'failed');
+});
+
 test('uses a separate typed parameter when deriving payment status from order status', async () => {
   const { createApp } = require('../src/app');
   const token = tokenFor(2);
@@ -1033,6 +1078,7 @@ test('uses a separate typed parameter when deriving payment status from order st
   const updateQuery = queryLog.find((entry) => entry.text.includes('UPDATE orders'));
 
   assert.match(updateQuery.text, /CASE WHEN \$3::order_status = 'completed'/);
+  assert.match(updateQuery.text, /payment_method = 'cod'/);
   assert.deepEqual(updateQuery.params, ['confirmed', '900', 'confirmed']);
 });
 
@@ -1058,6 +1104,24 @@ test('restores variant stock when admin cancels an order', async () => {
     .expect(200);
 
   assert.equal(response.body.order.orderStatus, 'cancelled');
+  assert.equal(response.body.order.paymentStatus, 'unpaid');
+  assert.equal(variants[0].stock_quantity, 6);
+  assert.deepEqual(restoredStockUpdates, [{ variantId: 101, quantity: 1 }]);
+});
+
+test('cancelling a pending VNPay order fails payment and restores stock once', async () => {
+  const { createApp } = require('../src/app');
+  orders[0].payment_method = 'vnpay';
+  orders[0].payment_status = 'pending';
+
+  const response = await request(createApp())
+    .patch('/api/admin/orders/900/status')
+    .set('Authorization', `Bearer ${tokenFor(2)}`)
+    .send({ status: 'cancelled' })
+    .expect(200);
+
+  assert.equal(response.body.order.orderStatus, 'cancelled');
+  assert.equal(response.body.order.paymentStatus, 'failed');
   assert.equal(variants[0].stock_quantity, 6);
   assert.deepEqual(restoredStockUpdates, [{ variantId: 101, quantity: 1 }]);
 });

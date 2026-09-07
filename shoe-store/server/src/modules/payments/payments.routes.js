@@ -14,8 +14,9 @@ router.get('/vnpay/return', (req, res) => {
     return res.redirect(redirectUrl.toString());
   }
 
-  redirectUrl.searchParams.set('status', verification.responseCode === '00' ? 'success' : 'failed');
-  redirectUrl.searchParams.set('orderId', String(req.query.vnp_TxnRef || ''));
+  const successful = verification.responseCode === '00' && verification.transactionStatus === '00';
+  redirectUrl.searchParams.set('status', successful ? 'success' : 'failed');
+  redirectUrl.searchParams.set('orderId', verification.txnRef);
   if (verification.responseCode !== null) {
     redirectUrl.searchParams.set('responseCode', verification.responseCode);
   }
@@ -25,15 +26,19 @@ router.get('/vnpay/return', (req, res) => {
 
 router.get('/vnpay/ipn', async (req, res) => {
   const verification = verifyPaymentParams(req.query);
-  if (!verification.valid) {
+  if (!verification.signatureValid) {
     return res.json(buildVnpayResponse('97', 'Invalid Signature'));
+  }
+  if (!verification.valid) {
+    return res.json(buildVnpayResponse('99', 'Invalid callback'));
   }
 
   try {
     const result = await reconcileVnpayPayment({
-      orderId: req.query.vnp_TxnRef,
+      orderId: verification.txnRef,
       amount: verification.amount,
       responseCode: verification.responseCode,
+      transactionStatus: verification.transactionStatus,
       transactionNo: verification.transactionNo
     });
     return res.json(buildVnpayResponse(result.code, result.message));

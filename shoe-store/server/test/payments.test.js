@@ -133,6 +133,7 @@ function callbackParams(overrides = {}) {
     vnp_TransactionNo: '14587465',
     vnp_TmnCode: 'SOLELY01',
     vnp_ResponseCode: '00',
+    vnp_TransactionStatus: '00',
     vnp_OrderInfo: 'Thanh toan don hang ORD-20260907-ABC123',
     vnp_BankCode: 'NCB',
     vnp_Amount: '16198',
@@ -173,13 +174,60 @@ test('failed VNPay IPN marks the pending order failed', async () => {
 
   const response = await request(createApp())
     .get('/api/payments/vnpay/ipn')
-    .query(callbackParams({ vnp_ResponseCode: '24' }))
+    .query(callbackParams({ vnp_ResponseCode: '24', vnp_TransactionStatus: '02' }))
     .expect(200);
 
   assert.deepEqual(response.body, { RspCode: '00', Message: 'Confirm Success' });
   assert.equal(order.payment_status, 'failed');
   assert.equal(order.vnpay_transaction_no, '14587465');
   assert.equal(paymentUpdateCount, 1);
+});
+
+test('VNPay IPN does not mark paid when response succeeds but transaction status fails', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .get('/api/payments/vnpay/ipn')
+    .query(callbackParams({ vnp_TransactionStatus: '02' }))
+    .expect(200);
+
+  assert.deepEqual(response.body, { RspCode: '00', Message: 'Confirm Success' });
+  assert.equal(order.payment_status, 'failed');
+  assert.equal(paymentUpdateCount, 1);
+});
+
+test('VNPay IPN rejects a signed callback missing response code without mutating the order', async () => {
+  const { createApp } = require('../src/app');
+  const params = callbackParams();
+  delete params.vnp_ResponseCode;
+  params.vnp_SecureHash = signCallback(params);
+
+  const response = await request(createApp())
+    .get('/api/payments/vnpay/ipn')
+    .query(params)
+    .expect(200);
+
+  assert.deepEqual(response.body, { RspCode: '99', Message: 'Invalid callback' });
+  assert.equal(order.payment_status, 'pending');
+  assert.equal(transactionBegins, 0);
+  assert.equal(paymentUpdateCount, 0);
+});
+
+test('VNPay IPN rejects a signed callback missing transaction status without mutating the order', async () => {
+  const { createApp } = require('../src/app');
+  const params = callbackParams();
+  delete params.vnp_TransactionStatus;
+  params.vnp_SecureHash = signCallback(params);
+
+  const response = await request(createApp())
+    .get('/api/payments/vnpay/ipn')
+    .query(params)
+    .expect(200);
+
+  assert.deepEqual(response.body, { RspCode: '99', Message: 'Invalid callback' });
+  assert.equal(order.payment_status, 'pending');
+  assert.equal(transactionBegins, 0);
+  assert.equal(paymentUpdateCount, 0);
 });
 
 test('VNPay IPN rejects an invalid signature before starting a transaction', async () => {
@@ -251,6 +299,24 @@ test('repeated successful VNPay IPN is idempotent and never touches stock or car
   assert.equal(cartClearCount, 0);
 });
 
+test('VNPay IPN cannot change a cancelled order payment state', async () => {
+  const { createApp } = require('../src/app');
+  order.order_status = 'cancelled';
+  order.payment_status = 'pending';
+
+  const response = await request(createApp())
+    .get('/api/payments/vnpay/ipn')
+    .query(callbackParams())
+    .expect(200);
+
+  assert.deepEqual(response.body, { RspCode: '02', Message: 'Order already confirmed' });
+  assert.equal(order.order_status, 'cancelled');
+  assert.equal(order.payment_status, 'pending');
+  assert.equal(paymentUpdateCount, 0);
+  assert.equal(stockUpdateCount, 0);
+  assert.equal(cartClearCount, 0);
+});
+
 test('signed VNPay return redirects to a non-authoritative frontend result', async () => {
   const { createApp } = require('../src/app');
 
@@ -265,6 +331,36 @@ test('signed VNPay return redirects to a non-authoritative frontend result', asy
   assert.equal(redirect.searchParams.get('status'), 'success');
   assert.equal(redirect.searchParams.get('orderId'), '42');
   assert.equal(redirect.searchParams.get('responseCode'), '00');
+  assert.equal(paymentUpdateCount, 0);
+});
+
+test('VNPay return reports failure when transaction status is not successful', async () => {
+  const { createApp } = require('../src/app');
+
+  const response = await request(createApp())
+    .get('/api/payments/vnpay/return')
+    .query(callbackParams({ vnp_TransactionStatus: '02' }))
+    .expect(302);
+
+  const redirect = new URL(response.headers.location);
+  assert.equal(redirect.searchParams.get('status'), 'failed');
+  assert.equal(paymentUpdateCount, 0);
+});
+
+test('VNPay return reports invalid when a signed callback misses transaction status', async () => {
+  const { createApp } = require('../src/app');
+  const params = callbackParams();
+  delete params.vnp_TransactionStatus;
+  params.vnp_SecureHash = signCallback(params);
+
+  const response = await request(createApp())
+    .get('/api/payments/vnpay/return')
+    .query(params)
+    .expect(302);
+
+  const redirect = new URL(response.headers.location);
+  assert.equal(redirect.searchParams.get('status'), 'invalid');
+  assert.equal(redirect.searchParams.has('orderId'), false);
   assert.equal(paymentUpdateCount, 0);
 });
 

@@ -363,7 +363,7 @@ function paymentResult(code, message) {
   return { code, message };
 }
 
-async function reconcileVnpayPayment({ orderId, amount, responseCode, transactionNo }) {
+async function reconcileVnpayPayment({ orderId, amount, responseCode, transactionStatus, transactionNo }) {
   const parsedOrderId = Number(orderId);
   if (!Number.isSafeInteger(parsedOrderId) || parsedOrderId <= 0) {
     return paymentResult('01', 'Order not found');
@@ -375,6 +375,7 @@ async function reconcileVnpayPayment({ orderId, amount, responseCode, transactio
         SELECT
           id,
           grand_total,
+          order_status,
           payment_status,
           vnpay_transaction_no,
           vnpay_amount
@@ -389,6 +390,10 @@ async function reconcileVnpayPayment({ orderId, amount, responseCode, transactio
 
     if (!order) {
       return paymentResult('01', 'Order not found');
+    }
+
+    if (order.order_status === 'cancelled') {
+      return paymentResult('02', 'Order already confirmed');
     }
 
     if (amountInMinorUnits(order.grand_total) !== amountInMinorUnits(amount)) {
@@ -411,9 +416,11 @@ async function reconcileVnpayPayment({ orderId, amount, responseCode, transactio
       return paymentResult('02', 'Order already confirmed');
     }
 
-    if (responseCode === '00' && !normalizedTransactionNo) {
+    if (!responseCode || !transactionStatus || !normalizedTransactionNo) {
       return paymentResult('99', 'Invalid transaction');
     }
+
+    const successful = responseCode === '00' && transactionStatus === '00';
 
     await client.query(
       `
@@ -427,7 +434,7 @@ async function reconcileVnpayPayment({ orderId, amount, responseCode, transactio
         WHERE id = $4
         RETURNING id
       `,
-      [responseCode === '00' ? 'paid' : 'failed', normalizedTransactionNo, Number(amount).toFixed(2), parsedOrderId]
+      [successful ? 'paid' : 'failed', normalizedTransactionNo, Number(amount).toFixed(2), parsedOrderId]
     );
 
     return paymentResult('00', 'Confirm Success');

@@ -596,7 +596,12 @@ async function updateOrderStatus(id, status) {
       `
         UPDATE orders
         SET order_status = $1,
-            payment_status = CASE WHEN $3::order_status = 'completed' THEN 'paid' ELSE payment_status END,
+            payment_status = CASE WHEN $3::order_status = 'completed' AND payment_method = 'cod' THEN 'paid'
+              WHEN $3::order_status = 'cancelled'
+                AND payment_method = 'vnpay'
+                AND payment_status = 'pending' THEN 'failed'
+              ELSE payment_status
+            END,
             updated_at = NOW()
         WHERE id = $2
         RETURNING *

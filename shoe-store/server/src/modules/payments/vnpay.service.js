@@ -96,13 +96,30 @@ function verifyPaymentParams(params = {}) {
   const payload = buildSignedPayload(params);
   const minorAmount = Number(params.vnp_Amount);
   const validAmount = Number.isSafeInteger(minorAmount) && minorAmount > 0;
-  const validSignature = Boolean(env.VNPAY_SECURE_SECRET)
+  const signatureValid = Boolean(env.VNPAY_SECURE_SECRET)
     && signaturesMatch(receivedSignature, sign(payload));
+  const responseCode = params.vnp_ResponseCode === undefined
+    ? null
+    : String(params.vnp_ResponseCode).trim() || null;
+  const transactionStatus = params.vnp_TransactionStatus === undefined
+    ? null
+    : String(params.vnp_TransactionStatus).trim() || null;
+  const transactionNo = params.vnp_TransactionNo === undefined
+    ? null
+    : String(params.vnp_TransactionNo).trim() || null;
+  const txnRef = params.vnp_TxnRef === undefined
+    ? null
+    : String(params.vnp_TxnRef).trim() || null;
+  const requiredFieldsPresent = Boolean(responseCode && transactionStatus && transactionNo && txnRef);
 
   return {
-    valid: validAmount && validSignature,
-    responseCode: params.vnp_ResponseCode === undefined ? null : String(params.vnp_ResponseCode),
-    transactionNo: params.vnp_TransactionNo === undefined ? null : String(params.vnp_TransactionNo),
+    valid: validAmount && signatureValid && requiredFieldsPresent,
+    signatureValid,
+    requiredFieldsPresent,
+    responseCode,
+    transactionStatus,
+    transactionNo,
+    txnRef,
     amount: validAmount ? minorAmount / 100 : null
   };
 }

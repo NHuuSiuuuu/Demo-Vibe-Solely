@@ -17,7 +17,7 @@ const {
   verifyPaymentParams
 } = require('../src/modules/payments/vnpay.service');
 
-const CALLBACK_SIGNATURE = '92b57a51e2df221c498a053d88f606d31883996204dd104c0282f2a61571f159894eb78db2eccaa61072e1a652b2f5b988e323aea4d55750b7a823371feeda5e';
+const CALLBACK_SIGNATURE = '1c44831fc42646c416122107b549ddb62f1c8500ab7137b2d672b5b45cf6a65f76b12de6b72ca5bc8102c1e91bb0c0575039509c99dbd7d22979680975549e34';
 
 function validCallbackParams() {
   return {
@@ -25,6 +25,7 @@ function validCallbackParams() {
     vnp_TransactionNo: '14587465',
     vnp_TmnCode: 'SOLELY01',
     vnp_ResponseCode: '00',
+    vnp_TransactionStatus: '00',
     vnp_OrderInfo: 'Thanh toan don hang SOLELY & Co',
     vnp_BankCode: 'NCB',
     vnp_Amount: '125050000',
@@ -96,8 +97,12 @@ test('verifies a signed callback and returns reconciliation fields without mutat
 
   assert.deepEqual(verifyPaymentParams(params), {
     valid: true,
+    signatureValid: true,
+    requiredFieldsPresent: true,
     responseCode: '00',
+    transactionStatus: '00',
     transactionNo: '14587465',
+    txnRef: 'ORD-20260907-ABC123',
     amount: 1250500
   });
   assert.deepEqual(params, originalParams);
@@ -111,8 +116,12 @@ test('rejects a callback with the wrong signature', () => {
 
   assert.deepEqual(verifyPaymentParams(params), {
     valid: false,
+    signatureValid: false,
+    requiredFieldsPresent: true,
     responseCode: '00',
+    transactionStatus: '00',
     transactionNo: '14587465',
+    txnRef: 'ORD-20260907-ABC123',
     amount: 1250500
   });
 });
@@ -125,9 +134,39 @@ test('rejects a callback whose amount was changed after signing', () => {
 
   assert.deepEqual(verifyPaymentParams(params), {
     valid: false,
+    signatureValid: false,
+    requiredFieldsPresent: true,
     responseCode: '00',
+    transactionStatus: '00',
     transactionNo: '14587465',
+    txnRef: 'ORD-20260907-ABC123',
     amount: 1250500.01
+  });
+});
+
+test('rejects signed callbacks missing a required transaction result field', () => {
+  const params = validCallbackParams();
+  delete params.vnp_TransactionStatus;
+  delete params.vnp_SecureHash;
+  const payload = new URLSearchParams(
+    Object.entries(params)
+      .filter(([key]) => key !== 'vnp_SecureHashType')
+      .sort(([left], [right]) => left.localeCompare(right))
+  ).toString();
+  params.vnp_SecureHash = crypto
+    .createHmac('sha512', 'test-secret-for-vnpay')
+    .update(payload, 'utf8')
+    .digest('hex');
+
+  assert.deepEqual(verifyPaymentParams(params), {
+    valid: false,
+    signatureValid: true,
+    requiredFieldsPresent: false,
+    responseCode: '00',
+    transactionStatus: null,
+    transactionNo: '14587465',
+    txnRef: 'ORD-20260907-ABC123',
+    amount: 1250500
   });
 });
 

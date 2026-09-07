@@ -45,6 +45,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm tạo đơn VNPay trạng thái chờ thanh toán, return redirect đã xác minh chữ ký và IPN đối soát dưới transaction lock theo cơ chế idempotent, không lặp thao tác trừ tồn kho hoặc xóa giỏ hàng.
 
 ### Đã thay đổi
+- Siết chặt đối soát VNPay theo đồng thời mã phản hồi và trạng thái giao dịch, từ chối callback thiếu trường bắt buộc, đồng thời bảo vệ vòng đời đơn để admin không đánh dấu thanh toán VNPay thành công hoặc để IPN cập nhật đơn đã hủy.
 - Thêm migration tương thích cho database cũ để tạo bảng danh mục và cột Cloudinary của ảnh sản phẩm mà không xóa dữ liệu.
 - Thêm quản lý danh mục trong admin, tự sinh slug sản phẩm từ tên và upload nhiều ảnh sản phẩm qua Cloudinary.
 - Thêm upload nhiều ảnh sản phẩm lên Cloudinary qua chữ ký backend, tự sinh slug từ tên sản phẩm và chọn danh mục bằng dropdown quản trị.
