@@ -77,13 +77,18 @@ async function embedText(text) {
 }
 
 function getImageEmbeddingConfig() {
-  const configuredDimension = Number(process.env.GEMINI_EMBEDDING_DIMENSION || DEFAULT_DIMENSIONS);
+  const configuredDimension = process.env.GEMINI_EMBEDDING_DIMENSION === undefined
+    || process.env.GEMINI_EMBEDDING_DIMENSION === ''
+    ? DEFAULT_DIMENSIONS
+    : Number(process.env.GEMINI_EMBEDDING_DIMENSION);
+
+  if (configuredDimension !== DEFAULT_DIMENSIONS) {
+    throw new Error('GEMINI_EMBEDDING_DIMENSION must be exactly 768');
+  }
 
   return {
     model: process.env.GEMINI_IMAGE_EMBEDDING_MODEL || DEFAULT_IMAGE_EMBEDDING_MODEL,
-    dimension: Number.isInteger(configuredDimension) && configuredDimension > 0
-      ? configuredDimension
-      : DEFAULT_DIMENSIONS
+    dimension: DEFAULT_DIMENSIONS
   };
 }
 

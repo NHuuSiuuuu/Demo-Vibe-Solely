@@ -123,6 +123,42 @@ test('Gemini image embedding rejects vectors with the wrong dimension', async ()
   );
 });
 
+test('Gemini image embedding rejects dimension 512 before calling Gemini', async () => {
+  process.env.GEMINI_API_KEY = 'test-image-api-key';
+  process.env.GEMINI_EMBEDDING_DIMENSION = '512';
+  let fetchCalls = 0;
+  global.fetch = async () => {
+    fetchCalls += 1;
+    throw new Error('fetch must not be called');
+  };
+
+  const { embedImage } = loadClient();
+
+  await assert.rejects(
+    () => embedImage({ data: Buffer.from('fake-png'), mimeType: 'image/png' }),
+    /GEMINI_EMBEDDING_DIMENSION must be exactly 768/
+  );
+  assert.equal(fetchCalls, 0);
+});
+
+test('Gemini image embedding rejects an invalid dimension before calling Gemini', async () => {
+  process.env.GEMINI_API_KEY = 'test-image-api-key';
+  process.env.GEMINI_EMBEDDING_DIMENSION = 'not-a-number';
+  let fetchCalls = 0;
+  global.fetch = async () => {
+    fetchCalls += 1;
+    throw new Error('fetch must not be called');
+  };
+
+  const { embedImage } = loadClient();
+
+  await assert.rejects(
+    () => embedImage({ data: Buffer.from('fake-png'), mimeType: 'image/png' }),
+    /GEMINI_EMBEDDING_DIMENSION must be exactly 768/
+  );
+  assert.equal(fetchCalls, 0);
+});
+
 test('Gemini image embedding hides provider error details and API key', async () => {
   const apiKey = 'test-image-api-key';
   process.env.GEMINI_API_KEY = apiKey;
