@@ -27,7 +27,7 @@ function createImageSearchState(file) {
 
   return {
     file,
-    previewUrl: URL.createObjectURL(file),
+    previewUrl: '',
     status: 'loading',
     error: ''
   };
@@ -81,6 +81,7 @@ export default function ProductListPage() {
   const [imageSearchRetry, setImageSearchRetry] = useState(0);
   const fileInputRef = useRef(null);
   const consumedRoutedImageRef = useRef(routedImageFile || null);
+  const previousQueryRef = useRef(searchParams.get('q') || '');
 
   useEffect(() => {
     if (!routedImageFile) {
@@ -94,6 +95,22 @@ export default function ProductListPage() {
 
     navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
   }, [location.pathname, location.search, navigate, routedImageFile]);
+
+  useEffect(() => {
+    const file = imageSearch.file;
+    if (!file) {
+      return undefined;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setImageSearch((current) => (
+      current.file === file ? { ...current, previewUrl } : current
+    ));
+
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [imageSearch.file]);
 
   useEffect(() => {
     if (imageSearch.file) {
@@ -175,15 +192,6 @@ export default function ProductListPage() {
     token
   ]);
 
-  useEffect(() => {
-    const previewUrl = imageSearch.previewUrl;
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [imageSearch.previewUrl]);
-
   function updateFilter(event) {
     setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
   }
@@ -224,13 +232,25 @@ export default function ProductListPage() {
   }, [filters.category, products]);
 
   useEffect(() => {
+    const query = searchParams.get('q') || '';
+    const queryChanged = previousQueryRef.current !== query;
+    previousQueryRef.current = query;
+
+    if (queryChanged && !routedImageFile) {
+      setProducts([]);
+      setImageSearch(initialImageSearch);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+
     setFilters((current) => ({
       ...current,
-      q: searchParams.get('q') || '',
+      q: query,
       category: searchParams.get('category') || '',
       sort: searchParams.get('sort') || initialFilters.sort
     }));
-  }, [searchParams]);
+  }, [routedImageFile, searchParams]);
 
   return (
     <section className="shop-page" aria-labelledby="products-title">
