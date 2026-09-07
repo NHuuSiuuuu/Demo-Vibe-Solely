@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { PGlite } = require('@electric-sql/pglite');
 const test = require('node:test');
 const Module = require('node:module');
 
@@ -24,7 +25,8 @@ const productRows = [
     availableColors: ['olive', 'gray'],
     totalStock: '12',
     variants: [
-      { sku: 'STG-42-OLV', size: '42', color: 'olive', stockQuantity: 12, discountPercent: '10.00', legacyPriceDelta: null }
+      { id: '121', sku: 'STG-42-OLV', size: '42', color: 'olive', stockQuantity: 6, discountPercent: '10.00', legacyPriceDelta: null },
+      { id: '122', sku: 'STG-43-GRY', size: '43', color: 'gray', stockQuantity: 6, discountPercent: '30.00', legacyPriceDelta: null }
     ]
   },
   {
@@ -77,16 +79,19 @@ let insertedChunks;
 let staleDeletes;
 let documentIndexedAt;
 let retrievalRows;
+let productIndexQuery;
 
 function resetStore() {
   insertedChunks = [];
   staleDeletes = [];
   documentIndexedAt = [];
   retrievalRows = defaultRetrievalRows;
+  productIndexQuery = '';
 }
 
 async function mockQuery(text, params = []) {
   if (text.includes('FROM products p') && text.includes('WHERE p.id = $1')) {
+    productIndexQuery = text;
     const row = productRows.find((product) => String(product.id) === String(params[0]));
     return { rows: row ? [{ ...row }] : [], rowCount: row ? 1 : 0 };
   }
@@ -218,6 +223,57 @@ test('reindexProduct stores product chunks with embeddings', async () => {
   assert.match(insertedChunks[0].params[4], /Giảm: 10%/);
 });
 
+test('product index query executes with aggregated variants on PostgreSQL', async (t) => {
+  const db = new PGlite();
+  t.after(() => db.close());
+  await db.exec(`
+    CREATE TABLE products (
+      id BIGINT PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      description TEXT NOT NULL,
+      brand TEXT NOT NULL,
+      category TEXT NOT NULL,
+      gender TEXT NOT NULL,
+      base_price NUMERIC(10, 2) NOT NULL,
+      status TEXT NOT NULL
+    );
+    CREATE TABLE product_images (
+      id BIGINT PRIMARY KEY,
+      product_id BIGINT NOT NULL,
+      image_url TEXT NOT NULL,
+      sort_order INTEGER NOT NULL
+    );
+    CREATE TABLE product_variants (
+      id BIGINT PRIMARY KEY,
+      product_id BIGINT NOT NULL,
+      sku TEXT NOT NULL,
+      size TEXT NOT NULL,
+      color TEXT NOT NULL,
+      stock_quantity INTEGER NOT NULL,
+      discount_percent NUMERIC(5, 2) NOT NULL
+    );
+    INSERT INTO products VALUES (12, 'Trail Guard', 'trail-guard', 'Giày trail', 'Solely', 'trail', 'men', 2490000, 'active');
+    INSERT INTO product_images VALUES (1, 12, '/trail.jpg', 0);
+    INSERT INTO product_variants VALUES (121, 12, 'STG-42', '42', 'olive', 6, 10);
+  `);
+  process.env.GEMINI_API_KEY = 'test-key';
+  global.fetch = async () => ({
+    ok: true,
+    async json() {
+      return { embedding: { values: Array.from({ length: 768 }, () => 0.1) } };
+    }
+  });
+  const { reindexProduct } = require('../src/modules/rag/ragIndex.service');
+  await reindexProduct(12);
+
+  const result = await db.query(productIndexQuery, [12]);
+
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].variants.length, 1);
+  assert.equal(Number(result.rows[0].variants[0].discountPercent), 10);
+});
+
 test('reindexProduct leaves a product reindex marker when Gemini embedding fails after stale chunks are deleted', async () => {
   process.env.GEMINI_API_KEY = 'test-key';
   global.fetch = async () => ({
@@ -319,6 +375,38 @@ test('retrieveContext returns the backend-calculated discounted price in product
   assert.equal(result.products[0].price, 2241000);
   assert.equal(result.products[0].discountPercent, 10);
   assert.equal(Object.hasOwn(result.products[0], 'priceDelta'), false);
+});
+
+test('retrieveContext prices and filters with the same size-matched variant', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  retrievalRows = [
+    {
+      id: '201',
+      source_type: 'product',
+      source_id: '12',
+      title: 'Solely Trail Guard',
+      content: 'Giày trail có nhiều size và mức giảm.',
+      metadata: { productId: 12, slug: 'trail-guard-pro', category: 'trail', gender: 'men' },
+      score: '0.94'
+    }
+  ];
+  global.fetch = async () => ({
+    ok: true,
+    async json() {
+      return { embedding: { values: Array.from({ length: 768 }, () => 0.1) } };
+    }
+  });
+
+  const { retrieveContext } = require('../src/modules/rag/ragRetrieval.service');
+  const result = await retrieveContext({
+    message: 'Tìm giày size 43 dưới 1,8 triệu',
+    filters: { size: '43', maxPrice: 1800000 },
+    limit: 6
+  });
+
+  assert.equal(result.products.length, 1);
+  assert.equal(result.products[0].price, 1743000);
+  assert.equal(result.products[0].discountPercent, 30);
 });
 
 test('reindexDocument stores document chunks with embeddings', async () => {

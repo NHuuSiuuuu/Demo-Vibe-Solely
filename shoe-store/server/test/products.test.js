@@ -13,7 +13,10 @@ const productCards = [
     brand: 'Stride',
     category: 'running',
     gender: 'men',
-    price: '89.99',
+    basePrice: '89.99',
+    discountPercent: '10.00',
+    legacyPriceDelta: null,
+    expectedPrice: 80.99,
     imageUrl: '/images/road-runner-1-main.jpg',
     availableSizes: ['9', '10'],
     availableColors: ['black', 'white'],
@@ -28,7 +31,10 @@ const productCards = [
     brand: 'Ace',
     category: 'lifestyle',
     gender: 'women',
-    price: '74.50',
+    basePrice: '74.50',
+    discountPercent: '20.00',
+    legacyPriceDelta: null,
+    expectedPrice: 59.6,
     imageUrl: '/images/court-classic-main.jpg',
     availableSizes: ['7', '8'],
     availableColors: ['white', 'red'],
@@ -65,7 +71,8 @@ function normalizeCard(row) {
     brand: row.brand,
     category: row.category,
     gender: row.gender,
-    price: Number(row.price),
+    price: row.expectedPrice,
+    discountPercent: Number(row.discountPercent),
     imageUrl: row.imageUrl,
     availableSizes: row.availableSizes,
     availableColors: row.availableColors,
@@ -83,6 +90,8 @@ async function mockQuery(text, params = []) {
   }
 
   if (text.includes('FROM products p') && text.includes("p.status = 'active'")) {
+    assert.match(text, /default_variant\.discount_percent/);
+    assert.match(text, /"basePrice"/);
     if (params.includes('%runner%')) {
       assert.match(text, /ILIKE/);
       return { rows: [productCards[0]], rowCount: 1 };
@@ -95,7 +104,7 @@ async function mockQuery(text, params = []) {
       return { rows: [productCards[0]], rowCount: 1 };
     }
 
-    if (text.includes('ORDER BY price ASC')) {
+    if (text.includes('ORDER BY p.base_price ASC')) {
       return { rows: [productCards[1], productCards[0]], rowCount: 2 };
     }
 

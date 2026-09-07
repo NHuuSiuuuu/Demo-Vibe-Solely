@@ -104,6 +104,9 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Từ chối payload quản trị biến thể còn gửi `priceDelta` bằng HTTP 400, tránh âm thầm lưu mức giảm giá `0%` thay cho dữ liệu legacy.
 - Đồng bộ form biến thể admin sang `% giảm giá`, trang chi tiết dùng `unitPrice` từ backend và hiển thị quan hệ giữa giá gốc với giá sau giảm.
 - Cập nhật index/retrieval RAG dùng helper giá chung, đưa phần trăm giảm và giá sau giảm chính xác vào ngữ cảnh cùng card sản phẩm gợi ý.
+- Sửa query index sản phẩm RAG để không `GROUP BY` dữ liệu JSON, bảo đảm chạy được trên PostgreSQL thật.
+- Đồng bộ retrieval RAG để chọn cùng một biến thể thỏa size và khoảng giá, tránh hiển thị giá của biến thể khác với điều kiện tìm kiếm.
+- Cập nhật catalog sản phẩm trả `price` sau giảm và `discountPercent` của biến thể mặc định còn hàng bằng helper giá backend.
 
 ### Đã kiểm chứng
 
@@ -145,6 +148,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test backend cho reindex tài liệu chính sách sau create/update, fallback `needs_reindex`, overview RAG vận hành và parser số lượng `2 sản phẩm`.
 - Bổ sung test frontend bắt buộc admin RAG hiển thị trạng thái index sản phẩm và gọi API reindex một sản phẩm.
 - Bổ sung test frontend và RAG bảo vệ payload `discountPercent`, ràng buộc nhập `0..100`, giá chi tiết sau giảm và card RAG không lộ `priceDelta`.
+- Bổ sung regression test chạy query index trên PostgreSQL-compatible PGlite, retrieval nhiều biến thể theo size/giá và catalog trả giá mặc định sau giảm.
 
 ## 2026-09-05
 

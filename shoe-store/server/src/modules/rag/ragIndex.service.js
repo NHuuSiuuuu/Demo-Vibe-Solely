@@ -100,7 +100,6 @@ async function loadProduct(productId) {
       ) variant_summary ON true
       WHERE p.id = $1
         AND p.status = 'active'
-      GROUP BY p.id, primary_image.image_url, variant_summary.available_sizes, variant_summary.available_colors, variant_summary.total_stock, variant_summary.variants
     `,
     [productId]
   );

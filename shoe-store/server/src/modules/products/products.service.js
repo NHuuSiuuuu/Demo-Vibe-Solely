@@ -3,8 +3,8 @@ const { HttpError } = require('../../utils/httpError');
 const { calculateVariantPrice } = require('./pricing');
 
 const SORTS = {
-  price_asc: 'price ASC',
-  price_desc: 'price DESC',
+  price_asc: 'p.base_price ASC',
+  price_desc: 'p.base_price DESC',
   newest: 'p.created_at DESC',
   name_asc: 'p.name ASC'
 };
@@ -47,6 +47,7 @@ function normalizePriceFilter(filters, field) {
 }
 
 function mapProductCard(row) {
+  const discountPercent = toNumber(row.discountPercent);
   return {
     id: Number(row.id),
     name: row.name,
@@ -54,7 +55,8 @@ function mapProductCard(row) {
     brand: row.brand,
     category: row.category,
     gender: row.gender,
-    price: toNumber(row.price),
+    price: calculateVariantPrice(row.basePrice, discountPercent, row.legacyPriceDelta),
+    discountPercent,
     imageUrl: row.imageUrl,
     availableSizes: row.availableSizes || [],
     availableColors: row.availableColors || [],
@@ -162,12 +164,14 @@ function buildProductListQuery(filters) {
         p.brand,
         p.category,
         p.gender,
-        p.base_price AS "price",
+        p.base_price AS "basePrice",
         primary_image.image_url AS "imageUrl",
         COALESCE(variant_summary.available_sizes, ARRAY[]::TEXT[]) AS "availableSizes",
         COALESCE(variant_summary.available_colors, ARRAY[]::TEXT[]) AS "availableColors",
         COALESCE(variant_summary.total_stock, 0) AS "totalStock",
         default_variant.id AS "defaultVariantId",
+        COALESCE(default_variant.discount_percent, 0) AS "discountPercent",
+        default_variant.legacy_price_delta AS "legacyPriceDelta",
         COALESCE(default_variant.stock_quantity, 0) AS "defaultVariantStock"
       FROM products p
       LEFT JOIN LATERAL (
@@ -186,7 +190,11 @@ function buildProductListQuery(filters) {
         WHERE pv.product_id = p.id
       ) variant_summary ON true
       LEFT JOIN LATERAL (
-        SELECT pv.id, pv.stock_quantity
+        SELECT
+          pv.id,
+          pv.stock_quantity,
+          pv.discount_percent,
+          to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
         FROM product_variants pv
         WHERE pv.product_id = p.id
           AND pv.stock_quantity > 0

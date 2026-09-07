@@ -46,7 +46,11 @@ const productRows = [
     imageUrl: '/images/solely-trail-guard.jpg',
     availableSizes: ['42', '43'],
     availableColors: ['olive'],
-    totalStock: '5'
+    totalStock: '5',
+    variants: [
+      { id: '121', size: '42', discountPercent: '10.00', legacyPriceDelta: null },
+      { id: '122', size: '43', discountPercent: '30.00', legacyPriceDelta: null }
+    ]
   }
 ];
 
@@ -65,7 +69,10 @@ const additionalProductRows = [
     imageUrl: '/images/solely-city-walk.jpg',
     availableSizes: ['40', '41'],
     availableColors: ['black'],
-    totalStock: '4'
+    totalStock: '4',
+    variants: [
+      { id: '131', size: '40', discountPercent: '0.00', legacyPriceDelta: null }
+    ]
   },
   {
     id: '14',
@@ -81,7 +88,10 @@ const additionalProductRows = [
     imageUrl: '/images/solely-daily-court.jpg',
     availableSizes: ['41', '42'],
     availableColors: ['white'],
-    totalStock: '7'
+    totalStock: '7',
+    variants: [
+      { id: '141', size: '41', discountPercent: '20.00', legacyPriceDelta: null }
+    ]
   }
 ];
 

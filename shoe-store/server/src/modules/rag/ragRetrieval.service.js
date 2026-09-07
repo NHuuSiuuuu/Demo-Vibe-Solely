@@ -34,8 +34,32 @@ function mapChunk(row) {
   };
 }
 
-function mapProductCard(row) {
-  const discountPercent = toNumber(row.discountPercent);
+function hasFilterValue(filters, field) {
+  return filters[field] !== null && filters[field] !== undefined && String(filters[field]).trim() !== '';
+}
+
+function matchesVariantFilter(variant, filters = {}) {
+  if (hasFilterValue(filters, 'maxPrice') && variant.unitPrice > Number(filters.maxPrice)) return false;
+  if (hasFilterValue(filters, 'minPrice') && variant.unitPrice < Number(filters.minPrice)) return false;
+  if (hasFilterValue(filters, 'size') && String(variant.size) !== String(filters.size)) return false;
+  return true;
+}
+
+function mapProductCard(row, filters = {}) {
+  const basePrice = toNumber(row.basePrice);
+  const selectedVariant = (row.variants || [])
+    .map((variant) => {
+      const discountPercent = toNumber(variant.discountPercent);
+      return {
+        ...variant,
+        discountPercent,
+        unitPrice: calculateVariantPrice(basePrice, discountPercent, variant.legacyPriceDelta)
+      };
+    })
+    .find((variant) => matchesVariantFilter(variant, filters));
+
+  if (!selectedVariant) return null;
+
   return {
     id: Number(row.id),
     name: row.name,
@@ -43,8 +67,8 @@ function mapProductCard(row) {
     brand: row.brand,
     category: row.category,
     gender: row.gender,
-    price: calculateVariantPrice(row.basePrice, discountPercent, row.legacyPriceDelta),
-    discountPercent,
+    price: selectedVariant.unitPrice,
+    discountPercent: selectedVariant.discountPercent,
     imageUrl: row.imageUrl,
     availableSizes: row.availableSizes || [],
     availableColors: row.availableColors || [],
@@ -52,7 +76,7 @@ function mapProductCard(row) {
   };
 }
 
-async function loadProductsByIds(productIds) {
+async function loadProductsByIds(productIds, filters) {
   if (productIds.length === 0) return [];
 
   const result = await query(
@@ -65,12 +89,11 @@ async function loadProductsByIds(productIds) {
         p.category,
         p.gender,
         p.base_price AS "basePrice",
-        COALESCE(default_variant.discount_percent, 0) AS "discountPercent",
-        default_variant.legacy_price_delta AS "legacyPriceDelta",
         primary_image.image_url AS "imageUrl",
         COALESCE(variant_summary.available_sizes, ARRAY[]::TEXT[]) AS "availableSizes",
         COALESCE(variant_summary.available_colors, ARRAY[]::TEXT[]) AS "availableColors",
-        COALESCE(variant_summary.total_stock, 0) AS "totalStock"
+        COALESCE(variant_summary.total_stock, 0) AS "totalStock",
+        COALESCE(variant_summary.variants, '[]'::JSONB) AS variants
       FROM products p
       LEFT JOIN LATERAL (
         SELECT pi.image_url
@@ -81,37 +104,31 @@ async function loadProductsByIds(productIds) {
       ) primary_image ON true
       LEFT JOIN LATERAL (
         SELECT
-          pv.discount_percent,
-          to_jsonb(pv) ->> 'legacy_price_delta' AS legacy_price_delta
-        FROM product_variants pv
-        WHERE pv.product_id = p.id
-          AND pv.stock_quantity > 0
-        ORDER BY pv.id ASC
-        LIMIT 1
-      ) default_variant ON true
-      LEFT JOIN LATERAL (
-        SELECT
           ARRAY_AGG(DISTINCT pv.size ORDER BY pv.size) FILTER (WHERE pv.stock_quantity > 0) AS available_sizes,
           ARRAY_AGG(DISTINCT pv.color ORDER BY pv.color) FILTER (WHERE pv.stock_quantity > 0) AS available_colors,
-          SUM(pv.stock_quantity) FILTER (WHERE pv.stock_quantity > 0) AS total_stock
+          SUM(pv.stock_quantity) FILTER (WHERE pv.stock_quantity > 0) AS total_stock,
+          JSONB_AGG(
+            JSONB_BUILD_OBJECT(
+              'id', pv.id,
+              'size', pv.size,
+              'discountPercent', pv.discount_percent,
+              'legacyPriceDelta', to_jsonb(pv) ->> 'legacy_price_delta'
+            ) ORDER BY pv.id
+          ) FILTER (WHERE pv.stock_quantity > 0) AS variants
         FROM product_variants pv
         WHERE pv.product_id = p.id
       ) variant_summary ON true
       WHERE p.status = 'active'
         AND p.id = ANY($1::bigint[])
-      GROUP BY p.id, primary_image.image_url, default_variant.discount_percent, default_variant.legacy_price_delta, variant_summary.available_sizes, variant_summary.available_colors, variant_summary.total_stock
     `,
     [productIds]
   );
 
-  const byId = new Map(result.rows.map((row) => [Number(row.id), mapProductCard(row)]));
+  const byId = new Map(result.rows.map((row) => [Number(row.id), mapProductCard(row, filters)]));
   return productIds.map((id) => byId.get(Number(id))).filter(Boolean);
 }
 
 function matchesFilter(product, filters = {}) {
-  if (filters.maxPrice && product.price > Number(filters.maxPrice)) return false;
-  if (filters.minPrice && product.price < Number(filters.minPrice)) return false;
-  if (filters.size && !product.availableSizes.map(String).includes(String(filters.size))) return false;
   if (filters.gender && ![String(filters.gender).toLowerCase(), 'unisex'].includes(String(product.gender).toLowerCase())) return false;
   if (filters.category && String(product.category).toLowerCase() !== String(filters.category).toLowerCase()) return false;
   if (Array.isArray(filters.keywords) && filters.keywords.length > 0) {
@@ -166,7 +183,7 @@ async function retrieveContext({ message, filters = {}, limit = 6 }) {
   const productIds = [
     ...new Set(chunks.filter((chunk) => chunk.sourceType === 'product').map((chunk) => chunk.metadata.productId || chunk.sourceId))
   ];
-  const products = (await loadProductsByIds(productIds)).filter((product) => matchesFilter(product, filters));
+  const products = (await loadProductsByIds(productIds, filters)).filter((product) => matchesFilter(product, filters));
   const allowedProductIds = new Set(products.map((product) => product.id));
   const filteredChunks = chunks.filter(
     (chunk) => chunk.sourceType !== 'product' || allowedProductIds.has(Number(chunk.metadata.productId || chunk.sourceId))
