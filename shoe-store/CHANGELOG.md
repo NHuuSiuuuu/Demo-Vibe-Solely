@@ -43,6 +43,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm helper backend dùng chung để chuẩn hóa phần trăm giảm giá và tính giá biến thể chính xác đến hai chữ số thập phân, kèm fallback tạm thời cho dữ liệu giá cũ đã migrate.
 - Thêm service backend tạo URL thanh toán VNPay Sandbox bằng chữ ký HMAC-SHA512, xác minh callback và dựng response IPN mà không cập nhật database.
 - Thêm tạo đơn VNPay trạng thái chờ thanh toán, return redirect đã xác minh chữ ký và IPN đối soát dưới transaction lock theo cơ chế idempotent, không lặp thao tác trừ tồn kho hoặc xóa giỏ hàng.
+- Thêm lựa chọn thanh toán COD/VNPay tại checkout, trang kết quả xác minh trạng thái từ đơn hàng và nhãn phương thức/trạng thái thanh toán trên lịch sử đơn hàng.
 
 ### Đã thay đổi
 - Từ chối hủy đơn VNPay đã thanh toán bằng HTTP 409 trước khi hoàn tồn kho vì luồng hoàn tiền chưa nằm trong phạm vi hiện tại.

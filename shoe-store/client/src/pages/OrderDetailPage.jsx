@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
-import { colorLabel, orderStatusLabel, paymentStatusLabel } from '../utils/formatters.js';
+import { colorLabel, orderStatusLabel, paymentMethodLabel, paymentStatusLabel } from '../utils/formatters.js';
 import { formatOrderCode } from './OrdersPage.jsx';
 
 const timelineSteps = ['pending', 'confirmed', 'shipping', 'completed'];
@@ -59,6 +59,7 @@ export default function OrderDetailPage() {
       <div className="section-heading">
         <div>
           <h1 id="order-title">Đơn hàng {formatOrderCode(order)}</h1>
+          <p>Phương thức: {paymentMethodLabel(order.paymentMethod)}</p>
           <p>Thanh toán: {paymentStatusLabel(order.paymentStatus)}</p>
           {order.note ? <p>Ghi chú: {order.note}</p> : null}
         </div>

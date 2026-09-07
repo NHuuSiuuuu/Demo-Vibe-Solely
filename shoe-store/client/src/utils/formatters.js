@@ -8,7 +8,14 @@ const ORDER_STATUS_LABELS = {
 
 const PAYMENT_STATUS_LABELS = {
   unpaid: 'Chưa thanh toán',
-  paid: 'Đã thanh toán'
+  pending: 'Đang chờ thanh toán',
+  paid: 'Đã thanh toán',
+  failed: 'Thanh toán thất bại'
+};
+
+const PAYMENT_METHOD_LABELS = {
+  cod: 'COD',
+  vnpay: 'VNPay'
 };
 
 const PRODUCT_STATUS_LABELS = {
@@ -70,6 +77,10 @@ function paymentStatusLabel(value) {
   return labelFromMap(PAYMENT_STATUS_LABELS, value);
 }
 
+function paymentMethodLabel(value) {
+  return labelFromMap(PAYMENT_METHOD_LABELS, value);
+}
+
 function productStatusLabel(value) {
   return labelFromMap(PRODUCT_STATUS_LABELS, value);
 }
@@ -91,6 +102,7 @@ export {
   COLOR_LABELS,
   GENDER_LABELS,
   ORDER_STATUS_LABELS,
+  PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   PRODUCT_STATUS_LABELS,
   categoryLabel,
@@ -98,6 +110,7 @@ export {
   formatMoney,
   genderLabel,
   orderStatusLabel,
+  paymentMethodLabel,
   paymentStatusLabel,
   productStatusLabel
 };

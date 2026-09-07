@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
-import { orderStatusLabel, paymentStatusLabel } from '../utils/formatters.js';
+import { orderStatusLabel, paymentMethodLabel, paymentStatusLabel } from '../utils/formatters.js';
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString('vi-VN') : '';
@@ -58,6 +58,7 @@ export default function OrdersPage() {
             <span>{formatOrderCode(order)}</span>
             <span>{formatDate(order.createdAt)}</span>
             <strong>{formatMoney(order.grandTotal)}</strong>
+            <StatusBadge>{paymentMethodLabel(order.paymentMethod)}</StatusBadge>
             <StatusBadge tone="info">{orderStatusLabel(order.orderStatus)}</StatusBadge>
             <StatusBadge>{paymentStatusLabel(order.paymentStatus)}</StatusBadge>
           </Link>

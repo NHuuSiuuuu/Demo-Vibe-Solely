@@ -17,6 +17,7 @@ import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import OrderDetailPage from './pages/OrderDetailPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
+import PaymentResultPage from './pages/PaymentResultPage.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import ProductListPage from './pages/ProductListPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
@@ -57,6 +58,10 @@ function createAppRouter() {
             {
               path: 'orders/:id',
               element: <OrderDetailPage />
+            },
+            {
+              path: 'payment-result',
+              element: <PaymentResultPage />
             },
             {
               path: 'login',

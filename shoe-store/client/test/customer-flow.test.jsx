@@ -192,6 +192,16 @@ function renderCustomerHome() {
   return renderAsCustomer('/');
 }
 
+function fillCheckoutForm() {
+  fireEvent.change(screen.getByLabelText('Người nhận'), { target: { value: 'Jordan Miles' } });
+  fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '5551234567' } });
+  fireEvent.change(screen.getByLabelText('Địa chỉ giao hàng'), { target: { value: '1 Main St' } });
+  fireEvent.change(screen.getByLabelText('Tỉnh / thành phố'), { target: { value: 'Austin' } });
+  fireEvent.change(screen.getByLabelText('Quận / huyện'), { target: { value: 'TX' } });
+  fireEvent.change(screen.getByLabelText('Mã bưu chính'), { target: { value: '78701' } });
+  fireEvent.change(screen.getByLabelText('Ghi chú'), { target: { value: 'Leave at door' } });
+}
+
 async function askAssistant(question) {
   fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý mua sắm' }));
   const advisorInput = await screen.findByLabelText('Nhập câu hỏi tư vấn sản phẩm');
@@ -316,13 +326,10 @@ describe('customer shopping flow', () => {
     const fetchMock = renderAsCustomer('/checkout');
     await screen.findByText('Road Runner 1');
 
-    fireEvent.change(screen.getByLabelText('Người nhận'), { target: { value: 'Jordan Miles' } });
-    fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '5551234567' } });
-    fireEvent.change(screen.getByLabelText('Địa chỉ giao hàng'), { target: { value: '1 Main St' } });
-    fireEvent.change(screen.getByLabelText('Tỉnh / thành phố'), { target: { value: 'Austin' } });
-    fireEvent.change(screen.getByLabelText('Quận / huyện'), { target: { value: 'TX' } });
-    fireEvent.change(screen.getByLabelText('Mã bưu chính'), { target: { value: '78701' } });
-    fireEvent.change(screen.getByLabelText('Ghi chú'), { target: { value: 'Leave at door' } });
+    expect(screen.getByRole('radio', { name: /Thanh toán khi nhận hàng/i }).checked).toBe(true);
+    expect(screen.getByRole('radio', { name: /VNPay/i }).checked).toBe(false);
+    expect(screen.getByRole('heading', { name: 'Tóm tắt đơn COD' })).toBeTruthy();
+    fillCheckoutForm();
     fireEvent.click(screen.getByRole('button', { name: 'Đặt hàng COD' }));
 
     expect(await screen.findByRole('heading', { name: 'Đơn hàng ORD-20260905-ABC123' })).toBeTruthy();
@@ -341,13 +348,124 @@ describe('customer shopping flow', () => {
             postalCode: '78701',
             country: 'Việt Nam'
           },
-          note: 'Leave at door'
+          note: 'Leave at door',
+          paymentMethod: 'cod'
         })
       })
     );
   });
 
+  it('submits VNPay checkout and follows only the backend payment URL', async () => {
+    const paymentUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=900&vnp_SecureHash=signed';
+    mockApi('/api/orders', {
+      order: { ...order, paymentMethod: 'vnpay', paymentStatus: 'pending' },
+      paymentUrl
+    });
+    let redirectedUrl = '';
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function capturePaymentRedirect() {
+      redirectedUrl = this.href;
+    });
+    const fetchMock = renderAsCustomer('/checkout');
+    await screen.findByText('Road Runner 1');
+
+    fireEvent.click(screen.getByRole('radio', { name: /VNPay/i }));
+
+    const paymentSummary = screen.getByRole('heading', { name: 'Tóm tắt thanh toán VNPay' }).closest('.order-summary');
+    expect(within(paymentSummary).getByText('Thanh toán trực tuyến qua VNPay')).toBeTruthy();
+    fillCheckoutForm();
+    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán qua VNPay' }));
+
+    await waitFor(() => expect(redirectedUrl).toBe(paymentUrl));
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/orders'),
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"paymentMethod":"vnpay"')
+      })
+    );
+  });
+
+  it('does not redirect a VNPay checkout when the backend omits the payment URL', async () => {
+    mockApi('/api/orders', {
+      order: { ...order, paymentMethod: 'vnpay', paymentStatus: 'pending' }
+    });
+    const redirectSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    renderAsCustomer('/checkout');
+    await screen.findByText('Road Runner 1');
+    fireEvent.click(screen.getByRole('radio', { name: /VNPay/i }));
+    fillCheckoutForm();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán qua VNPay' }));
+
+    expect(await screen.findByText('Không nhận được đường dẫn thanh toán VNPay. Vui lòng thử lại.')).toBeTruthy();
+    expect(redirectSpy).not.toHaveBeenCalled();
+    expect(screen.queryByRole('heading', { name: 'Đơn hàng ORD-20260905-ABC123' })).toBeNull();
+  });
+
+  it('keeps checkout submit disabled while the order request is pending', async () => {
+    const fetchMock = renderAsCustomer('/checkout');
+    await screen.findByText('Road Runner 1');
+    const originalFetch = fetchMock.getMockImplementation();
+    let resolveOrderRequest;
+    const orderRequest = new Promise((resolve) => {
+      resolveOrderRequest = () => resolve(jsonResponse({ order }));
+    });
+    fetchMock.mockImplementation((url, options = {}) => {
+      const parsed = new URL(String(url));
+      if (parsed.pathname === '/api/orders' && options.method === 'POST') {
+        return orderRequest;
+      }
+      return originalFetch(url, options);
+    });
+    fillCheckoutForm();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt hàng COD' }));
+
+    expect(screen.getByRole('button', { name: 'Đang đặt hàng...' }).disabled).toBe(true);
+    await act(async () => {
+      resolveOrderRequest();
+      await orderRequest;
+    });
+  });
+
+  it('shows pending payment when the URL claims success but the order is still pending', async () => {
+    mockApi('/api/orders/900', {
+      order: { ...order, paymentMethod: 'vnpay', paymentStatus: 'pending' }
+    });
+
+    renderAsCustomer('/payment-result?status=success&orderId=900');
+
+    expect(await screen.findByRole('heading', { name: 'Đang xác minh thanh toán' })).toBeTruthy();
+    expect(screen.getByText('Đang chờ thanh toán')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Thanh toán thành công' })).toBeNull();
+  });
+
+  it('shows successful payment from the authoritative order instead of the URL status', async () => {
+    mockApi('/api/orders/900', {
+      order: { ...order, paymentMethod: 'vnpay', paymentStatus: 'paid' }
+    });
+
+    renderAsCustomer('/payment-result?status=failed&orderId=900');
+
+    expect(await screen.findByRole('heading', { name: 'Thanh toán thành công' })).toBeTruthy();
+    expect(screen.getByText('Đã thanh toán')).toBeTruthy();
+  });
+
+  it('shows failed payment from the authoritative order instead of the URL status', async () => {
+    mockApi('/api/orders/900', {
+      order: { ...order, paymentMethod: 'vnpay', paymentStatus: 'failed' }
+    });
+
+    renderAsCustomer('/payment-result?status=success&orderId=900');
+
+    expect(await screen.findByRole('heading', { name: 'Thanh toán không thành công' })).toBeTruthy();
+    expect(screen.getByText('Thanh toán thất bại')).toBeTruthy();
+  });
+
   it('renders order status tracking', async () => {
+    mockApi('/api/orders/900', {
+      order: { ...order, paymentMethod: 'vnpay', paymentStatus: 'pending' }
+    });
     renderAsCustomer('/orders/900');
 
     expect(await screen.findByRole('heading', { name: 'Đơn hàng ORD-20260905-ABC123' })).toBeTruthy();
@@ -357,8 +475,21 @@ describe('customer shopping flow', () => {
     expect(within(timeline).getByText('Đang giao')).toBeTruthy();
     expect(within(timeline).getByText('Hoàn thành')).toBeTruthy();
     expect(within(timeline).getByText('Hiện tại')).toBeTruthy();
-    expect(screen.getByText('Thanh toán: Chưa thanh toán')).toBeTruthy();
+    expect(screen.getByText('Phương thức: VNPay')).toBeTruthy();
+    expect(screen.getByText('Thanh toán: Đang chờ thanh toán')).toBeTruthy();
     expect(screen.getByText('Ghi chú: Leave at door')).toBeTruthy();
+  });
+
+  it('shows VNPay method and failed payment status in the order list', async () => {
+    mockApi('/api/orders', {
+      orders: [{ ...order, paymentMethod: 'vnpay', paymentStatus: 'failed' }]
+    });
+
+    renderAsCustomer('/orders');
+
+    const orderLink = await screen.findByRole('link', { name: /ORD-20260905-ABC123/i });
+    expect(within(orderLink).getByText('VNPay')).toBeTruthy();
+    expect(within(orderLink).getByText('Thanh toán thất bại')).toBeTruthy();
   });
 
   it('shows AI product recommendations', async () => {
