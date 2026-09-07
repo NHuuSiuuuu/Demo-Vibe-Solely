@@ -3224,6 +3224,184 @@ button:hover:not(:disabled),
   text-transform: uppercase;
 }
 
+.product-gallery__track {
+  display: flex;
+  gap: 0.55rem;
+  height: 31rem;
+  overflow: hidden;
+}
+
+.product-gallery__item {
+  background: #ebe8e3;
+  border: 0;
+  color: #ffffff;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  transition: flex 500ms ease, transform 180ms ease;
+}
+
+.product-gallery__item:hover,
+.product-gallery__item:focus-visible {
+  outline: 3px solid var(--solely-accent);
+  outline-offset: -3px;
+  transform: translateY(-0.2rem);
+}
+
+.product-gallery__item img,
+.product-gallery__item > span:first-child {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+}
+
+.product-gallery__item > span:first-child {
+  align-items: center;
+  background: var(--solely-surface-muted, #f1f5f9);
+  color: var(--solely-muted);
+  display: flex;
+  justify-content: center;
+}
+
+.product-gallery__shade {
+  background: linear-gradient(180deg, rgb(15 23 42 / 5%), rgb(15 23 42 / 78%));
+  inset: 0;
+  position: absolute;
+}
+
+.product-gallery__caption {
+  bottom: 1.15rem;
+  display: grid;
+  gap: 0.25rem;
+  left: 1rem;
+  position: absolute;
+  right: 1rem;
+  text-align: left;
+}
+
+.product-gallery__caption small {
+  color: #f7eee7;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.product-gallery__caption strong {
+  font-size: clamp(0.9rem, 1.5vw, 1.3rem);
+  text-transform: uppercase;
+}
+
+.product-gallery__modal {
+  align-items: center;
+  background: rgb(10 12 16 / 92%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 2rem;
+  position: fixed;
+  z-index: 100;
+}
+
+.product-gallery__modal-content {
+  max-height: 90vh;
+  max-width: min(70rem, 88vw);
+  position: relative;
+}
+
+.product-gallery__modal-content img,
+.product-gallery__modal-content > span {
+  display: block;
+  max-height: 76vh;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.product-gallery__modal-content > span {
+  align-items: center;
+  background: #f1f5f9;
+  color: #475569;
+  display: flex;
+  height: 24rem;
+  justify-content: center;
+  width: 36rem;
+}
+
+.product-gallery__modal-info {
+  align-items: center;
+  background: rgb(10 12 16 / 80%);
+  bottom: 0;
+  color: #ffffff;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  left: 0;
+  padding: 0.75rem 1rem;
+  position: absolute;
+  right: 0;
+}
+
+.product-gallery__modal-info p {
+  margin: 0;
+}
+
+.product-gallery__modal-info a {
+  color: #ffffff;
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+.product-gallery__modal-info small {
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+
+.product-gallery__close,
+.product-gallery__nav {
+  background: transparent;
+  border: 0;
+  color: #ffffff;
+  cursor: pointer;
+  position: absolute;
+  z-index: 1;
+}
+
+.product-gallery__close {
+  right: 1rem;
+  top: 1rem;
+}
+
+.product-gallery__nav {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.product-gallery__nav--previous {
+  left: 1rem;
+}
+
+.product-gallery__nav--next {
+  right: 1rem;
+}
+
+.product-gallery__close:hover,
+.product-gallery__close:focus-visible,
+.product-gallery__nav:hover,
+.product-gallery__nav:focus-visible {
+  color: #cbd5e1;
+  outline: 2px solid #ffffff;
+  outline-offset: 0.25rem;
+}
+
+.product-gallery__empty {
+  color: var(--solely-muted);
+  margin: 0;
+  text-align: center;
+}
+
 .trust-badges {
   border-bottom: 1px solid var(--solely-border);
   border-top: 1px solid var(--solely-border);
@@ -3735,6 +3913,10 @@ button:hover:not(:disabled),
 }
 
 @media (max-width: 1024px) {
+  .product-gallery__track {
+    height: 24rem;
+  }
+
   .bento-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -3756,6 +3938,37 @@ button:hover:not(:disabled),
 }
 
 @media (max-width: 780px) {
+  .product-gallery__track {
+    gap: 0.45rem;
+    height: 24rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+  }
+
+  .product-gallery__item {
+    flex: 0 0 78% !important;
+    scroll-snap-align: start;
+  }
+
+  .product-gallery__modal {
+    padding: 1rem;
+  }
+
+  .product-gallery__nav--previous {
+    left: 0.4rem;
+  }
+
+  .product-gallery__nav--next {
+    right: 0.4rem;
+  }
+
+  .product-gallery__modal-info {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+  }
+
   .editorial-storefront {
     gap: 3.75rem;
   }

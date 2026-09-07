@@ -251,6 +251,22 @@ describe('customer shopping flow', () => {
     expect(screen.getByRole('heading', { name: 'Theo dõi Solely trên Instagram' })).toBeTruthy();
   });
 
+  it('renders the best-selling products as an expandable gallery with an image viewer', async () => {
+    renderAsCustomer('/');
+
+    const gallery = await screen.findByRole('region', { name: 'Gallery sản phẩm bán chạy' });
+    expect(within(gallery).getAllByRole('button', { name: /Mở ảnh/ })).toHaveLength(2);
+
+    fireEvent.click(within(gallery).getByRole('button', { name: 'Mở ảnh Road Runner 1' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Xem ảnh sản phẩm' });
+    expect(within(dialog).getByRole('img', { name: 'Road Runner 1' })).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ảnh tiếp theo' }));
+    expect(within(dialog).getByRole('img', { name: 'Court Classic' })).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Đóng ảnh' }));
+    expect(screen.queryByRole('dialog', { name: 'Xem ảnh sản phẩm' })).toBeNull();
+  });
+
   it('renders products from the API', async () => {
     renderAsCustomer('/products');
 

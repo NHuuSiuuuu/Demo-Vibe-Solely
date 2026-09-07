@@ -2,6 +2,7 @@ import { Headphones, ShieldCheck, Truck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
+import ExpandableProductGallery from '../components/ExpandableProductGallery.jsx';
 import ImageStreamHero from '../components/ImageStreamHero.jsx';
 import ProductCard, { formatMoney } from '../components/ProductCard.jsx';
 
@@ -143,21 +144,7 @@ export default function HomePage() {
           <h2 id="top-selling-title">Sản phẩm bán chạy</h2>
           <p>Các nhóm sản phẩm nổi bật được sắp xếp theo kiểu editorial để khách hàng quét nhanh.</p>
         </div>
-        <div className="bento-grid">
-          <Link className="bento-tile bento-tile--large" to="/products?sort=newest">
-            <img src={productImage(products, 2)} alt="Bộ sưu tập sneaker giảm giá" />
-            <span>70% SALE</span>
-            <strong>Giày mới cho mùa chuyển động</strong>
-            <small>Mua ngay</small>
-          </Link>
-          {['SPRING SALE', 'COURT EDIT', 'RUNNING', 'DAILY PAIRS'].map((label, index) => (
-            <Link className="bento-tile" key={label} to="/products">
-              <img src={productImage(products, index + 1)} alt={`${label} Solely`} />
-              <span>{label}</span>
-              <strong>{products[index + 1]?.name || 'Solely Select'}</strong>
-            </Link>
-          ))}
-        </div>
+        <ExpandableProductGallery products={products.slice(0, 5)} />
       </section>
 
       <div className="trust-badges" aria-label="Cam kết dịch vụ">

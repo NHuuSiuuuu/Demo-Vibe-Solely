@@ -4,6 +4,10 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Cập nhật UI sản phẩm bán chạy
+
+- Thay bento grid bằng gallery sản phẩm mở rộng khi hover, hỗ trợ modal xem ảnh, điều hướng trước/sau, phím Escape và responsive cuộn ngang trên mobile.
+
 ### Hoàn thiện tìm kiếm sản phẩm bằng hình ảnh
 
 - Thêm gợi ý sản phẩm dưới ô tìm kiếm header sau 300ms debounce, giới hạn tối đa năm sản phẩm và hủy request cũ khi người dùng tiếp tục gõ.
