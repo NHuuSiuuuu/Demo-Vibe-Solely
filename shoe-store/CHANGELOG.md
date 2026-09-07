@@ -41,6 +41,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm schema giá giảm theo phần trăm và hợp đồng thanh toán VNPay, gồm trạng thái thanh toán, cột đối soát giao dịch và migration bảo toàn giá biến thể legacy.
 - Đồng bộ seed và script Việt hóa biến thể sang discount_percent để bootstrap schema mới không còn tham chiếu price_delta.
 - Thêm helper backend dùng chung để chuẩn hóa phần trăm giảm giá và tính giá biến thể chính xác đến hai chữ số thập phân, kèm fallback tạm thời cho dữ liệu giá cũ đã migrate.
+- Thêm service backend tạo URL thanh toán VNPay Sandbox bằng chữ ký HMAC-SHA512, xác minh callback và dựng response IPN mà không cập nhật database.
 
 ### Đã thay đổi
 - Thêm migration tương thích cho database cũ để tạo bảng danh mục và cột Cloudinary của ảnh sản phẩm mà không xóa dữ liệu.
@@ -151,6 +152,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Bổ sung test frontend và RAG bảo vệ payload `discountPercent`, ràng buộc nhập `0..100`, giá chi tiết sau giảm và card RAG không lộ `priceDelta`.
 - Bổ sung regression test chạy query index trên PostgreSQL-compatible PGlite, retrieval nhiều biến thể theo size/giá và catalog trả giá mặc định sau giảm.
 - Bổ sung regression test bảo đảm catalog lọc min/max, sắp xếp theo giá hiển thị sau giảm và trả đúng variant đã thỏa đồng thời size/giá.
+- Bổ sung unit test VNPay cho thứ tự và encoding query, chữ ký HMAC-SHA512, quy đổi đơn vị tiền, callback hợp lệ, chữ ký/số tiền bị sửa và cấu hình thiếu secret.
 
 ## 2026-09-05
 
