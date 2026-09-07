@@ -13,7 +13,7 @@ async function parseJson(response) {
   }
 }
 
-async function request(path, { method = 'GET', body, token } = {}) {
+async function request(path, { method = 'GET', body, token, signal } = {}) {
   const headers = {};
 
   if (body !== undefined) {
@@ -27,7 +27,8 @@ async function request(path, { method = 'GET', body, token } = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal
   });
   const data = await parseJson(response);
 

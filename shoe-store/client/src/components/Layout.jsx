@@ -1,6 +1,7 @@
 import { Camera, Heart, Menu, Moon, Search, ShoppingBag, Sun, User, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useCart } from '../cart/CartContext.jsx';
 import { getImageSearchError } from '../utils/imageSearch.js';
@@ -16,9 +17,13 @@ export default function Layout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchError, setSearchError] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || 'light');
   const headerFileInputRef = useRef(null);
   const headerTextSearchNonceRef = useRef(0);
+  const suggestionsRequestRef = useRef(null);
   const itemCount = cart.items?.reduce((total, item) => total + Number(item.quantity || 0), 0) || 0;
   const isCustomerPage = !['/login', '/register', '/admin'].some((path) => location.pathname.startsWith(path));
   const isDarkTheme = theme === 'dark';
@@ -33,6 +38,44 @@ export default function Layout() {
     setSearchError('');
   }, [location.pathname, location.search]);
 
+  useEffect(() => {
+    const query = searchQuery.trim();
+    suggestionsRequestRef.current?.abort();
+    setSuggestionsError('');
+
+    if (query.length < 2) {
+      setSuggestions([]);
+      setSuggestionsLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    suggestionsRequestRef.current = controller;
+    setSuggestionsLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const data = await apiClient.get(`/api/products?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal
+        });
+        if (!controller.signal.aborted) {
+          setSuggestions((data.products || []).slice(0, 5));
+          setSuggestionsLoading(false);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setSuggestions([]);
+          setSuggestionsLoading(false);
+          setSuggestionsError(error.message || 'Không thể tải gợi ý sản phẩm.');
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery]);
+
   function submitSearch(event) {
     event.preventDefault();
     const query = searchQuery.trim();
@@ -42,6 +85,8 @@ export default function Layout() {
     }
     setIsMenuOpen(false);
     setSearchError('');
+    setSuggestions([]);
+    suggestionsRequestRef.current?.abort();
     headerTextSearchNonceRef.current += 1;
     navigate(params.size ? `/products?${params.toString()}` : '/products', {
       state: { headerTextSearchNonce: headerTextSearchNonceRef.current }
@@ -128,6 +173,34 @@ export default function Layout() {
               <Camera size={18} aria-hidden="true" />
             </button>
           </div>
+          {searchQuery.trim().length >= 2 ? (
+            <div className="header-search__suggestions" role="listbox" aria-label="Gợi ý sản phẩm">
+              {suggestionsLoading ? <p className="header-search__suggestions-status">Đang tìm sản phẩm...</p> : null}
+              {!suggestionsLoading && suggestionsError ? (
+                <p className="header-search__suggestions-status header-search__suggestions-status--error">
+                  {suggestionsError}
+                </p>
+              ) : null}
+              {!suggestionsLoading && !suggestionsError && suggestions.length === 0 ? (
+                <p className="header-search__suggestions-status">Không tìm thấy sản phẩm.</p>
+              ) : null}
+              {!suggestionsLoading && !suggestionsError ? suggestions.map((product) => (
+                <Link
+                  className="header-search__suggestion"
+                  key={product.id}
+                  role="option"
+                  to={`/products/${product.slug}`}
+                  onClick={() => setSuggestions([])}
+                >
+                  {product.imageUrl ? <img src={product.imageUrl} alt="" /> : <span className="header-search__suggestion-fallback">S</span>}
+                  <span>
+                    <strong>{product.name}</strong>
+                    <small>{product.brand || 'Solely'}</small>
+                  </span>
+                </Link>
+              )) : null}
+            </div>
+          ) : null}
           <input
             ref={headerFileInputRef}
             className="header-search__file-input"

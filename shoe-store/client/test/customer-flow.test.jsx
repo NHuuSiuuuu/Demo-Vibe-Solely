@@ -229,6 +229,7 @@ describe('customer shopping flow', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     cleanup();
     vi.restoreAllMocks();
   });
@@ -276,6 +277,37 @@ describe('customer shopping flow', () => {
       expect.stringContaining('/api/products?q=Court+Classic'),
       expect.any(Object)
     );
+  });
+
+  it('shows at most five debounced product suggestions below the header search', async () => {
+    const suggestionProducts = Array.from({ length: 6 }, (_, index) => ({
+      ...products[0],
+      id: index + 10,
+      name: `Runner Suggestion ${index + 1}`,
+      slug: `runner-suggestion-${index + 1}`
+    }));
+    mockApi('/api/products', { products: suggestionProducts });
+    vi.useFakeTimers();
+    const fetchMock = renderCustomerHome();
+    const searchInput = screen.getByRole('searchbox', { name: 'Tìm kiếm sản phẩm' });
+
+    fireEvent.change(searchInput, { target: { value: 'runner' } });
+
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/api/products?q=runner'))).toHaveLength(0);
+
+    await act(async () => {
+      vi.advanceTimersByTime(299);
+    });
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/api/products?q=runner'))).toHaveLength(0);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+      await Promise.resolve();
+    });
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/api/products?q=runner'))).toHaveLength(1);
+
+    expect(screen.getAllByRole('option')).toHaveLength(5);
+    vi.useRealTimers();
   });
 
   it('closes the mobile menu when header text search is submitted', async () => {
