@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { PGlite } = require('@electric-sql/pglite');
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -9,6 +10,13 @@ const rootDir = path.resolve(__dirname, '..', '..');
 
 function readDatabaseFile(filename) {
   return fs.readFileSync(path.join(rootDir, 'database', filename), 'utf8');
+}
+
+function makeDemoSchema(sql) {
+  return sql
+    .replace(/CREATE EXTENSION IF NOT EXISTS vector;\s*/i, '')
+    .replace(/embedding vector\(768\)/i, 'embedding TEXT')
+    .replace(/CREATE INDEX rag_chunks_embedding_idx ON rag_chunks USING ivfflat \(embedding vector_cosine_ops\) WITH \(lists = 100\);\s*/i, '');
 }
 
 function extractProductRows(sql) {
@@ -102,6 +110,23 @@ test('seed data includes local users with bcrypt-compatible password hashes and 
   assert.equal(productRows.length >= 20, true);
   assert.match(seed, /INSERT INTO product_variants/i);
   assert.match(seed, /INSERT INTO product_images/i);
+});
+
+test('fresh schema bootstraps with seed and localization data using discount pricing', async (t) => {
+  const db = new PGlite();
+  t.after(() => db.close());
+
+  await db.exec(makeDemoSchema(readDatabaseFile('schema.sql')));
+  await db.exec(readDatabaseFile('seed.sql'));
+  await db.exec(readDatabaseFile('localize-vietnamese-products.sql'));
+
+  const result = await db.query(
+    'SELECT COUNT(*)::int AS variant_count, MIN(discount_percent) AS minimum_discount, MAX(discount_percent) AS maximum_discount FROM product_variants'
+  );
+
+  assert.equal(result.rows[0].variant_count >= 40, true);
+  assert.equal(Number(result.rows[0].minimum_discount), 0);
+  assert.equal(Number(result.rows[0].maximum_discount), 0);
 });
 
 test('seed data uses VND-scale prices and real product images', () => {

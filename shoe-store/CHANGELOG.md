@@ -39,6 +39,7 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 - Thêm tài liệu setup Gemini/RAG, database pgvector, quy trình reindex và cách kiểm thử admin/customer assistant.
 - Thêm khu vực index sản phẩm trong admin RAG để xem số sản phẩm đã index/cần reindex và reindex một sản phẩm bằng ID.
 - Thêm schema giá giảm theo phần trăm và hợp đồng thanh toán VNPay, gồm trạng thái thanh toán, cột đối soát giao dịch và migration bảo toàn giá biến thể legacy.
+- Đồng bộ seed và script Việt hóa biến thể sang discount_percent để bootstrap schema mới không còn tham chiếu price_delta.
 
 ### Đã thay đổi
 - Thêm migration tương thích cho database cũ để tạo bảng danh mục và cột Cloudinary của ảnh sản phẩm mà không xóa dữ liệu.

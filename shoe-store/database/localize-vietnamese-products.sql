@@ -124,18 +124,18 @@ WHERE NOT EXISTS (
     AND product_images.sort_order = 1
 );
 
-WITH variant_data(slug, sku, size, color, stock_quantity, price_delta) AS (
+WITH variant_data(slug, sku, size, color, stock_quantity, discount_percent) AS (
   VALUES
     ('urban-runner-knit', 'URK-SLT-8', '8', 'Slate', 14, 0), ('urban-runner-knit', 'URK-WHT-9', '9', 'White', 9, 0),
     ('court-classic-low', 'CCL-WHT-7', '7', 'White', 20, 0), ('court-classic-low', 'CCL-BLK-9', '9', 'Black', 11, 0),
     ('trail-guard-pro', 'TGP-OLV-10', '10', 'Olive', 7, 0), ('trail-guard-pro', 'TGP-GRY-10', '10', 'Gray', 5, 0),
     ('studio-flex-slip-on', 'SFS-BLK-6', '6', 'Black', 15, 0), ('studio-flex-slip-on', 'SFS-SND-8', '8', 'Sand', 10, 0),
-    ('heritage-leather-boot', 'HLB-BRN-10', '10', 'Brown', 8, 0), ('heritage-leather-boot', 'HLB-BLK-10', '10', 'Black', 4, 200000),
+    ('heritage-leather-boot', 'HLB-BRN-10', '10', 'Brown', 8, 0), ('heritage-leather-boot', 'HLB-BLK-10', '10', 'Black', 4, 0),
     ('cloud-step-walker', 'CSW-GRY-6', '6', 'Gray', 17, 0), ('cloud-step-walker', 'CSW-NVY-8', '8', 'Navy', 12, 0),
     ('metro-suede-high', 'MSH-NVY-9', '9', 'Navy', 10, 0), ('metro-suede-high', 'MSH-TAN-10', '10', 'Tan', 7, 0),
     ('rain-ready-chelsea', 'RRC-BLK-6', '6', 'Black', 9, 0), ('rain-ready-chelsea', 'RRC-GRN-8', '8', 'Green', 5, 0),
     ('summit-grip-hiker', 'SGH-BRN-8', '8', 'Brown', 10, 0), ('summit-grip-hiker', 'SGH-GRY-10', '10', 'Gray', 8, 0),
-    ('riverstone-trek-mid', 'RTM-MOS-10', '10', 'Moss', 7, 0), ('riverstone-trek-mid', 'RTM-BLK-11', '11', 'Black', 6, 150000),
+    ('riverstone-trek-mid', 'RTM-MOS-10', '10', 'Moss', 7, 0), ('riverstone-trek-mid', 'RTM-BLK-11', '11', 'Black', 6, 0),
     ('campus-comfort-knit', 'CCK-CRM-7', '7', 'Cream', 18, 0), ('campus-comfort-knit', 'CCK-GRY-9', '9', 'Gray', 14, 0),
     ('gym-core-trainer', 'GCT-BLK-8', '8', 'Black', 13, 0), ('gym-core-trainer', 'GCT-WHT-10', '10', 'White', 10, 0),
     ('tempo-racer-lite', 'TRL-BLU-9', '9', 'Blue', 9, 0), ('tempo-racer-lite', 'TRL-GRN-10', '10', 'Green', 7, 0),
@@ -147,12 +147,12 @@ WITH variant_data(slug, sku, size, color, stock_quantity, price_delta) AS (
     ('monsoon-trail-shield', 'MTS-MOS-6', '6', 'Moss', 8, 0), ('monsoon-trail-shield', 'MTS-BLK-7', '7', 'Black', 7, 0),
     ('daily-suede-classic', 'DSC-BGE-6', '6', 'Beige', 15, 0), ('daily-suede-classic', 'DSC-ROS-7', '7', 'Rose', 10, 0)
 )
-INSERT INTO product_variants (product_id, sku, size, color, stock_quantity, price_delta)
-SELECT products.id, variant_data.sku, variant_data.size, variant_data.color, variant_data.stock_quantity, variant_data.price_delta
+INSERT INTO product_variants (product_id, sku, size, color, stock_quantity, discount_percent)
+SELECT products.id, variant_data.sku, variant_data.size, variant_data.color, variant_data.stock_quantity, variant_data.discount_percent
 FROM products
 JOIN variant_data ON products.slug = variant_data.slug
 ON CONFLICT (sku) DO UPDATE
 SET size = EXCLUDED.size,
     color = EXCLUDED.color,
     stock_quantity = EXCLUDED.stock_quantity,
-    price_delta = EXCLUDED.price_delta;
+    discount_percent = EXCLUDED.discount_percent;
