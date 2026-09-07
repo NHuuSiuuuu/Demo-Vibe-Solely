@@ -2,7 +2,7 @@
 
 Status: DONE_WITH_CONCERNS
 
-Commit: `faeac59 feat: expose image search and reindex APIs`
+Commit: `ed4f0e2 feat: expose image search and reindex APIs`
 
 ## Implemented
 
