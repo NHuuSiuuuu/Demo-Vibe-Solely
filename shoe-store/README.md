@@ -170,12 +170,14 @@ URL expiry does not prove payment failure: a delayed valid IPN is still
 reconciled against the stored order and amount.
 
 VNPay orders must be `paid` before an admin may move them to `shipping` or
-`completed`. Cancellation is blocked for both `pending` and `paid` VNPay
-payments. Pending orders keep their stock reservation until an authoritative
-IPN resolves payment; a failed payment may then be cancelled to restore stock
-once. Paid cancellation requires refund support, which this app does not
-implement. A missing IPN therefore leaves an order pending and its stock
-reserved; URL expiry alone never releases stock. COD transitions are unchanged.
+`completed`. A signed successful Return callback now reconciles the order
+immediately, while the server-to-server IPN remains enabled and idempotent as
+the retry path. Pending orders keep their stock reservation until a valid
+Return/IPN resolves payment; a failed payment may then be cancelled to restore
+stock once. A paid VNPay order can be cancelled by the customer or admin,
+moves to `refund_pending`, and must be manually refunded in the VNPay merchant
+portal before admin confirms `refunded`. COD transitions remain separate and
+keep `unpaid` until completion.
 
 An authenticated customer can `POST /api/orders/:id/payment-url` for their
 existing VNPay order when payment is `pending` and the order is `pending` or
@@ -186,7 +188,9 @@ the same `vnp_TxnRef`, and makes no changes to orders, stock, items or cart.
 This resumes the existing merchant payment reference; it does not create a
 second payment attempt. Repeated calls in the same second may return the same
 URL. Already paid/failed payments, COD, cancelled and fulfilled orders cannot
-resume. Return URL status remains informational; only IPN changes payment state.
+resume. Return URL and IPN both require a valid VNPay signature, transaction
+fields and matching amount; IPN remains the server-to-server retry path when
+the browser does not return successfully.
 
 ### Pricing migration and historical context
 
@@ -228,6 +232,15 @@ npm run db:setup
 ```
 
 - Health check: `GET /api/health`
+
+## Documentation and Wiki
+
+Mỗi hệ thống hoặc tính năng mới bắt buộc phải cập nhật đồng thời:
+
+- `README.md`: cách cài đặt, cách sử dụng, trạng thái hiện tại, giới hạn đã biết và kế hoạch tiếp theo.
+- Wiki của dự án: nội dung được tổng hợp từ README để thuận tiện theo dõi và bàn giao.
+
+Nguồn Wiki cục bộ nằm tại [`docs/wiki/Home.md`](../docs/wiki/Home.md). Khi GitHub Wiki được bật và tài khoản có quyền truy cập, cần đồng bộ file này lên trang `Home` của Wiki. Không coi tính năng là hoàn tất nếu thiếu cập nhật README và Wiki.
 
 ## RAG Admin Workflow
 

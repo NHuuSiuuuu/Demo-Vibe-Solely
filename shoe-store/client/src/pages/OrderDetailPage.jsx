@@ -4,12 +4,11 @@ import { apiClient } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import AuthPrompt from '../components/AuthPrompt.jsx';
 import ItemPriceDetails from '../components/ItemPriceDetails.jsx';
+import OrderTimeline from '../components/OrderTimeline.jsx';
 import { formatMoney } from '../components/ProductCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { colorLabel, orderStatusLabel, paymentMethodLabel, paymentStatusLabel } from '../utils/formatters.js';
 import { formatOrderCode } from './OrdersPage.jsx';
-
-const timelineSteps = ['pending', 'confirmed', 'shipping', 'completed'];
 
 export default function OrderDetailPage() {
   const { id } = useParams();
@@ -26,6 +25,8 @@ function OrderDetail({ id, token }) {
   const [error, setError] = useState('');
   const [retryError, setRetryError] = useState('');
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [actionMessage, setActionMessage] = useState('');
   const active = useRef(false);
 
   useLayoutEffect(() => {
@@ -56,6 +57,26 @@ function OrderDetail({ id, token }) {
     }
   }
 
+  async function cancelOrder() {
+    setActionMessage('');
+    setError('');
+    setIsCancelling(true);
+    try {
+      const data = await apiClient.post(`/api/orders/${order.id}/cancel`, {}, { token });
+      if (!active.current) return;
+      setOrder(data.order);
+      setActionMessage(data.order.paymentStatus === 'refund_pending'
+        ? 'Đơn VNPay đã hủy. Shop đang xử lý hoàn tiền.'
+        : data.order.paymentMethod === 'cod'
+          ? 'Đơn COD đã được hủy. Bạn không cần thanh toán.'
+          : 'Đơn VNPay đã hủy và giao dịch chưa phát sinh hoàn tiền.');
+    } catch (err) {
+      if (active.current) setError(err.message);
+    } finally {
+      if (active.current) setIsCancelling(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
     apiClient
@@ -83,8 +104,6 @@ function OrderDetail({ id, token }) {
     return <p className="muted">Đang tải đơn hàng...</p>;
   }
 
-  const activeIndex = timelineSteps.indexOf(order.orderStatus);
-
   return (
     <section className="shop-page" aria-labelledby="order-title">
       <div className="section-heading">
@@ -99,19 +118,18 @@ function OrderDetail({ id, token }) {
               </button>
             ) : null}
           {retryError ? <p className="form-error" role="alert">{retryError}</p> : null}
+          {['pending', 'confirmed'].includes(order.orderStatus) ? (
+            <button type="button" className="button-secondary" onClick={cancelOrder} disabled={isCancelling}>
+              {isCancelling ? 'Đang hủy đơn...' : 'Hủy đơn hàng'}
+            </button>
+          ) : null}
+          {actionMessage ? <p className="success-message" role="status">{actionMessage}</p> : null}
           {order.note ? <p>Ghi chú: {order.note}</p> : null}
         </div>
         <StatusBadge tone="info">{orderStatusLabel(order.orderStatus)}</StatusBadge>
       </div>
 
-      <ol className="timeline" aria-label="Tiến trình trạng thái đơn hàng">
-        {timelineSteps.map((step, index) => (
-          <li className={index <= activeIndex ? 'timeline__step timeline__step--active' : 'timeline__step'} key={step}>
-            <span>{orderStatusLabel(step)}</span>
-            {index === activeIndex ? <strong>Hiện tại</strong> : null}
-          </li>
-        ))}
-      </ol>
+      <OrderTimeline order={order} />
 
       <div className="detail-grid">
         <section className="content-panel" aria-labelledby="shipping-title">

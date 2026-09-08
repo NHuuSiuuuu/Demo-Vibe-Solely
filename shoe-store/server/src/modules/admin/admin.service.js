@@ -582,14 +582,6 @@ async function updateOrderStatus(id, status) {
       }
     }
 
-    if (
-      status === 'cancelled' &&
-      currentOrder.payment_method === 'vnpay' &&
-      currentOrder.payment_status === 'paid'
-    ) {
-      throw new HttpError(409, 'Paid VNPay orders require a refund before cancellation');
-    }
-
     const items = await getOrderItems(id, client, { lock: status === 'cancelled' });
 
     if (status === 'cancelled') {
@@ -618,7 +610,9 @@ async function updateOrderStatus(id, status) {
       `
         UPDATE orders
         SET order_status = $1,
-            payment_status = CASE WHEN $3::order_status = 'completed' AND payment_method = 'cod' THEN 'paid'
+            payment_status = CASE
+              WHEN $3::order_status = 'completed' AND payment_method = 'cod' THEN 'paid'
+              WHEN $3::order_status = 'cancelled' AND payment_method = 'vnpay' AND payment_status = 'paid' THEN 'refund_pending'
               ELSE payment_status
             END,
             updated_at = NOW()
@@ -629,6 +623,42 @@ async function updateOrderStatus(id, status) {
     );
 
     return mapOrder(updateResult.rows[0], items);
+  });
+}
+
+async function confirmVnpayRefund(id) {
+  return withTransaction(async (client) => {
+    const result = await client.query(
+      `
+        SELECT *
+        FROM orders
+        WHERE id = $1
+        FOR UPDATE
+      `,
+      [id]
+    );
+    const order = result.rows[0];
+    if (!order) {
+      throw new HttpError(404, 'Order not found');
+    }
+    if (order.payment_method !== 'vnpay' || order.order_status !== 'cancelled') {
+      throw new HttpError(409, 'Only cancelled VNPay orders can be refunded');
+    }
+    if (order.payment_status !== 'refund_pending') {
+      throw new HttpError(409, 'This order is not waiting for a refund');
+    }
+
+    const updated = await client.query(
+      `
+        UPDATE orders
+        SET payment_status = 'refunded', updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `,
+      [id]
+    );
+    const items = await getOrderItems(id, client);
+    return mapOrder(updated.rows[0], items);
   });
 }
 
@@ -719,6 +749,7 @@ module.exports = {
   listOrders,
   getOrder,
   updateOrderStatus,
+  confirmVnpayRefund,
   listCategories,
   createCategory,
   updateCategory,

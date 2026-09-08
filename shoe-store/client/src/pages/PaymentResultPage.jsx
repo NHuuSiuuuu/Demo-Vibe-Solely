@@ -22,6 +22,16 @@ const RESULT_CONTENT = {
     title: 'Đang xác minh thanh toán',
     message: 'VNPay đang xử lý giao dịch. Vui lòng kiểm tra lại trạng thái đơn hàng sau ít phút.',
     tone: 'info'
+  },
+  refund_pending: {
+    title: 'Đang chờ hoàn tiền',
+    message: 'Đơn hàng đã hủy. Shop đang xử lý hoàn tiền VNPay cho bạn.',
+    tone: 'info'
+  },
+  refunded: {
+    title: 'Đã hoàn tiền',
+    message: 'Khoản thanh toán VNPay của đơn hàng đã được hoàn tiền.',
+    tone: 'success'
   }
 };
 

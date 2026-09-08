@@ -1,6 +1,9 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
+
+const stylesheet = readFileSync('src/styles.css', 'utf8');
 
 const products = [
   {
@@ -323,6 +326,26 @@ describe('customer shopping flow', () => {
     expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/api/products?q=runner'))).toHaveLength(1);
 
     expect(screen.getAllByRole('option')).toHaveLength(5);
+    vi.useRealTimers();
+  });
+
+  it('keeps header suggestions out of the header layout flow', async () => {
+    mockApi('/api/products', { products: [products[0]] });
+    vi.useFakeTimers();
+    renderCustomerHome();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm kiếm sản phẩm' }), {
+      target: { value: 'runner' }
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+
+    expect(stylesheet).toMatch(/\.header-search\s*\{[^}]*position:\s*relative;/s);
+    expect(stylesheet).toMatch(/\.header-search__suggestions\s*\{[^}]*position:\s*absolute;/s);
+    expect(stylesheet).toMatch(/\.header-search__suggestions\s*\{[^}]*width:\s*min\(100%,\s*22rem\);/s);
+    expect(stylesheet).toMatch(/\.header-search__suggestions\s*\{[^}]*z-index:\s*30;/s);
     vi.useRealTimers();
   });
 

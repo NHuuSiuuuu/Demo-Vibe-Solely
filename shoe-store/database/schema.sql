@@ -22,7 +22,7 @@ CREATE TYPE user_role AS ENUM ('customer', 'admin');
 CREATE TYPE product_status AS ENUM ('active', 'hidden');
 CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipping', 'completed', 'cancelled');
 CREATE TYPE payment_method AS ENUM ('cod', 'vnpay');
-CREATE TYPE payment_status AS ENUM ('unpaid', 'pending', 'paid', 'failed');
+CREATE TYPE payment_status AS ENUM ('unpaid', 'pending', 'paid', 'failed', 'refund_pending', 'refunded');
 
 CREATE EXTENSION IF NOT EXISTS vector;
 

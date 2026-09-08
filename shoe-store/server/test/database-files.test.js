@@ -44,7 +44,7 @@ test('schema defines the required PostgreSQL enums, tables, and constraints', ()
     "CREATE TYPE product_status AS ENUM ('active', 'hidden');",
     "CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipping', 'completed', 'cancelled');",
     "CREATE TYPE payment_method AS ENUM ('cod', 'vnpay');",
-    "CREATE TYPE payment_status AS ENUM ('unpaid', 'pending', 'paid', 'failed');",
+    "CREATE TYPE payment_status AS ENUM ('unpaid', 'pending', 'paid', 'failed', 'refund_pending', 'refunded');",
     'ALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE (email);',
     'ALTER TABLE products ADD CONSTRAINT products_slug_unique UNIQUE (slug);',
     'ALTER TABLE product_variants ADD CONSTRAINT product_variants_sku_unique UNIQUE (sku);',

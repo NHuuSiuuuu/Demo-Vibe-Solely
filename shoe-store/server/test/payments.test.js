@@ -317,7 +317,7 @@ test('VNPay IPN cannot change a cancelled order payment state', async () => {
   assert.equal(cartClearCount, 0);
 });
 
-test('signed VNPay return redirects to a non-authoritative frontend result', async () => {
+test('signed successful VNPay return reconciles the order before redirecting', async () => {
   const { createApp } = require('../src/app');
 
   const response = await request(createApp())
@@ -331,7 +331,8 @@ test('signed VNPay return redirects to a non-authoritative frontend result', asy
   assert.equal(redirect.searchParams.get('status'), 'success');
   assert.equal(redirect.searchParams.get('orderId'), '42');
   assert.equal(redirect.searchParams.get('responseCode'), '00');
-  assert.equal(paymentUpdateCount, 0);
+  assert.equal(order.payment_status, 'paid');
+  assert.equal(paymentUpdateCount, 1);
 });
 
 test('VNPay return reports failure when transaction status is not successful', async () => {
@@ -344,7 +345,8 @@ test('VNPay return reports failure when transaction status is not successful', a
 
   const redirect = new URL(response.headers.location);
   assert.equal(redirect.searchParams.get('status'), 'failed');
-  assert.equal(paymentUpdateCount, 0);
+  assert.equal(order.payment_status, 'failed');
+  assert.equal(paymentUpdateCount, 1);
 });
 
 test('VNPay return reports invalid when a signed callback misses transaction status', async () => {

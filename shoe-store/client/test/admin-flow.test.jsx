@@ -544,7 +544,7 @@ describe('admin flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Chuyển sang Hoàn thành' }));
 
     await screen.findByText('Đã cập nhật trạng thái đơn hàng.');
-    expect(screen.getByText('Hoàn thành')).toBeTruthy();
+    expect(screen.getAllByText('Hoàn thành').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Đã thanh toán')).toBeTruthy();
   });
 });

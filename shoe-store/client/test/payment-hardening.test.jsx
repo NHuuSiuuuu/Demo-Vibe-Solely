@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { apiClient } from '../src/api/client.js';
@@ -61,6 +61,30 @@ describe('payment result navigation', () => {
 });
 
 describe('order payment resume', () => {
+  it('shows a COD-specific cancellation confirmation', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ order: {
+      ...order, paymentMethod: 'cod', paymentStatus: 'unpaid', orderStatus: 'pending'
+    } });
+    const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ order: {
+      ...order, paymentMethod: 'cod', paymentStatus: 'unpaid', orderStatus: 'cancelled'
+    } });
+    renderPage('/orders/1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Hủy đơn hàng' }));
+    expect(await screen.findByText('Đơn COD đã được hủy. Bạn không cần thanh toán.')).toBeTruthy();
+    expect(post).toHaveBeenCalledWith('/api/orders/1/cancel', {}, { token: 'customer-token' });
+  });
+
+  it('shows the VNPay refund timeline after a paid order is cancelled', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ order: {
+      ...order, paymentMethod: 'vnpay', paymentStatus: 'refund_pending', orderStatus: 'cancelled'
+    } });
+    renderPage('/orders/1');
+    const timeline = await screen.findByLabelText('Tiến trình trạng thái đơn hàng');
+    expect(within(timeline).getByText('Chờ xác nhận hoàn tiền')).toBeTruthy();
+    expect(within(timeline).getByText('Đã thanh toán')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Hủy đơn hàng' })).toBeNull();
+  });
+
   it('removes the old order and resume action while a new order loads', async () => {
     vi.spyOn(apiClient, 'get').mockResolvedValueOnce({ order: { ...order, paymentStatus: 'pending' } })
       .mockImplementationOnce(() => new Promise(() => {}));

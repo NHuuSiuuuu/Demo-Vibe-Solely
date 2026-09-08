@@ -63,7 +63,6 @@ function createPaymentUrl({ orderId, orderCode, amount, ipAddress }) {
     vnp_ExpireDate: formatVnpayDate(new Date(createdAt.getTime() + 15 * 60 * 1000)),
     vnp_CurrCode: 'VND',
     vnp_IpAddr: String(ipAddress || ''),
-    vnp_IpnUrl: env.VNPAY_IPN_URL,
     vnp_Locale: 'vn',
     vnp_OrderInfo: `Thanh toan don hang ${String(orderCode || '')}`,
     vnp_OrderType: 'other',

@@ -58,6 +58,7 @@ test('creates a payment URL with sorted parameters encoded exactly once', () => 
   assert.deepEqual(keysWithoutHash, [...keysWithoutHash].sort());
   assert.equal(paymentUrl.searchParams.get('vnp_TxnRef'), '42');
   assert.equal(paymentUrl.searchParams.get('vnp_OrderInfo'), 'Thanh toan don hang SOLELY & Co');
+  assert.equal(paymentUrl.searchParams.has('vnp_IpnUrl'), false);
   assert.match(paymentUrl.search, /vnp_OrderInfo=Thanh\+toan\+don\+hang\+SOLELY\+%26\+Co/);
   assert.doesNotMatch(paymentUrl.search, /%2526/);
 });

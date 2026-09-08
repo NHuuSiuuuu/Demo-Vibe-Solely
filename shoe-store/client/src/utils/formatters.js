@@ -10,7 +10,9 @@ const PAYMENT_STATUS_LABELS = {
   unpaid: 'Chưa thanh toán',
   pending: 'Đang chờ thanh toán',
   paid: 'Đã thanh toán',
-  failed: 'Thanh toán thất bại'
+  failed: 'Thanh toán thất bại',
+  refund_pending: 'Chờ xác nhận hoàn tiền',
+  refunded: 'Đã hoàn tiền'
 };
 
 const PAYMENT_METHOD_LABELS = {

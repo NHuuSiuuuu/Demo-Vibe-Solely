@@ -5,7 +5,7 @@ const { buildVnpayResponse, verifyPaymentParams } = require('./vnpay.service');
 
 const router = express.Router();
 
-router.get('/vnpay/return', (req, res) => {
+router.get('/vnpay/return', async (req, res) => {
   const verification = verifyPaymentParams(req.query);
   const redirectUrl = new URL('/payment-result', env.FRONTEND_URL);
 
@@ -15,6 +15,17 @@ router.get('/vnpay/return', (req, res) => {
   }
 
   const successful = verification.responseCode === '00' && verification.transactionStatus === '00';
+  try {
+    await reconcileVnpayPayment({
+      orderId: verification.txnRef,
+      amount: verification.amount,
+      responseCode: verification.responseCode,
+      transactionStatus: verification.transactionStatus,
+      transactionNo: verification.transactionNo
+    });
+  } catch (error) {
+    console.error('VNPay return reconciliation failed', { message: error.message });
+  }
   redirectUrl.searchParams.set('status', successful ? 'success' : 'failed');
   redirectUrl.searchParams.set('orderId', verification.txnRef);
   if (verification.responseCode !== null) {

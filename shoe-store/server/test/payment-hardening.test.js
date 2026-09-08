@@ -24,6 +24,7 @@ const schema = fs.readFileSync(path.join(root, 'database/schema.sql'), 'utf8')
   .replace(/CREATE INDEX rag_chunks_embedding_idx[^;]+;/i, '');
 const seed = fs.readFileSync(path.join(root, 'database/seed.sql'), 'utf8');
 const migration = fs.readFileSync(path.join(root, 'database/migrations/20260907-vnpay-discount.sql'), 'utf8');
+const refundMigration = fs.readFileSync(path.join(root, 'database/migrations/20260907-refund-status.sql'), 'utf8');
 const catalogMigration = fs.readFileSync(path.join(root, 'database/migrations/20260907-product-catalog-admin.sql'), 'utf8');
 const db = new PGlite();
 const dbModule = require('../src/db/pool');
@@ -84,6 +85,44 @@ function ipn(order, success = true) {
 async function stock() {
   return Number((await query('SELECT stock_quantity FROM product_variants WHERE id = $1', [variantId])).rows[0].stock_quantity);
 }
+
+test('customer cancellation keeps COD unpaid and restores reserved stock', async () => {
+  const created = await checkout('cod');
+
+  const response = await request(app)
+    .post(`/api/orders/${created.order.id}/cancel`)
+    .set('Authorization', auth(customerId))
+    .expect(200);
+
+  assert.equal(response.body.order.orderStatus, 'cancelled');
+  assert.equal(response.body.order.paymentStatus, 'unpaid');
+  assert.equal(await stock(), 20);
+});
+
+test('paid VNPay customer cancellation waits for admin refund confirmation', async () => {
+  const created = await checkout('vnpay');
+  await ipn(created.order).expect(200);
+
+  const cancelled = await request(app)
+    .post(`/api/orders/${created.order.id}/cancel`)
+    .set('Authorization', auth(customerId))
+    .expect(200);
+
+  assert.equal(cancelled.body.order.orderStatus, 'cancelled');
+  assert.equal(cancelled.body.order.paymentStatus, 'refund_pending');
+  assert.equal(await stock(), 20);
+
+  const refunded = await request(app)
+    .post(`/api/admin/orders/${created.order.id}/refund-confirmation`)
+    .set('Authorization', auth(adminId))
+    .expect(200);
+
+  assert.equal(refunded.body.order.paymentStatus, 'refunded');
+  await request(app)
+    .post(`/api/admin/orders/${created.order.id}/refund-confirmation`)
+    .set('Authorization', auth(adminId))
+    .expect(409);
+});
 
 test('fresh schema defaults to explicit pricing and stores nullable historical item context', async () => {
   const row = (await query('SELECT * FROM product_variants WHERE id = $1', [variantId])).rows[0];
@@ -165,15 +204,16 @@ test('migration applied twice preserves legacy audit delta and explicit zero ret
 
 test('both additive migrations upgrade old payment enums and can run again without losing data', async () => {
   await db.exec(schema.replace("CREATE TYPE payment_method AS ENUM ('cod', 'vnpay');", "CREATE TYPE payment_method AS ENUM ('cod');")
-    .replace("CREATE TYPE payment_status AS ENUM ('unpaid', 'pending', 'paid', 'failed');", "CREATE TYPE payment_status AS ENUM ('unpaid', 'paid');"));
+    .replace("CREATE TYPE payment_status AS ENUM ('unpaid', 'pending', 'paid', 'failed', 'refund_pending', 'refunded');", "CREATE TYPE payment_status AS ENUM ('unpaid', 'paid');"));
   await db.exec(seed);
   for (let pass = 0; pass < 2; pass += 1) {
     await db.exec(catalogMigration);
     await db.exec(migration);
+    await db.exec(refundMigration);
   }
   const labels = (await query(`SELECT e.enumlabel FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
     WHERE t.typname IN ('payment_method', 'payment_status') ORDER BY e.enumlabel`)).rows.map((r) => r.enumlabel);
-  assert.deepEqual(labels, ['cod', 'failed', 'paid', 'pending', 'unpaid', 'vnpay']);
+  assert.deepEqual(labels, ['cod', 'failed', 'paid', 'pending', 'refund_pending', 'refunded', 'unpaid', 'vnpay']);
   assert.ok((await query('SELECT id FROM products')).rowCount >= 20);
 });
 
@@ -213,13 +253,13 @@ for (const callbackFirst of [false, true]) {
   test(`cancellation/IPN race keeps reserved stock and paid order when callback runs ${callbackFirst ? 'first' : 'last'}`, async () => {
     const { order } = await checkout();
     if (callbackFirst) assert.equal((await ipn(order)).body.RspCode, '00');
-    await changeStatus(order.id, 'cancelled').expect(409);
+    await changeStatus(order.id, 'cancelled').expect(callbackFirst ? 200 : 409);
     if (!callbackFirst) assert.equal((await ipn(order)).body.RspCode, '00');
-    assert.equal((await ipn(order)).body.RspCode, '00');
+    assert.equal((await ipn(order)).body.RspCode, callbackFirst ? '02' : '00');
     const row = (await query('SELECT * FROM orders WHERE id = $1', [order.id])).rows[0];
-    assert.equal(row.order_status, 'pending');
-    assert.equal(row.payment_status, 'paid');
-    assert.equal(await stock(), 17);
+    assert.equal(row.order_status, callbackFirst ? 'cancelled' : 'pending');
+    assert.equal(row.payment_status, callbackFirst ? 'refund_pending' : 'paid');
+    assert.equal(await stock(), callbackFirst ? 20 : 17);
   });
 }
 

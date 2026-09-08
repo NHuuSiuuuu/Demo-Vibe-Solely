@@ -483,6 +483,14 @@ async function mockQuery(text, params = []) {
       text.includes("payment_method = 'vnpay'")
       && nextStatus === 'cancelled'
       && order.payment_method === 'vnpay'
+      && order.payment_status === 'paid'
+    ) {
+      order.payment_status = 'refund_pending';
+    }
+    if (
+      text.includes("payment_method = 'vnpay'")
+      && nextStatus === 'cancelled'
+      && order.payment_method === 'vnpay'
       && order.payment_status === 'pending'
     ) {
       order.payment_status = 'failed';
@@ -1124,7 +1132,7 @@ test('uses a separate typed parameter when deriving payment status from order st
 
   const updateQuery = queryLog.find((entry) => entry.text.includes('UPDATE orders'));
 
-  assert.match(updateQuery.text, /CASE WHEN \$3::order_status = 'completed'/);
+  assert.match(updateQuery.text, /CASE\s+WHEN \$3::order_status = 'completed'/);
   assert.match(updateQuery.text, /payment_method = 'cod'/);
   assert.deepEqual(updateQuery.params, ['confirmed', '900', 'confirmed']);
 });
@@ -1174,7 +1182,7 @@ test('rejects cancelling a pending VNPay order without restoring stock', async (
   assert.deepEqual(restoredStockUpdates, []);
 });
 
-test('rejects cancelling a paid VNPay order before restoring stock', async () => {
+test('cancels a paid VNPay order into refund pending and restores stock', async () => {
   const { createApp } = require('../src/app');
   orders[0].payment_method = 'vnpay';
   orders[0].payment_status = 'paid';
@@ -1183,21 +1191,14 @@ test('rejects cancelling a paid VNPay order before restoring stock', async () =>
     .patch('/api/admin/orders/900/status')
     .set('Authorization', `Bearer ${tokenFor(2)}`)
     .send({ status: 'cancelled' })
-    .expect(409);
+    .expect(200);
 
-  assert.deepEqual(response.body, {
-    message: 'Paid VNPay orders require a refund before cancellation',
-    details: null
-  });
-  assert.equal(orders[0].order_status, 'pending');
-  assert.equal(orders[0].payment_status, 'paid');
-  assert.equal(variants[0].stock_quantity, 5);
-  assert.deepEqual(restoredStockUpdates, []);
-  assert.equal(queryLog.some((entry) => entry.text.includes('FROM order_items')), false);
-  assert.equal(
-    queryLog.some((entry) => entry.text.includes('stock_quantity = stock_quantity + $1')),
-    false
-  );
+  assert.equal(response.body.order.orderStatus, 'cancelled');
+  assert.equal(response.body.order.paymentStatus, 'refund_pending');
+  assert.equal(orders[0].order_status, 'cancelled');
+  assert.equal(orders[0].payment_status, 'refund_pending');
+  assert.equal(variants[0].stock_quantity, 6);
+  assert.deepEqual(restoredStockUpdates, [{ variantId: 101, quantity: 1 }]);
 });
 
 test('returns 400 JSON when admin status body is empty', async () => {

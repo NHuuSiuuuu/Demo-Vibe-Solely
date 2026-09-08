@@ -16,13 +16,27 @@ These instructions apply to the whole `shoe-store` project.
 
 ## Required Workflow
 
-- Read `DEVELOPMENT_PROMPT.md` before planning or implementing a user-requested feature when the file contains a current prompt.
 - Read the relevant code before changing behavior.
 - Keep changes scoped to the user's request.
 - Follow existing project structure, naming and UI conventions.
 - Do not merge to `main` unless the user explicitly asks.
 - Do not revert unrelated user changes or unrelated dirty worktree files.
 - Use non-destructive git commands unless the user explicitly approves otherwise.
+
+## File Modification Rules
+
+- Only modify files that are necessary to fulfill the user's request.
+- Do not modify unrelated files.
+- Do not delete existing files unless explicitly requested.
+- Do not rename or move files unless explicitly requested or strictly required.
+- Do not modify database schema or migrations unless the task requires it.
+- Do not modify authentication, authorization, or security logic unless the task requires it.
+- Do not modify API contracts unless explicitly requested.
+- Do not modify dependencies or package versions unless necessary and explicitly explained.
+- Do not modify environment files or secrets.
+- Do not modify tests to make them pass unless the test itself is incorrect and the change is explicitly justified.
+- Do not rewrite or refactor unrelated code.
+- Do not change existing UI/UX outside the requested feature.
 
 ## Changelog Rule
 
@@ -32,6 +46,13 @@ These instructions apply to the whole `shoe-store` project.
 - Keep `CHANGELOG.md` at the project root, not under `docs/superpowers`.
 - Add current work under `## Chưa phát hành`.
 - Move unreleased entries into a dated section only when the user asks to release or finalize that batch.
+
+## Documentation Rule
+
+- Every new system or feature must update `README.md` with its setup, usage, current status and known limitations.
+- Every new system or feature must also update the project Wiki from the README content.
+- The local Wiki source is maintained under `docs/wiki/` until it can be synchronized to the repository Wiki.
+- Documentation must record what is complete, what is currently in progress and what is planned next.
 
 ## Documentation Layout
 

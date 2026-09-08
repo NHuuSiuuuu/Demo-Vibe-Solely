@@ -505,6 +505,70 @@ async function getCustomerOrder(userId, orderId) {
   return mapOrder(order, items);
 }
 
+async function cancelCustomerOrder(userId, orderId) {
+  const parsedOrderId = Number(orderId);
+  if (!Number.isSafeInteger(parsedOrderId) || parsedOrderId <= 0) {
+    throw new HttpError(400, 'Invalid order id');
+  }
+
+  return withTransaction(async (client) => {
+    const orderResult = await client.query(
+      `
+        SELECT *
+        FROM orders
+        WHERE id = $1
+          AND user_id = $2
+        FOR UPDATE
+      `,
+      [parsedOrderId, userId]
+    );
+    const order = orderResult.rows[0];
+    if (!order) {
+      throw new HttpError(404, 'Order not found');
+    }
+    if (!['pending', 'confirmed'].includes(order.order_status)) {
+      throw new HttpError(409, 'This order can no longer be cancelled');
+    }
+
+    const items = await getOrderItems(parsedOrderId, client);
+    for (const item of items) {
+      if (item.product_variant_id === null || item.product_variant_id === undefined) {
+        continue;
+      }
+
+      const stockResult = await client.query(
+        `
+          UPDATE product_variants
+          SET stock_quantity = stock_quantity + $1
+          WHERE id = $2
+          RETURNING id
+        `,
+        [Number(item.quantity), item.product_variant_id]
+      );
+      if (stockResult.rowCount !== 1) {
+        throw new HttpError(409, 'Unable to restore product variant stock');
+      }
+    }
+
+    const nextPaymentStatus = order.payment_method === 'vnpay'
+      ? order.payment_status === 'paid' ? 'refund_pending' : 'failed'
+      : order.payment_status;
+    const updated = await client.query(
+      `
+        UPDATE orders
+        SET order_status = 'cancelled',
+            payment_status = $1,
+            updated_at = NOW()
+        WHERE id = $2
+        RETURNING *
+      `,
+      [nextPaymentStatus, parsedOrderId]
+    );
+
+    return mapOrder(updated.rows[0], items);
+  });
+}
+
 module.exports = {
   createOrder,
   resumeVnpayPayment,
@@ -512,5 +576,6 @@ module.exports = {
   reconcileVnpayPayment,
   listCustomerOrders,
   getCustomerOrder,
+  cancelCustomerOrder,
   mapOrder
 };

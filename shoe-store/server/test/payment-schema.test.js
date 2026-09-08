@@ -12,6 +12,13 @@ function readMigration() {
   );
 }
 
+function readRefundMigration() {
+  return fs.readFileSync(
+    path.join(rootDir, 'database', 'migrations', '20260907-refund-status.sql'),
+    'utf8'
+  );
+}
+
 test('payment migration preserves legacy variant prices while adding discount pricing', () => {
   const migration = readMigration();
 
@@ -31,4 +38,11 @@ test('payment migration adds idempotent VNPay reconciliation columns without des
   assert.match(migration, /ADD COLUMN IF NOT EXISTS vnpay_amount NUMERIC\(10, 2\)/);
   assert.match(migration, /ADD COLUMN IF NOT EXISTS vnpay_updated_at TIMESTAMPTZ/);
   assert.match(migration, /information_schema\.columns/);
+});
+
+test('refund migration adds refund statuses without destructive SQL', () => {
+  const migration = readRefundMigration();
+  assert.match(migration, /ALTER TYPE payment_status ADD VALUE IF NOT EXISTS 'refund_pending'/);
+  assert.match(migration, /ALTER TYPE payment_status ADD VALUE IF NOT EXISTS 'refunded'/);
+  assert.doesNotMatch(migration, /DROP TABLE|DROP TYPE|DELETE FROM|TRUNCATE/i);
 });

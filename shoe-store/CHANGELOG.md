@@ -4,6 +4,16 @@ File này ghi lại các thay đổi quan trọng của dự án để dễ theo
 
 ## Chưa phát hành
 
+### Bổ sung quy tắc README và Wiki
+
+- Quy định mọi hệ thống/tính năng mới phải cập nhật README, Wiki, trạng thái hiện tại, giới hạn và kế hoạch tiếp theo.
+- Thêm nguồn Wiki cục bộ tại `docs/wiki/Home.md`; ghi nhận Wiki GitHub chưa thể đồng bộ vì remote Wiki chưa tồn tại hoặc tài khoản chưa có quyền truy cập.
+
+### Sửa vỡ layout gợi ý tìm kiếm header
+
+- Khôi phục dropdown autocomplete dạng absolute, giới hạn chiều rộng và z-index để danh sách sản phẩm không làm giãn hoặc phá vỡ layout header trên desktop/mobile.
+- Bổ sung kiểm thử hồi quy cho vị trí và giới hạn layout của dropdown gợi ý.
+
 ### Cập nhật UI sản phẩm bán chạy
 
 - Thay bento grid bằng gallery sản phẩm mở rộng khi hover, hỗ trợ modal xem ảnh, điều hướng trước/sau, phím Escape và responsive cuộn ngang trên mobile.

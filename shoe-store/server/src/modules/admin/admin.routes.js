@@ -12,6 +12,7 @@ const {
   listOrders,
   getOrder,
   updateOrderStatus,
+  confirmVnpayRefund,
   listCategories,
   createCategory,
   updateCategory,
@@ -115,5 +116,10 @@ router.patch(
     res.json({ order });
   })
 );
+
+router.post('/orders/:id/refund-confirmation', asyncHandler(async (req, res) => {
+  const order = await confirmVnpayRefund(req.params.id);
+  res.json({ order });
+}));
 
 module.exports = router;

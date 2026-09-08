@@ -5,7 +5,8 @@ import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatMoney } from '../../components/ProductCard.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 import ItemPriceDetails from '../../components/ItemPriceDetails.jsx';
-import { colorLabel, orderStatusLabel, paymentStatusLabel } from '../../utils/formatters.js';
+import OrderTimeline from '../../components/OrderTimeline.jsx';
+import { colorLabel, orderStatusLabel, paymentMethodLabel, paymentStatusLabel } from '../../utils/formatters.js';
 import { formatOrderCode } from '../OrdersPage.jsx';
 
 const nextStatuses = {
@@ -62,6 +63,18 @@ export default function AdminOrderDetailPage() {
     }
   }
 
+  async function confirmRefund() {
+    setMessage('');
+    setError('');
+    try {
+      const data = await apiClient.post(`/api/admin/orders/${id}/refund-confirmation`, {}, { token });
+      setOrder(data.order);
+      setMessage('Đã xác nhận hoàn tiền VNPay.');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   if (status === 'loading') {
     return <p className="muted">Đang tải đơn hàng...</p>;
   }
@@ -81,6 +94,12 @@ export default function AdminOrderDetailPage() {
           </Link>
           <h1 id="admin-order-title">Đơn hàng {formatOrderCode(order)}</h1>
           <p>{order.customerEmail}</p>
+          <p>Phương thức: {paymentMethodLabel(order.paymentMethod)}</p>
+          <p className="muted">{order.paymentMethod === 'cod'
+            ? 'Khách thanh toán khi nhận hàng.'
+            : order.paymentStatus === 'refund_pending'
+              ? 'Đơn đã hủy; cần hoàn tiền cho khách rồi xác nhận.'
+              : 'Thanh toán online qua VNPay.'}</p>
           {order.note ? <p>Ghi chú: {order.note}</p> : null}
         </div>
         <div className="admin-status-stack">
@@ -97,7 +116,12 @@ export default function AdminOrderDetailPage() {
             Chuyển sang {orderStatusLabel(nextStatus)}
           </button>
         ))}
+        {order.paymentMethod === 'vnpay' && order.paymentStatus === 'refund_pending' ? (
+          <button type="button" onClick={confirmRefund}>Xác nhận đã hoàn tiền</button>
+        ) : null}
       </div>
+
+      <OrderTimeline order={order} />
 
       <div className="detail-grid">
         <section className="content-panel" aria-labelledby="admin-customer-title">
